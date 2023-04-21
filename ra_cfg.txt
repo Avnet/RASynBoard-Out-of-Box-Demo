@@ -54,7 +54,7 @@ FSP Configuration
     
   RA Common
     Main stack size (bytes): 0x400
-    Heap size (bytes): 0
+    Heap size (bytes): 1024
     MCU Vcc (mV): 3300
     Parameter checking: Disabled
     Assert Failures: Return FSP_ERR_ASSERTION
@@ -75,12 +75,12 @@ FSP Configuration
     PLL Src: HOCO
     PLL Div /2
     PLL Mul x20.0
-    PLL2 Disabled
+    PLL2 Src: HOCO
     PLL2 Div /2
-    PLL2 Mul x20.0
+    PLL2 Mul x24.0
     Clock Src: PLL
-    CLKOUT Disabled
-    UCLK Disabled
+    CLKOUT Src: LOCO
+    UCLK Src: PLL2
     OCTASPICLK Disabled
     ICLK Div /1
     PCLKA Div /2
@@ -98,48 +98,48 @@ FSP Configuration
     R7FA6M4AF3CFM.pincfg -> g_bsp_pin_cfg
       AVCC0 56 ANALOG0_AVCC0 - - - - - - - - IO "Read only" - 
       AVSS0 57 ANALOG0_AVSS0 - - - - - - - - IO "Read only" - 
-      P000 64 - - - - Disabled - - "ADC0: AN000; ADC1: AN100; ICU0: IRQ06" - None - - 
-      P001 63 - - - - Disabled - - "ADC0: AN001; ADC1: AN101; ICU0: IRQ07" - None - - 
-      P002 62 - - - - Disabled - - "ADC0: AN002; ADC1: AN102; ICU0: IRQ08" - None - - 
-      P003 61 - - - - Disabled - - "ADC0: AN003" - None - - 
-      P004 60 - - - - Disabled - - "ADC0: AN004; ICU0: IRQ09" - None - - 
-      P014 53 GPIO LED_R - - "Output mode (Initial Low)" CMOS - "ADC0: AN012; DAC0: DA0" "red led" IO - - 
-      P015 52 ICU0_IRQ13 - - IRQ13 "IRQ mode" - None "ADC0: AN013; DAC1: DA1; ICU0: IRQ13" - IO - - 
-      P100 48 SPI1_MISOB - Low None "Peripheral mode" CMOS None "AGT0: AGTIO0; BUS_ASYNCH0: D00; GPT_POEG0: GTETRGA; GPT5: GTIOC5B; ICU0: IRQ02; OSPI0: OMSCLK; QSPI0: QSPCLK; SCI0: RXD0; SCI0: SCL0; SCI1: SCK1; SPI1: MISOB" - IO - - 
-      P101 47 SPI1_MOSIB - Low None "Peripheral mode" CMOS None "AGT0: AGTEE0; BUS_ASYNCH0: D01; GPT_POEG1: GTETRGB; GPT5: GTIOC5A; ICU0: IRQ01; OSPI0: OMSIO7; QSPI0: QIO1; SCI0: SDA0; SCI0: TXD0; SCI1: CTSRTS1; SPI1: MOSIB" - IO - - 
-      P102 46 SPI1_RSPCKB - Low - "Peripheral mode" CMOS None "ADC0: ADTRG0; AGT0: AGTO0; BUS_ASYNCH0: D02; CAN0: CRX0; GPT_OPS0: GTOWLO; GPT2: GTIOC2B; OSPI0: OMSIO1; QSPI0: QIO0; SCI0: SCK0; SPI1: RSPCKB" - IO - - 
-      P103 45 GPIO CS_NDP Low - "Output mode (Initial High)" CMOS - "AGT2: AGTIO2; BUS_ASYNCH0: D03; CAN0: CTX0; GPT_OPS0: GTOWUP; GPT2: GTIOC2A; OSPI0: OMSIO6; QSPI0: QIO3; SCI0: CTSRTS0; SPI1: SSLB0" "ndp120 cs" IO - - 
-      P104 44 GPIO CS_SD Low None "Output mode (Initial High)" CMOS - "AGT2: AGTEE2; BUS_ASYNCH0: D04; GPT_POEG1: GTETRGB; GPT1: GTIOC1B; ICU0: IRQ01; OSPI0: OMDQS; QSPI0: QIO2; SCI8: RXD8; SCI8: SCL8; SPI1: SSLB1" "sdcard cs" IO - - 
-      P105 43 - - - - Disabled - - "AGT2: AGTO2; BUS_ASYNCH0: D05; GPT_POEG0: GTETRGA; GPT1: GTIOC1A; ICU0: IRQ00; OSPI0: OMSIO5; SCI8: SDA8; SCI8: TXD8; SPI1: SSLB2" - None - - 
-      P106 42 - - - - Disabled - - "AGT0: AGTOB0; BUS_ASYNCH0: D06; GPT8: GTIOC8B; OSPI0: OMSIO0; SCI8: SCK8; SPI1: SSLB3" - None - - 
-      P108 33 DEBUG0_TMS - Low - "Peripheral mode" CMOS None "AGT3: AGTOA3; DEBUG0: SWDIO; DEBUG0: TMS; GPT_OPS0: GTOULO; GPT0: GTIOC0B; SCI9: CTSRTS9; SPI0: SSLA0" - IO - - 
-      P109 34 DEBUG0_TDO - Low - "Peripheral mode" CMOS None "AGT3: AGTOB3; CAN1: CTX1; CGC0: CLKOUT; DEBUG0: TDO; DEBUG0: TRACESWO; GPT_OPS0: GTOVUP; GPT1: GTIOC1A; SCI9: SDA9; SCI9: TXD9; SPI0: MOSIA" - IO - - 
-      P110 35 DEBUG0_TDI - Low None "Peripheral mode" CMOS None "AGT3: AGTEE3; CAN1: CRX1; DEBUG0: TDI; GPT_OPS0: GTOVLO; GPT1: GTIOC1B; ICU0: IRQ03; SCI2: CTSRTS2; SCI9: RXD9; SCI9: SCL9; SPI0: MISOA" - IO - - 
-      P111 36 GPIO LED_B Low None "Output mode (Initial Low)" CMOS - "AGT5: AGTOA5; BUS_ASYNCH0: A05; GPT3: GTIOC3A; ICU0: IRQ04; SCI2: SCK2; SCI9: SCK9; SPI0: RSPCKA" "blue led" IO - - 
-      P112 37 GPIO LED_USER Low - "Output mode (Initial Low)" CMOS - "AGT5: AGTOB5; BUS_ASYNCH0: A04; GPT3: GTIOC3B; OSPI0: OMCS1; QSPI0: QSSL; SCI1: SCK1; SCI2: SDA2; SCI2: TXD2; SPI0: SSLA0; SSI0: SSIBCK0" "Green LED on core board" IO - - 
-      P113 38 - - - - Disabled - - "AGT5: AGTEE5; BUS_ASYNCH0: A03; GPT2: GTIOC2A; SCI2: RXD2; SCI2: SCL2; SSI0: SSILRCK0" - None - - 
-      P200 27 - - - - Disabled - - "ICU0: NMI" - None - - 
-      P201 26 - - - - Disabled - - "SYSTEM0: MD" - None - - 
-      P205 23 SCI4_TXD4 - Low None "Peripheral mode" CMOS None "AGT1: AGTO1; BUS_ASYNCH0: A16; CGC0: CLKOUT; CTSU0: TS01; ETHERC_MII0: ET0_WOL; ETHERC_RMII0: ET0_WOL; GPT_OPS0: GTIV; GPT4: GTIOC4A; ICU0: IRQ01; IIC1: SCL1; SCI4: SDA4; SCI4: TXD4; SCI9: CTSRTS9; SDHI0: SD0DAT3; SPI0: SSLA0; SSI0: SSILRCK0; USB_FS0: USB_OVRCURA" - IO - - 
-      P206 22 SCI4_RXD4 - Low None "Peripheral mode" CMOS None "BUS_ASYNCH0: WAIT; CTSU0: TS02; ETHERC_MII0: ET0_LINKSTA; ETHERC_RMII0: ET0_LINKSTA; GPT_OPS0: GTIU; ICU0: IRQ00; IIC1: SDA1; SCI4: RXD4; SCI4: SCL4; SCI9: CTS9; SDHI0: SD0DAT2; SPI0: SSLA1; SSI0: SSIDATA0; USB_FS0: USB_VBUSEN" - IO - - 
-      P207 21 - - - - Disabled - - "BUS_ASYNCH0: A17; CTSU0: TSCAP; QSPI0: QSSL; SCI4: SDA4; SCI4: TXD4; SPI0: SSLA2" - None - - 
-      P208 24 - - - - Disabled - - "BUS_ASYNCH0: CS4; DEBUG_TRACE0: TDATA3; ETHERC_MII0: ET0_LINKSTA; ETHERC_RMII0: ET0_LINKSTA; GPT_OPS0: GTOVLO; QSPI0: QIO3; SDHI0: SD0DAT0" - None - - 
-      P212 10 - - - - Disabled - - "AGT1: AGTEE1; CGC0: EXTAL; GPT_POEG3: GTETRGD; GPT0: GTIOC0B; ICU0: IRQ03; SCI1: RXD1; SCI1: SCL1" - None - - 
-      P213 9 - - - - Disabled - - "ADC1: ADTRG1; AGT2: AGTEE2; CGC0: XTAL; GPT_POEG2: GTETRGC; GPT0: GTIOC0A; ICU0: IRQ02; SCI1: SDA1; SCI1: TXD1" - None - - 
-      P300 32 DEBUG0_TCK - Low - "Peripheral mode" CMOS None "DEBUG0: SWCLK; DEBUG0: TCK; GPT_OPS0: GTOUUP; GPT0: GTIOC0A; SPI0: SSLA1" - IO - - 
-      P301 31 - - - - Disabled - - "AGT0: AGTIO0; BUS_ASYNCH0: A06; GPT_OPS0: GTOULO; GPT4: GTIOC4B; ICU0: IRQ06; SCI2: RXD2; SCI2: SCL2; SCI9: CTSRTS9; SPI0: SSLA2" - None - - 
-      P302 30 - - - - Disabled - - "BUS_ASYNCH0: A07; GPT_OPS0: GTOUUP; GPT4: GTIOC4A; ICU0: IRQ05; SCI2: SDA2; SCI2: TXD2; SPI0: SSLA3" - None - - 
-      P303 29 - - - - Disabled - - "BUS_ASYNCH0: A08; GPT7: GTIOC7B; SCI9: CTS9" - None - - 
-      P304 28 - - - - Disabled - - "AGT2: AGTEE2; BUS_ASYNCH0: A09; GPT_OPS0: GTOWLO; GPT7: GTIOC7A; ICU0: IRQ09; SCI6: RXD6; SCI6: SCL6" - None - - 
-      P400 1 IIC0_SCL0 - Medium None "Peripheral mode" CMOS None "ADC1: ADTRG1; AGT1: AGTIO1; ETHERC_MII0: ET0_WOL; ETHERC_RMII0: ET0_WOL; GPT6: GTIOC6A; ICU0: IRQ00; IIC0: SCL0; SCI4: SCK4; SCI7: SCK7; SSI_COMMON0: AUDIO_CLK" - IO - - 
-      P401 2 IIC0_SDA0 - Medium None "Peripheral mode" CMOS None "CAN0: CTX0; ETHERC_MII0: ET0_MDC; ETHERC_RMII0: ET0_MDC; GPT_POEG0: GTETRGA; GPT6: GTIOC6B; ICU0: IRQ05; IIC0: SDA0; SCI4: CTSRTS4; SCI7: SDA7; SCI7: TXD7" - IO - - 
-      P402 3 - - - - Disabled - - "AGT0: AGTIO0; AGT1: AGTIO1; AGT2: AGTIO2; AGT3: AGTIO3; CAC0: CACREF; CAN0: CRX0; ETHERC_MII0: ET0_MDIO; ETHERC_RMII0: ET0_MDIO; ICU0: IRQ04; RTC0: RTCIC0; SCI4: CTS4; SCI7: RXD7; SCI7: SCL7; SSI_COMMON0: AUDIO_CLK" - None - - 
-      P407 16 - - - - Disabled - - "ADC0: ADTRG0; AGT0: AGTIO0; CTSU0: TS03; ETHERC_MII0: ET0_EXOUT; ETHERC_RMII0: ET0_EXOUT; GPT6: GTIOC6A; IIC0: SDA0; RTC0: RTCOUT; SCI4: CTSRTS4; SPI0: SSLA3; USB_FS0: USB_VBUS" - None - - 
-      P408 15 - - - - Disabled - - "AGT2: AGTOB2; CTSU0: TS04; ETHERC_MII0: ET0_CRS; ETHERC_RMII0: RMII_CRS_DV; GPT_OPS0: GTOWLO; GPT6: GTIOC6B; ICU0: IRQ07; IIC0: SCL0; SCI3: RXD3; SCI3: SCL3; SCI4: CTS4; USB_FS0: USB_ID" - None - - 
-      P409 14 - - - - Disabled - - "AGT2: AGTOA2; CTSU0: TS05; ETHERC_MII0: ET0_RX_CLK; ETHERC_RMII0: RMII_RX_ER; GPT_OPS0: GTOWUP; ICU0: IRQ06; SCI3: SDA3; SCI3: TXD3; USB_FS0: USB_EXICEN" - None - - 
-      P410 13 ICU0_IRQ05 - - IRQ05 "IRQ mode" - None "AGT1: AGTOB1; CTSU0: TS06; ETHERC_MII0: ET0_ERXD0; ETHERC_RMII0: RMII_RXD1; GPT_OPS0: GTOVLO; GPT9: GTIOC9B; ICU0: IRQ05; SCI0: RXD0; SCI0: SCL0; SCI3: SCK3; SDHI0: SD0DAT1; SPI1: MISOB" - IO - - 
-      P411 12 GPIO LED_G Low None "Output mode (Initial Low)" CMOS - "AGT1: AGTOA1; CTSU0: TS07; ETHERC_MII0: ET0_ERXD1; ETHERC_RMII0: RMII_RXD0; GPT_OPS0: GTOVUP; GPT9: GTIOC9A; ICU0: IRQ04; SCI0: SDA0; SCI0: TXD0; SCI3: CTSRTS3; SDHI0: SD0DAT0; SPI1: MOSIB" "green led" IO - - 
-      P500 49 - - - - Disabled - - "ADC1: AN116; AGT0: AGTOA0; CAC0: CACREF; GPT_OPS0: GTIU; QSPI0: QSPCLK; SCI5: CTS5; USB_FS0: USB_VBUSEN" - None - - 
+      P000 64 GPIO - - None "Input mode" - None "ADC0: AN000; ADC1: AN100; ICU0: IRQ06" LIPO_IN IO - LIPO_IN 
+      P001 63 GPIO LED_R - None "Output mode (Initial Low)" CMOS - "ADC0: AN001; ADC1: AN101; ICU0: IRQ07" "red led" IO - LED_R 
+      P002 62 - - - - Disabled - - "ADC0: AN002; ADC1: AN102; ICU0: IRQ08" - None - J5_2 
+      P003 61 - - - - Disabled - - "ADC0: AN003" - None - J5_4 
+      P004 60 - - - - Disabled - - "ADC0: AN004; ICU0: IRQ09" - None - J5_12/PMOD_2 
+      P014 53 - - - - Disabled - - "ADC0: AN012; DAC0: DA0" - None - J5_11 
+      P015 52 ICU0_IRQ13 - - IRQ13 "IRQ mode" - None "ADC0: AN013; DAC1: DA1; ICU0: IRQ13" USER_BUTTON IO - USER_BUTTON 
+      P100 48 SPI1_MISOB - Low None "Peripheral mode" CMOS None "AGT0: AGTIO0; BUS_ASYNCH0: D00; GPT_POEG0: GTETRGA; GPT5: GTIOC5B; ICU0: IRQ02; OSPI0: OMSCLK; QSPI0: QSPCLK; SCI0: RXD0; SCI0: SCL0; SCI1: SCK1; SPI1: MISOB" SPI_MISO IO - SPI_MISO 
+      P101 47 SPI1_MOSIB - Low None "Peripheral mode" CMOS None "AGT0: AGTEE0; BUS_ASYNCH0: D01; GPT_POEG1: GTETRGB; GPT5: GTIOC5A; ICU0: IRQ01; OSPI0: OMSIO7; QSPI0: QIO1; SCI0: SDA0; SCI0: TXD0; SCI1: CTSRTS1; SPI1: MOSIB" SPI_MOSI IO - SPI_MOSI 
+      P102 46 SPI1_RSPCKB - Low - "Peripheral mode" CMOS None "ADC0: ADTRG0; AGT0: AGTO0; BUS_ASYNCH0: D02; CAN0: CRX0; GPT_OPS0: GTOWLO; GPT2: GTIOC2B; OSPI0: OMSIO1; QSPI0: QIO0; SCI0: SCK0; SPI1: RSPCKB" SPI_CLK IO - SPI_CLK 
+      P103 45 GPIO CS_NDP Low - "Output mode (Initial High)" CMOS - "AGT2: AGTIO2; BUS_ASYNCH0: D03; CAN0: CTX0; GPT_OPS0: GTOWUP; GPT2: GTIOC2A; OSPI0: OMSIO6; QSPI0: QIO3; SCI0: CTSRTS0; SPI1: SSLB0" SPI_NDP_CS IO - SPI_NDP_CS 
+      P104 44 GPIO CS_SD Low None "Output mode (Initial High)" CMOS - "AGT2: AGTEE2; BUS_ASYNCH0: D04; GPT_POEG1: GTETRGB; GPT1: GTIOC1B; ICU0: IRQ01; OSPI0: OMDQS; QSPI0: QIO2; SCI8: RXD8; SCI8: SCL8; SPI1: SSLB1" SPI_uSD_CS IO - SPI_uSD_CS 
+      P105 43 - - - - Disabled - - "AGT2: AGTO2; BUS_ASYNCH0: D05; GPT_POEG0: GTETRGA; GPT1: GTIOC1A; ICU0: IRQ00; OSPI0: OMSIO5; SCI8: SDA8; SCI8: TXD8; SPI1: SSLB2" - None - J5_7/PMOD_1 
+      P106 42 GPIO DA16600_RstPin Low - "Output mode (Initial High)" CMOS - "AGT0: AGTOB0; BUS_ASYNCH0: D06; GPT8: GTIOC8B; OSPI0: OMSIO0; SCI8: SCK8; SPI1: SSLB3" WLBT_RST IO - WLBT_RST 
+      P108 33 DEBUG0_SWDIO - Low - "Peripheral mode" CMOS None "AGT3: AGTOA3; DEBUG0: SWDIO; DEBUG0: TMS; GPT_OPS0: GTOULO; GPT0: GTIOC0B; SCI9: CTSRTS9; SPI0: SSLA0" SWDIO IO - SWDIO 
+      P109 34 SCI9_TXD9 - Low - "Peripheral mode" CMOS None "AGT3: AGTOB3; CAN1: CTX1; CGC0: CLKOUT; DEBUG0: TDO; DEBUG0: TRACESWO; GPT_OPS0: GTOVUP; GPT1: GTIOC1A; SCI9: SDA9; SCI9: TXD9; SPI0: MOSIA" UART_TXD9 IO - UART_TXD9 
+      P110 35 SCI9_RXD9 - Low None "Peripheral mode" CMOS None "AGT3: AGTEE3; CAN1: CRX1; DEBUG0: TDI; GPT_OPS0: GTOVLO; GPT1: GTIOC1B; ICU0: IRQ03; SCI2: CTSRTS2; SCI9: RXD9; SCI9: SCL9; SPI0: MISOA" UART_RXD9 IO - UART_RXD9 
+      P111 36 GPIO LED_B Low None "Output mode (Initial Low)" CMOS - "AGT5: AGTOA5; BUS_ASYNCH0: A05; GPT3: GTIOC3A; ICU0: IRQ04; SCI2: SCK2; SCI9: SCK9; SPI0: RSPCKA" "blue led" IO - LED_B 
+      P112 37 GPIO LED_USER Low - "Output mode (Initial Low)" CMOS - "AGT5: AGTOB5; BUS_ASYNCH0: A04; GPT3: GTIOC3B; OSPI0: OMCS1; QSPI0: QSSL; SCI1: SCK1; SCI2: SDA2; SCI2: TXD2; SPI0: SSLA0; SSI0: SSIBCK0" "Green LED on core board" IO - USER_LED 
+      P113 38 - - - - Disabled - - "AGT5: AGTEE5; BUS_ASYNCH0: A03; GPT2: GTIOC2A; SCI2: RXD2; SCI2: SCL2; SSI0: SSILRCK0" - None - WLBT_RTC_WAKE_UP2 
+      P200 27 - - - - Disabled - - "ICU0: NMI" - None - NMI_PIN 
+      P201 26 - - - - Disabled - - "SYSTEM0: MD" - None - MD 
+      P205 23 SCI4_TXD4 - Low None "Peripheral mode" CMOS None "AGT1: AGTO1; BUS_ASYNCH0: A16; CGC0: CLKOUT; CTSU0: TS01; ETHERC_MII0: ET0_WOL; ETHERC_RMII0: ET0_WOL; GPT_OPS0: GTIV; GPT4: GTIOC4A; ICU0: IRQ01; IIC1: SCL1; SCI4: SDA4; SCI4: TXD4; SCI9: CTSRTS9; SDHI0: SD0DAT3; SPI0: SSLA0; SSI0: SSILRCK0; USB_FS0: USB_OVRCURA" "UART4_TXD debug" IO - "UART4_TXD debug" 
+      P206 22 SCI4_RXD4 - Low None "Peripheral mode" CMOS None "BUS_ASYNCH0: WAIT; CTSU0: TS02; ETHERC_MII0: ET0_LINKSTA; ETHERC_RMII0: ET0_LINKSTA; GPT_OPS0: GTIU; ICU0: IRQ00; IIC1: SDA1; SCI4: RXD4; SCI4: SCL4; SCI9: CTS9; SDHI0: SD0DAT2; SPI0: SSLA1; SSI0: SSIDATA0; USB_FS0: USB_VBUSEN" "UART4_RXD debug" IO - "UART4_RXD debug" 
+      P207 21 GPIO LED_G Low - "Output mode (Initial Low)" CMOS - "BUS_ASYNCH0: A17; CTSU0: TSCAP; QSPI0: QSSL; SCI4: SDA4; SCI4: TXD4; SPI0: SSLA2" "green led" IO - LED_G 
+      P208 24 - - - - Disabled - - "BUS_ASYNCH0: CS4; DEBUG_TRACE0: TDATA3; ETHERC_MII0: ET0_LINKSTA; ETHERC_RMII0: ET0_LINKSTA; GPT_OPS0: GTOVLO; QSPI0: QIO3; SDHI0: SD0DAT0" WLBT_CTS None - WLBT_CTS 
+      P212 10 - - - - Disabled - - "AGT1: AGTEE1; CGC0: EXTAL; GPT_POEG3: GTETRGD; GPT0: GTIOC0B; ICU0: IRQ03; SCI1: RXD1; SCI1: SCL1" 24M_OUT None - 24M_IN 
+      P213 9 - - - - Disabled - - "ADC1: ADTRG1; AGT2: AGTEE2; CGC0: XTAL; GPT_POEG2: GTETRGC; GPT0: GTIOC0A; ICU0: IRQ02; SCI1: SDA1; SCI1: TXD1" 24M_IN None - 24M_IN 
+      P300 32 DEBUG0_SWCLK - Low - "Peripheral mode" CMOS None "DEBUG0: SWCLK; DEBUG0: TCK; GPT_OPS0: GTOUUP; GPT0: GTIOC0A; SPI0: SSLA1" SWCLK IO - SWCLK 
+      P301 31 - - - - Disabled - - "AGT0: AGTIO0; BUS_ASYNCH0: A06; GPT_OPS0: GTOULO; GPT4: GTIOC4B; ICU0: IRQ06; SCI2: RXD2; SCI2: SCL2; SCI9: CTSRTS9; SPI0: SSLA2" - None - J5_1 
+      P302 30 - - - - Disabled - - "BUS_ASYNCH0: A07; GPT_OPS0: GTOUUP; GPT4: GTIOC4A; ICU0: IRQ05; SCI2: SDA2; SCI2: TXD2; SPI0: SSLA3" - None - J5_3 
+      P303 29 - - - - Disabled - - "BUS_ASYNCH0: A08; GPT7: GTIOC7B; SCI9: CTS9" - None - J5_5 
+      P304 28 - - - - Disabled - - "AGT2: AGTEE2; BUS_ASYNCH0: A09; GPT_OPS0: GTOWLO; GPT7: GTIOC7A; ICU0: IRQ09; SCI6: RXD6; SCI6: SCL6" - None - "J5_6/Click Shuttle 4" 
+      P400 1 IIC0_SCL0 - Medium None "Peripheral mode" CMOS None "ADC1: ADTRG1; AGT1: AGTIO1; ETHERC_MII0: ET0_WOL; ETHERC_RMII0: ET0_WOL; GPT6: GTIOC6A; ICU0: IRQ00; IIC0: SCL0; SCI4: SCK4; SCI7: SCK7; SSI_COMMON0: AUDIO_CLK" "I2C0 SCL for PMIC" IO - "I2C0 SCL for PMIC" 
+      P401 2 IIC0_SDA0 - Medium None "Peripheral mode" CMOS None "CAN0: CTX0; ETHERC_MII0: ET0_MDC; ETHERC_RMII0: ET0_MDC; GPT_POEG0: GTETRGA; GPT6: GTIOC6B; ICU0: IRQ05; IIC0: SDA0; SCI4: CTSRTS4; SCI7: SDA7; SCI7: TXD7" "I2C0 SDA for PMIC" IO - "I2C0 SDA for PMIC" 
+      P402 3 GPIO - - None "Input mode" - None "AGT0: AGTIO0; AGT1: AGTIO1; AGT2: AGTIO2; AGT3: AGTIO3; CAC0: CACREF; CAN0: CRX0; ETHERC_MII0: ET0_MDIO; ETHERC_RMII0: ET0_MDIO; ICU0: IRQ04; RTC0: RTCIC0; SCI4: CTS4; SCI7: RXD7; SCI7: SCL7; SSI_COMMON0: AUDIO_CLK" WLBT_INT IO - WLBT_INT 
+      P407 16 USB_FS0_USB_VBUS - Low - "Peripheral mode" CMOS None "ADC0: ADTRG0; AGT0: AGTIO0; CTSU0: TS03; ETHERC_MII0: ET0_EXOUT; ETHERC_RMII0: ET0_EXOUT; GPT6: GTIOC6A; IIC0: SDA0; RTC0: RTCOUT; SCI4: CTSRTS4; SPI0: SSLA3; USB_FS0: USB_VBUS" VBUS_IN IO - VBUS_IN 
+      P408 15 SCI3_RXD3 - Low None "Peripheral mode" CMOS None "AGT2: AGTOB2; CTSU0: TS04; ETHERC_MII0: ET0_CRS; ETHERC_RMII0: RMII_CRS_DV; GPT_OPS0: GTOWLO; GPT6: GTIOC6B; ICU0: IRQ07; IIC0: SCL0; SCI3: RXD3; SCI3: SCL3; SCI4: CTS4; USB_FS0: USB_ID" WLBT_RXD IO - WLBT_RXD 
+      P409 14 SCI3_TXD3 - Low None "Peripheral mode" CMOS None "AGT2: AGTOA2; CTSU0: TS05; ETHERC_MII0: ET0_RX_CLK; ETHERC_RMII0: RMII_RX_ER; GPT_OPS0: GTOWUP; ICU0: IRQ06; SCI3: SDA3; SCI3: TXD3; USB_FS0: USB_EXICEN" WLBT_TXD IO - WLBT_TXD 
+      P410 13 ICU0_IRQ05 - - IRQ05 "IRQ mode" - None "AGT1: AGTOB1; CTSU0: TS06; ETHERC_MII0: ET0_ERXD0; ETHERC_RMII0: RMII_RXD1; GPT_OPS0: GTOVLO; GPT9: GTIOC9B; ICU0: IRQ05; SCI0: RXD0; SCI0: SCL0; SCI3: SCK3; SDHI0: SD0DAT1; SPI1: MISOB" NDP_INT IO - NDP_INT 
+      P411 12 SCI3_CTSRTS3 - Low None "Peripheral mode" CMOS None "AGT1: AGTOA1; CTSU0: TS07; ETHERC_MII0: ET0_ERXD1; ETHERC_RMII0: RMII_RXD0; GPT_OPS0: GTOVUP; GPT9: GTIOC9A; ICU0: IRQ04; SCI0: SDA0; SCI0: TXD0; SCI3: CTSRTS3; SDHI0: SD0DAT0; SPI1: MOSIB" WLBT_RTS IO - WLBT_RTS 
+      P500 49 - - - - Disabled - - "ADC1: AN116; AGT0: AGTOA0; CAC0: CACREF; GPT_OPS0: GTIU; QSPI0: QSPCLK; SCI5: CTS5; USB_FS0: USB_VBUSEN" - None - "J5_8/Click Shuttle 3" 
       RES 25 SYSTEM0_RES - - - - - - - - IO "Read only" - 
       USBDM 18 USB_FS0_USB_DM - - - - - - - - IO "Read only" - 
       USBDP 19 USB_FS0_USB_DP - - - - - - - - IO "Read only" - 
@@ -169,6 +169,56 @@ FSP Configuration
     Parameter Checking: Default (BSP)
     
   Module "FreeRTOS Port (rm_freertos_port)"
+  Module "UART (r_sci_uart)"
+    Parameter Checking: Default (BSP)
+    FIFO Support: Disable
+    DTC Support: Disable
+    Flow Control Support: Disable
+    RS-485 Support: Disable
+    
+  Module "I2C Master (r_iic_master)"
+    Parameter Checking: Default (BSP)
+    DTC on Transmission and Reception: Disabled
+    10-bit slave addressing: Disabled
+    
+  Module "External IRQ (r_icu)"
+    Parameter Checking: Default (BSP)
+    
+  Module "SPI (r_spi)"
+    Parameter Checking: Default (BSP)
+    Enable Support for using a transfer API: Enabled
+    Enable Transmitting from RXI Interrupt: Enabled
+    
+  Module "Low Power Modes (r_lpm)"
+    Parameter Checking: Default (BSP)
+    Standby Limit: Disabled
+    
+  Module "USB PCDC (r_usb_pcdc)"
+    Bulk In Pipe: USB PIPE1
+    Bulk Out Pipe: USB PIPE2
+    Interrupt Out Pipe: USB PIPE6
+    
+  Module "USB (r_usb_basic)"
+    Parameter Checking: Default (BSP)
+    PLL Frequency: Not Supported
+    CPU Bus Access Wait Cycles: Not Supported
+    Battery Charging: Not Supported
+    Power IC Shutdown Polarity: Active High
+    Dedicated Charging Port (DCP) Mode: Not Supported
+    Notifications for SET_INTERFACE/SET_FEATURE/CLEAR_FEATURE: Enabled
+    Double Buffering: Enabled
+    Continuous Transfer Mode: Not Supported
+    LDO Regulator: Not Supported
+    DMA Support: Enabled
+    DMA Source Address: FS Address
+    DMA Destination Address: FS Address
+    USB Compliance Test mode: Disabled
+    USB TPL table name: NULL
+    
+  Module "Transfer (r_dmac)"
+    Parameter Checking: Default (BSP)
+    
+  Module "FreeRTOS Heap 4"
   FreeRTOS
     General: Custom FreeRTOSConfig.h: 
     General: Use Preemption: Enabled
@@ -188,7 +238,7 @@ FSP Configuration
     General: Use 16-bit Ticks: Disabled
     General: Idle Should Yield: Enabled
     General: Use Task Notifications: Enabled
-    General: Use Mutexes: Disabled
+    General: Use Mutexes: Enabled
     General: Use Recursive Mutexes: Disabled
     General: Use Counting Semaphores: Enabled
     Hooks: Check For Stack Overflow: Disabled
@@ -201,8 +251,8 @@ FSP Configuration
     General: Stack Depth Type: uint32_t
     General: Message Buffer Length Type: size_t
     Memory Allocation: Support Static Allocation: Enabled
-    Memory Allocation: Support Dynamic Allocation: Disabled
-    Memory Allocation: Total Heap Size: 0
+    Memory Allocation: Support Dynamic Allocation: Enabled
+    Memory Allocation: Total Heap Size: 32768
     Memory Allocation: Application Allocated Heap: Disabled
     Stats: Generate Run Time Stats: Disabled
     Timers: Use Timers: Enabled
@@ -225,7 +275,7 @@ FSP Configuration
     Optional Functions: xTaskGetIdleTaskHandle() Function: Disabled
     Optional Functions: eTaskGetState() Function: Disabled
     Optional Functions: xEventGroupSetBitFromISR() Function: Enabled
-    Optional Functions: xTimerPendFunctionCall() Function: Disabled
+    Optional Functions: xTimerPendFunctionCall() Function: Enabled
     Optional Functions: xTaskAbortDelay() Function: Disabled
     Optional Functions: xTaskGetHandle() Function: Disabled
     Optional Functions: xTaskResumeFromISR() Function: Enabled
@@ -244,12 +294,252 @@ FSP Configuration
       Pin Configuration Name: g_bsp_pin_cfg
       
     Instance "FreeRTOS Port (rm_freertos_port)"
+    Instance "g_uart4 UART (r_sci_uart)"
+      General: Name: g_uart4
+      General: Channel: 4
+      General: Data Bits: 8bits
+      General: Parity: None
+      General: Stop Bits: 1bit
+      Baud: Baud Rate: 115200
+      Baud: Baud Rate Modulation: Disabled
+      Baud: Max Error (%): 5
+      Flow Control: CTS/RTS Selection: Hardware RTS
+      Flow Control: Software RTS Port: Disabled
+      Flow Control: Software RTS Pin: Disabled
+      Extra: Clock Source: Internal Clock
+      Extra: Start bit detection: Falling Edge
+      Extra: Noise Filter: Disable
+      Extra: Receive FIFO Trigger Level: Max
+      Extra: RS-485: DE Pin: Disable
+      Extra: RS-485: DE Pin Polarity: Active High
+      Extra: RS-485: DE Port Number: Disabled
+      Extra: RS-485: DE Pin Number: Disabled
+      Interrupts: Callback: console_callback
+      Interrupts: Receive Interrupt Priority: Priority 3
+      Interrupts: Transmit Data Empty Interrupt Priority: Priority 3
+      Interrupts: Transmit End Interrupt Priority: Priority 3
+      Interrupts: Error Interrupt Priority: Priority 3
+      
+    Instance "g_spi1_master SPI (r_spi)"
+      Name: g_spi1_master
+      Channel: 1
+      Receive Interrupt Priority: Priority 9
+      Transmit Buffer Empty Interrupt Priority: Priority 10
+      Transfer Complete Interrupt Priority: Priority 12
+      Error Interrupt Priority: Priority 12
+      Operating Mode: Master
+      Clock Phase: Data sampling on odd edge, data variation on even edge
+      Clock Polarity: Low when idle
+      Mode Fault Error: Disable
+      Bit Order: MSB First
+      Callback: spi1_master_callback
+      SPI Mode: Clock Synchronous Operation
+      Full or Transmit Only Mode: Full Duplex
+      Slave Select Polarity: Active Low
+      Select SSL(Slave Select): SSL0
+      MOSI Idle State: MOSI Idle Value Fixing Disable
+      Parity Mode: Disabled
+      Byte Swapping: Disable
+      Bitrate: 20000000
+      Clock Delay: 1 Clock
+      SSL Negation Delay: 1 Clock
+      Next Access Delay: 1 Clock
+      
+    Instance "g_btn_ext_irq13 External IRQ (r_icu)"
+      Name: g_btn_ext_irq13
+      Channel: 13
+      Trigger: Both Edges
+      Digital Filtering: Enabled
+      Digital Filtering Sample Clock (Only valid when Digital Filtering is Enabled): PCLK / 64
+      Callback: button_callback
+      Pin Interrupt Priority: Priority 13
+      
+    Instance "g_uart3 UART (r_sci_uart)"
+      General: Name: g_uart3
+      General: Channel: 3
+      General: Data Bits: 8bits
+      General: Parity: None
+      General: Stop Bits: 1bit
+      Baud: Baud Rate: 115200
+      Baud: Baud Rate Modulation: Disabled
+      Baud: Max Error (%): 5
+      Flow Control: CTS/RTS Selection: Hardware RTS
+      Flow Control: Software RTS Port: Disabled
+      Flow Control: Software RTS Pin: Disabled
+      Extra: Clock Source: Internal Clock
+      Extra: Start bit detection: Falling Edge
+      Extra: Noise Filter: Disable
+      Extra: Receive FIFO Trigger Level: Max
+      Extra: RS-485: DE Pin: Disable
+      Extra: RS-485: DE Pin Polarity: Active High
+      Extra: RS-485: DE Port Number: Disabled
+      Extra: RS-485: DE Pin Number: Disabled
+      Interrupts: Callback: ble_uart_callback
+      Interrupts: Receive Interrupt Priority: Priority 3
+      Interrupts: Transmit Data Empty Interrupt Priority: Priority 3
+      Interrupts: Transmit End Interrupt Priority: Priority 3
+      Interrupts: Error Interrupt Priority: Priority 3
+      
+    Instance "g_lpm0 Low Power Modes (r_lpm)"
+      General: Name: g_lpm0
+      General: Low Power Mode: Software Standby mode
+      General: Output port state in standby and deep standby: No change
+      Standby Options: Wake Sources: IRQ5, IRQ13
+      Standby Options: Snooze Request Source: RXD0 falling edge
+      Standby Options: Snooze End Sources: 
+      Standby Options: DTC state in Snooze Mode: Disabled
+      Standby Options: Snooze Cancel Source: None
+      Deep Standby Options: I/O Port Retention: Maintain the IO port states
+      Deep Standby Options: Power-Supply Control: Supply power to the Standby SRAM, low-speed on-chip oscillator, AGTn (n = 0-3) and USBFS resume detecting unit
+      Deep Standby Options: Cancel Sources: 
+      Deep Standby Options: Cancel Edges: 
+      
+    Instance "g_pcdc USB PCDC (r_usb_pcdc)"
+      Name: g_pcdc
+      
+      Instance "g_basic USB (r_usb_basic)"
+        Name: g_basic
+        USB Mode: Peri mode
+        USB Speed: Full Speed
+        USB Module Number: USB_IP0 Port
+        USB Device Class: Peripheral Communications Device Class
+        USB Descriptor: g_usb_descriptor
+        USB Compliance Callback: NULL
+        USBFS Interrupt Priority: Priority 12
+        USBFS Resume Priority: Priority 12
+        USBFS D0FIFO Interrupt Priority: Priority 12
+        USBFS D1FIFO Interrupt Priority: Priority 12
+        USBHS Interrupt Priority: Not Supported
+        USBHS D0FIFO Interrupt Priority: Not Supported
+        USBHS D1FIFO Interrupt Priority: Not Supported
+        USB RTOS Callback: usb_pcdc_callback
+        USB Callback Context: NULL
+        
+        Instance "g_transfer0 Transfer (r_dmac) USBFS FIFO 1 (DMA transfer request 1)"
+          Name: g_transfer0
+          Channel: 0
+          Mode: Block
+          Transfer Size: 2 Bytes
+          Destination Address Mode: Fixed
+          Source Address Mode: Incremented
+          Repeat Area (Unused in Normal Mode): Destination
+          Destination Pointer: USB_DEST_ADDRESS
+          Source Pointer: 0
+          Number of Transfers: 0
+          Number of Blocks (Valid only in Repeat,Block or Repeat-Block Mode): 0
+          Activation Source: USBFS FIFO 1 (DMA transfer request 1)
+          Callback: usb_ip0_d1fifo_callback
+          Context: NULL
+          Transfer End Interrupt Priority: Priority 3
+          Interrupt Frequency: Interrupt after all transfers have completed
+          Offset value (Valid only when address mode is \'Offset\'): 0
+          Source Buffer Size: 1
+          
+        Instance "g_transfer1 Transfer (r_dmac) USBFS FIFO 0 (DMA transfer request 0)"
+          Name: g_transfer1
+          Channel: 1
+          Mode: Block
+          Transfer Size: 2 Bytes
+          Destination Address Mode: Incremented
+          Source Address Mode: Fixed
+          Repeat Area (Unused in Normal Mode): Source
+          Destination Pointer: 0
+          Source Pointer: USB_SRC_ADDRESS
+          Number of Transfers: 0
+          Number of Blocks (Valid only in Repeat,Block or Repeat-Block Mode): 0
+          Activation Source: USBFS FIFO 0 (DMA transfer request 0)
+          Callback: NULL
+          Context: NULL
+          Transfer End Interrupt Priority: Priority 3
+          Interrupt Frequency: Interrupt after all transfers have completed
+          Offset value (Valid only when address mode is \'Offset\'): 0
+          Source Buffer Size: 1
+          
+    Instance "FreeRTOS Heap 4"
   Thread "LED IDLE Thread"
     Symbol: led_threadx
     Name: LED IDLE Thread
     Stack size (bytes): 1024
-    Priority: tskIDLE_PRIORITY
+    Priority: 2
     Thread Context: NULL
     Memory Allocation: Static
     Allocate Secure Context: Enable
+    
+  Thread "NDP Thread"
+    Symbol: ndp_thread
+    Name: NDP Thread
+    Stack size (bytes): 32768
+    Priority: 4
+    Thread Context: NULL
+    Memory Allocation: Static
+    Allocate Secure Context: Enable
+    
+    Instance "g_i2c0_master I2C Master (r_iic_master)"
+      Name: g_i2c0_master
+      Channel: 0
+      Rate: Standard
+      Rise Time (ns): 120
+      Fall Time (ns): 120
+      Duty Cycle (%): 50
+      Slave Address: 0x2F
+      Address Mode: 7-Bit
+      Timeout Mode: Short Mode
+      Timeout during SCL Low: Enabled
+      Callback: i2c0_master_callback
+      Interrupt Priority Level: Priority 12
+      
+    Instance "g_ndp_ext_irq05 External IRQ (r_icu)"
+      Name: g_ndp_ext_irq05
+      Channel: 5
+      Trigger: Rising
+      Digital Filtering: Enabled
+      Digital Filtering Sample Clock (Only valid when Digital Filtering is Enabled): PCLK / 64
+      Callback: ndp_irq_service
+      Pin Interrupt Priority: Priority 14
+      
+  Thread "SysCMD Thread"
+    Symbol: system_cmd_thread
+    Name: SysCMD Thread
+    Stack size (bytes): 1024
+    Priority: 2
+    Thread Context: NULL
+    Memory Allocation: Static
+    Allocate Secure Context: Enable
+    
+  Thread "Record Thread"
+    Symbol: ndp_record_thread
+    Name: Record Thread
+    Stack size (bytes): 8192
+    Priority: 1
+    Thread Context: NULL
+    Memory Allocation: Static
+    Allocate Secure Context: Enable
+    
+  Object "g_binary_semaphore Binary Semaphore"
+    Symbol: g_binary_semaphore
+    Memory Allocation: Static
+    
+  Object "g_ndp_event_group Event Group"
+    Symbol: g_ndp_event_group
+    Memory Allocation: Static
+    
+  Object "g_timer Timer"
+    Name: LoopTimer
+    Symbol: g_timer
+    Period (Ticks): 2
+    Auto Reload: True
+    Timer ID: NULL
+    Callback: g_timer_callback
+    Memory Allocation: Static
+    
+  Object "g_led_queue Queue"
+    Symbol: g_led_queue
+    Item Size (Bytes): 4
+    Queue Length (Items): 10
+    Memory Allocation: Static
+    
+  Object "g_ndp_mutex Mutex"
+    Symbol: g_ndp_mutex
+    Type: Mutex
+    Memory Allocation: Static
     

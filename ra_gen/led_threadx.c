@@ -34,7 +34,7 @@ void led_threadx_create(void)
                                      led_threadx_func,
                                      (const char*) "LED IDLE Thread", 1024 / 4, // In words, not bytes
                                      (void*) &led_threadx_parameters, //pvParameters
-                                     tskIDLE_PRIORITY,
+                                     2,
 #if 1
                                      (StackType_t*) &led_threadx_stack,
                                      (StaticTask_t*) &led_threadx_memory

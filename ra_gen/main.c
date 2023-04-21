@@ -5,6 +5,12 @@
 #include "semphr.h"
 extern void led_threadx_create(void);
 extern TaskHandle_t led_threadx;
+extern void ndp_thread_create(void);
+extern TaskHandle_t ndp_thread;
+extern void system_cmd_thread_create(void);
+extern TaskHandle_t system_cmd_thread;
+extern void ndp_record_thread_create(void);
+extern TaskHandle_t ndp_record_thread;
 uint32_t g_fsp_common_thread_count;
 bool g_fsp_common_initialized;
 SemaphoreHandle_t g_fsp_common_initialized_semaphore;
@@ -103,6 +109,9 @@ int main(void)
 
     /* Init RTOS tasks. */
     led_threadx_create ();
+    ndp_thread_create ();
+    system_cmd_thread_create ();
+    ndp_record_thread_create ();
 
     /* Start the scheduler. */
     vTaskStartScheduler ();

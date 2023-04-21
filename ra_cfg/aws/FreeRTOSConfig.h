@@ -72,7 +72,7 @@ FSP_HEADER
 #define configUSE_TASK_NOTIFICATIONS (1)
 #endif
 #ifndef configUSE_MUTEXES
-#define configUSE_MUTEXES (0)
+#define configUSE_MUTEXES (1)
 #endif
 #ifndef configUSE_RECURSIVE_MUTEXES
 #define configUSE_RECURSIVE_MUTEXES (0)
@@ -114,10 +114,10 @@ FSP_HEADER
 #define configSUPPORT_STATIC_ALLOCATION (1)
 #endif
 #ifndef configSUPPORT_DYNAMIC_ALLOCATION
-#define configSUPPORT_DYNAMIC_ALLOCATION (0)
+#define configSUPPORT_DYNAMIC_ALLOCATION (1)
 #endif
 #ifndef configTOTAL_HEAP_SIZE
-#define configTOTAL_HEAP_SIZE (0)
+#define configTOTAL_HEAP_SIZE (32768)
 #endif
 #ifndef configAPPLICATION_ALLOCATED_HEAP
 #define configAPPLICATION_ALLOCATED_HEAP (0)
@@ -198,7 +198,7 @@ FSP_HEADER
 #define INCLUDE_xEventGroupSetBitFromISR (1)
 #endif
 #ifndef INCLUDE_xTimerPendFunctionCall
-#define INCLUDE_xTimerPendFunctionCall (0)
+#define INCLUDE_xTimerPendFunctionCall (1)
 #endif
 #ifndef INCLUDE_xTaskAbortDelay
 #define INCLUDE_xTaskAbortDelay (0)

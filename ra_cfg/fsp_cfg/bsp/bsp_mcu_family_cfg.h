@@ -77,17 +77,17 @@ extern "C" {
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 1) /* CAN1 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 2) /* CAN0 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 8) /* IIC1 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 9) /* IIC0 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 11) /* USBFS */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 18) /* SPI1 */ | \
+            (((1 > 0) ? 0U : 1U) << 9) /* IIC0 */ | \
+            (((1 > 0) ? 0U : 1U) << 11) /* USBFS */ | \
+            (((1 > 0) ? 0U : 1U) << 18) /* SPI1 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 19) /* SPI0 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 22) /* SCI9 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 23) /* SCI8 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 24) /* SCI7 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 25) /* SCI6 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 26) /* SCI5 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 27) /* SCI4 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 28) /* SCI3 */ | \
+            (((1 > 0) ? 0U : 1U) << 27) /* SCI4 */ | \
+            (((1 > 0) ? 0U : 1U) << 28) /* SCI3 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 29) /* SCI2 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 30) /* SCI1 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 31) /* SCI0 */ | \
@@ -142,7 +142,7 @@ extern "C" {
 #ifndef BSP_TZ_CFG_MSSAR
 #define BSP_TZ_CFG_MSSAR (\
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 0) /* ELC */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 1) /* DTC_DMAC */ | \
+            (((2 > 0) ? 0U : 1U) << 1) /* DTC_DMAC */ | \
             0xfffffffc) /* Unused */
 #endif
 
@@ -168,11 +168,11 @@ extern "C" {
 
 /* Security attribution for LPM registers. */
 #ifndef BSP_TZ_CFG_LPMSAR
-#define BSP_TZ_CFG_LPMSAR ((RA_NOT_DEFINED > 0) ? 0xFFFFFCEAU : 0xFFFFFFFFU)
+#define BSP_TZ_CFG_LPMSAR ((1 > 0) ? 0xFFFFFCEAU : 0xFFFFFFFFU)
 #endif
 /* Deep Standby Interrupt Factor Security Attribution Register. */
 #ifndef BSP_TZ_CFG_DPFSAR
-#define BSP_TZ_CFG_DPFSAR ((RA_NOT_DEFINED > 0) ? 0xF2E00000U : 0xFFFFFFFFU)
+#define BSP_TZ_CFG_DPFSAR ((1 > 0) ? 0xF2E00000U : 0xFFFFFFFFU)
 #endif
 
 /* Security attribution for CGC registers. */
@@ -199,7 +199,7 @@ extern "C" {
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 2U) /* External IRQ2 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 3U) /* External IRQ3 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 4U) /* External IRQ4 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 5U) /* External IRQ5 */ | \
+            (((1 > 0) ? 0U : 1U) << 5U) /* External IRQ5 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 6U) /* External IRQ6 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 7U) /* External IRQ7 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 8U) /* External IRQ8 */ | \
@@ -207,7 +207,7 @@ extern "C" {
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 10U) /* External IRQ10 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 11U) /* External IRQ11 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 12U) /* External IRQ12 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 13U) /* External IRQ13 */ | \
+            (((1 > 0) ? 0U : 1U) << 13U) /* External IRQ13 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 14U) /* External IRQ14 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 15U) /* External IRQ15 */ | \
             0xFFFF0000U)
@@ -221,8 +221,8 @@ extern "C" {
 /* Security attribution for registers for DMAC channels */
 #ifndef BSP_TZ_CFG_ICUSARC
 #define BSP_TZ_CFG_ICUSARC (\
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 0U) /* DMAC Channel 0 */ | \
-            (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 1U) /* DMAC Channel 1 */ | \
+            (((1 > 0) ? 0U : 1U) << 0U) /* DMAC Channel 0 */ | \
+            (((1 > 0) ? 0U : 1U) << 1U) /* DMAC Channel 1 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 2U) /* DMAC Channel 2 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 3U) /* DMAC Channel 3 */ | \
             (((RA_NOT_DEFINED > 0) ? 0U : 1U) << 4U) /* DMAC Channel 4 */ | \
@@ -234,17 +234,17 @@ extern "C" {
 
 /* Security attribution registers for SELSR0. */
 #ifndef BSP_TZ_CFG_ICUSARD
-#define BSP_TZ_CFG_ICUSARD ((RA_NOT_DEFINED > 0) ? 0xFFFFFFFEU : 0xFFFFFFFFU)
+#define BSP_TZ_CFG_ICUSARD ((1 > 0) ? 0xFFFFFFFEU : 0xFFFFFFFFU)
 #endif
 
 /* Security attribution registers for WUPEN0. */
 #ifndef BSP_TZ_CFG_ICUSARE
-#define BSP_TZ_CFG_ICUSARE ((RA_NOT_DEFINED > 0) ? 0x04F2FFFFU : 0xFFFFFFFFU)
+#define BSP_TZ_CFG_ICUSARE ((1 > 0) ? 0x04F2FFFFU : 0xFFFFFFFFU)
 #endif
 
 /* Security attribution registers for WUPEN1. */
 #ifndef BSP_TZ_CFG_ICUSARF
-#define BSP_TZ_CFG_ICUSARF ((RA_NOT_DEFINED > 0) ? 0xFFFFFFF8U : 0xFFFFFFFFU)
+#define BSP_TZ_CFG_ICUSARF ((1 > 0) ? 0xFFFFFFF8U : 0xFFFFFFFFU)
 #endif
 
 /* Set DTCSTSAR if the Secure program uses the DTC. */
