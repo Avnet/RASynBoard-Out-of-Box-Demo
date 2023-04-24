@@ -25,12 +25,10 @@ extern "C" {
 
 #include "syntiant_common.h"
 
-#define EXT_CLK_INDEX       20
-#define FLL_START_INDEX     13
 
 #define EXT_CLOCK_FREQ      (21504000)
+#define PLL_FLL_CLOCK_FREQ  (32768)
 #define PDM_CLOCK_FREQ      (768000)
-#define FLL_CLOCK_FREQ      (32768)
 
 #define STRING_LEN 256
 #define MAX_LABELS 64
@@ -198,6 +196,14 @@ enum {
     NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT            = 0x00,
     NDP_CORE2_CONFIG_VALUE_GPIO_DIR_IN             = 0x01
 };
+
+enum {
+    NDP_CORE2_CONFIG_CLOCK_OPTION_PLL               = 0,
+    NDP_CORE2_CONFIG_CLOCK_OPTION_FLL               = 1,
+    NDP_CORE2_CONFIG_CLOCK_OPTION_EXT               = 2,
+    NDP_CORE2_CONFIG_CLOCK_OPTION_NONE              = -1
+};
+
 
 extern int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal);
 extern int ndp_core2_platform_tiny_feature_set(int feature_flag);

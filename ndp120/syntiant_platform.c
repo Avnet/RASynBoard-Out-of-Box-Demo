@@ -47,7 +47,7 @@
 #define SYNTIANT_TRACE(...)
 #endif
 
-#define NDP_BU_TEST    //disable it when bring up done
+//#define NDP_BU_TEST    //disable it after bring up done
 
 static char *labels[SYNTIANT_NDP120_MAX_CLASSES];
 static char *labels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS]
@@ -331,7 +331,16 @@ enum {
     PLL_PRESET_OP_VOLTAGE_1p1
 };
 
-#define ARRAY_LEN(v)    (sizeof(v)/sizeof(v[0]))
+typedef struct {
+    const char *name;
+    int operating_voltage;
+    uint32_t input_freq;
+    uint32_t output_freq;
+} ndp120_pll_preset_t;
+
+/* Define the table of PLL settings */
+ndp120_pll_preset_t ndp120_pll_preset = 
+        {"mode_0p9v_21p504MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 21504000};
 
 typedef struct {
     const char *name;
@@ -342,50 +351,62 @@ typedef struct {
 } ndp120_fll_preset_t;
 
 /* Define the table of FLL settings */
-ndp120_fll_preset_t ndp120_fll_presets[] = {
-    {"mode_fll_0p9v_15p360MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 15360000, 768000},
-    {"mode_fll_0p9v_16p896MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 16896000, 768000},
-    { NULL, 0, 0, 0, 0}
-};
-
-uint8_t ndp120_fll_presets_elements = ARRAY_LEN(ndp120_fll_presets);
+ndp120_fll_preset_t ndp120_fll_preset = 
+        {"mode_fll_0p9v_16p896MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 16896000, 768000};
 
 static int do_clock_config(struct syntiant_ndp120_tiny_device_s *ndp, 
         uint8_t clock_option, int use_xtal)
 {
     int s = SYNTIANT_NDP_ERROR_NONE;
     struct syntiant_ndp120_tiny_clk_config_data cfg;
+    uint32_t mb_resp;
+
     memset(&cfg, 0, sizeof(cfg));
 
-    ndp120_fll_preset_t *fll_preset;
-    uint8_t fll_start_idx = FLL_START_INDEX;
-    uint8_t fll_end_idx = fll_start_idx + ndp120_fll_presets_elements - 2;
+    switch (clock_option) {
+        case NDP_CORE2_CONFIG_CLOCK_OPTION_PLL:
+            SYNTIANT_TRACE("lock pll %s xtal\n", (use_xtal)?"with":"without");
+            cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_PLL;
+            if (use_xtal) { /* XTAL */
+                cfg.ref_type = 1;
+            } else { /* clkpad */
+                cfg.ref_type = 0;
+            }
+            cfg.core_freq = ndp120_pll_preset.output_freq;
+            cfg.voltage = ndp120_pll_preset.operating_voltage;
+            cfg.ref_freq = ndp120_pll_preset.input_freq;
+            break;
 
-    if (clock_option == EXT_CLK_INDEX) {
-        cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_EXT;
-        cfg.ref_type = 0; /* ext clock uses clkpad as refsel */
-        cfg.ref_freq = EXT_CLOCK_FREQ;
-        cfg.core_freq = cfg.ref_freq;
-        cfg.voltage = PLL_PRESET_OP_VOLTAGE_0p9;
-    } else if ((clock_option <= fll_end_idx) &&
-               (clock_option >= fll_start_idx)) { /* use FLL */
-        cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_FLL;
-        if (use_xtal) { /* XTAL */
-            cfg.ref_type = 1;
-        } else { /* clkpad */
-            cfg.ref_type = 0;
-        }
-        fll_preset = &ndp120_fll_presets[clock_option - fll_start_idx];
-        cfg.core_freq = fll_preset->output_freq;
-        cfg.voltage = fll_preset->operating_voltage;
-        cfg.ref_freq = FLL_CLOCK_FREQ;
-    } else {
-        SYNTIANT_TRACE("Invalid option: %d\n", clock_option);
-        s = SYNTIANT_NDP_ERROR_ARG;
-        goto error;
+        case NDP_CORE2_CONFIG_CLOCK_OPTION_FLL:
+            SYNTIANT_TRACE("lock fll %s xtal\n", (use_xtal)?"with":"without");
+            cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_FLL;
+            if (use_xtal) { /* XTAL */
+                cfg.ref_type = 1;
+            } else { /* clkpad */
+                cfg.ref_type = 0;
+            }
+            cfg.core_freq = ndp120_fll_preset.output_freq;
+            cfg.voltage = ndp120_fll_preset.operating_voltage;
+            cfg.ref_freq = ndp120_fll_preset.input_freq;
+            break;
+
+        case NDP_CORE2_CONFIG_CLOCK_OPTION_EXT:
+            SYNTIANT_TRACE("direct external clockl\n");
+            cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_EXT;
+            cfg.ref_type = 0; /* ext clock uses clkpad as refsel */
+            cfg.ref_freq = EXT_CLOCK_FREQ;
+            cfg.core_freq = cfg.ref_freq;
+            cfg.voltage = PLL_PRESET_OP_VOLTAGE_0p9;
+            break;
+
+        default:
+            s = SYNTIANT_NDP_ERROR_ARG;
+            SYNTIANT_TRACE("Invalid option: %d\n", clock_option);
+            goto error;
     }
 
-    s = syntiant_ndp120_tiny_clock_cfg(ndp, &cfg);
+    s = syntiant_ndp120_tiny_clock_cfg(ndp, &cfg, &mb_resp);
+    SYNTIANT_TRACE("tiny mb_resp: 0x%x\n", mb_resp);
 
 error:
     return s;
@@ -410,8 +431,8 @@ enum {
 /**
  * Load from codes
 */
-#include "synpkg_files/mcu_fw_120.h"
-#define MCU_FIRMWARE_ARRAY    MCU_FW_120_SYNPKG
+#include "synpkg_files/mcu_fw_120_new.h"
+#define MCU_FIRMWARE_ARRAY    MCU_FW_120_NEW_SYNPKG
 
 /** DSP firmware
 */
@@ -422,8 +443,8 @@ enum {
 */
 
 #if 1
-#include "synpkg_files/menu_demo_512_noaec_newph_v96_RASYN.h"
-#define NN_FIRMWARE_ARRAY   MENU_DEMO_512_NOAEC_NEWPH_V96_RASYN_SYNPKG
+#include "synpkg_files/menu_demo_512_noaec_newph_v96_evb.h"
+#define NN_FIRMWARE_ARRAY   MENU_DEMO_512_NOAEC_NEWPH_V96_EVB_SYNPKG
 #endif
 
 
@@ -526,8 +547,33 @@ static int do_flash_load_synpkg(struct syntiant_ndp120_tiny_device_s *ndp,
 
     return s;
 }
-#elif defined(NDP_LOAD_SD)
 
+#elif defined(LOAD_FROM_FLASH)
+
+static int load_from_flash(struct syntiant_ndp120_tiny_device_s *ndp)
+{
+    int s = SYNTIANT_NDP120_ERROR_NONE;
+
+    s = syntiant_ndp120_tiny_poll_notification(ndp,
+            SYNTIANT_NDP120_NOTIFICATION_BOOTING);
+    if (s) {
+        printf("poll_notification failed %d\n", s);
+        goto done;
+    }
+
+    s = syntiant_ndp120_tiny_boot_from_flash(ndp);
+    if (s) {
+        printf("boot from flash error %d\n", s);
+        goto done;
+    }
+
+    printf("boot from flash ok\n");
+
+done:
+    return s;
+}
+
+#elif defined(NDP_LOAD_AUTO)
 #include "fat_load.h"
 
 /**
@@ -569,8 +615,6 @@ static int do_fat_load_synpkg(struct syntiant_ndp120_tiny_device_s *ndp,
     return s;
 }
 
-#elif defined(LOAD_FROM_FLASH)
-
 static int load_from_flash(struct syntiant_ndp120_tiny_device_s *ndp)
 {
     int s = SYNTIANT_NDP120_ERROR_NONE;
@@ -592,6 +636,70 @@ static int load_from_flash(struct syntiant_ndp120_tiny_device_s *ndp)
 
 done:
     return s;
+}
+
+static int do_auto_load_synpkg(struct syntiant_ndp_device_s *ndp)
+{
+    int s = 0;
+
+	SYNTIANT_TRACE("================================\r\n");
+	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
+	{
+		// Prefer loading from SDcard
+		SYNTIANT_TRACE("Load From SD card\n");
+
+		/* load mcu file */
+		s = do_fat_load_synpkg(ndp, mcu_file_name);
+		if(s) {
+			SYNTIANT_TRACE("load ndp120 mcu failed\n");
+			return s;
+		}
+
+		/* load dsp file */
+		s = do_fat_load_synpkg(ndp, dsp_file_name);
+		if(s) {
+			SYNTIANT_TRACE("load ndp120 dsp failed\n");
+			return s;
+		}
+		s = syntiant_ndp120_tiny_poll_notification(ndp,
+				SYNTIANT_NDP120_NOTIFICATION_DSP_RUNNING);
+		if (s) {
+			SYNTIANT_TRACE("check dsp running failed\n");
+			return s;
+		}
+
+		/* load nn file */
+		s = do_fat_load_synpkg(ndp, model_file_name);
+		if(s) {
+			SYNTIANT_TRACE("load ndp120 nn failed\n");
+			return s;
+		}
+	}
+	else
+	{
+		SYNTIANT_TRACE("Load and Boot From FLASH\n");
+
+		/* set HOLD pin */
+		s = ndp_core2_platform_gpio_config(7, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
+		if (s) {
+			SYNTIANT_TRACE("set HOLD pin failed %d\n", s);
+			return s;
+		}
+
+		s = syntiant_ndp120_tiny_soft_flash_boot(ndp);
+		if (s) {
+			SYNTIANT_TRACE("set soft boot from flash failed %d\n", s);
+			/* fall thru anyway */
+		}
+		s =  load_from_flash(ndp);
+		if (s) {
+			SYNTIANT_TRACE("Error loading from flash %d\n", s);
+			return s;
+		}
+	}
+	SYNTIANT_TRACE("================================\r\n");
+
+	return s;
 }
 #endif
 
@@ -676,46 +784,13 @@ static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp)
         goto error;
     }
 
-#elif defined(NDP_LOAD_SD)
-    if (get_synpkg_boot_mode() != BOOT_MODE_SD){
-        SYNTIANT_TRACE("SD card is not available\n");
-        s = SYNTIANT_NDP_ERROR_PACKAGE;
-        goto error;
-    }
-
-    /* load mcu file */
-    s = do_fat_load_synpkg(ndp, mcu_file_name);
-    if(s) {
-        SYNTIANT_TRACE("load ndp120 mcu failed\n");
-        goto error;
-    }
-
-    /* load dsp file */
-    s = do_fat_load_synpkg(ndp, dsp_file_name);
-    if(s) {
-        SYNTIANT_TRACE("load ndp120 dsp failed\n");
-        goto error;
-    }
-    s = syntiant_ndp120_tiny_poll_notification(ndp,
-            SYNTIANT_NDP120_NOTIFICATION_DSP_RUNNING);
-    if (s) {
-        SYNTIANT_TRACE("check dsp running failed\n");
-        goto error;
-    }
-
-    /* load nn file */
-    s = do_fat_load_synpkg(ndp, model_file_name);
-    if(s) {
-        SYNTIANT_TRACE("load ndp120 nn failed\n");
-        goto error;
-    }
-
 #elif defined(LOAD_FROM_FLASH)
 /**
  * FLASH is attched to NDP 
  */
     /* via MB command */
     SYNTIANT_TRACE("MB BOOT FROM FLASH...\n");
+
     s = syntiant_ndp120_tiny_soft_flash_boot(ndp);
     if (s) {
         SYNTIANT_TRACE("set soft boot from flash failed %d\n", s);
@@ -726,6 +801,14 @@ static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp)
         SYNTIANT_TRACE("Error loading from flash %d\n", s);
         goto error;
     }
+
+#elif defined(NDP_LOAD_AUTO)
+    /* load fw files */
+    s = do_auto_load_synpkg(ndp);
+    if(s) {
+        goto error;
+    }
+
 #endif
 
     SYNTIANT_TRACE("finished loading ndp120 binary\n");
@@ -933,8 +1016,8 @@ int ndp_core2_platform_tiny_match_process(uint8_t *nn_id, uint8_t *match_id,
     if(s) return s;
 
     summary = match.summary;
-    SYNTIANT_TRACE("get_match_summary: summary=0x%x, last_network_id=%d\n",
-           summary, ndpp->last_network_id);
+    //SYNTIANT_TRACE("get_match_summary: summary=0x%x, last_network_id=%d\n",
+    //       summary, ndpp->last_network_id);
 
     if (summary & NDP120_SPI_MATCH_MATCH_MASK) {
         match_found = 1;
@@ -1152,9 +1235,9 @@ int ndp_core2_platform_gpio_config(int gpio_num, uint32_t dir, uint32_t value)
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
     struct syntiant_ndp120_config_gpio_s config;
 
-    if (!ndp120->initialized) {
+    /*if (!ndp120->initialized) {
         return SYNTIANT_NDP_ERROR_UNINIT;
-    }
+    }*/
 
     memset(&config, 0, sizeof(struct syntiant_ndp120_config_gpio_s));
     config.gpio_num = gpio_num;

@@ -36,16 +36,12 @@
 #define FLASH_NN_LENGTH					417828
 #endif
 
-/* boot from SD card */
-#define NDP_LOAD_SD
-#define LOAD_SPLIT_SIZE_FAT     4096
 
-/* load from FATFS on uSD card Preferentially */
+/* load from SD card Preferentially, otherwise boot from Flash */
 #define NDP_LOAD_AUTO
-
-
+#define LOAD_SPLIT_SIZE_FAT     4096
 /* boot from flash */
-//#define LOAD_FROM_FLASH
+// #define LOAD_FROM_FLASH
 
 /* SPI rate */
 #define DEFAULT_SPI_RATE                8000000

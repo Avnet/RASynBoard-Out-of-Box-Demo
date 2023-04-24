@@ -894,7 +894,7 @@ struct syntiant_ndp120_config_gpio_s{
  * @return a @c SYNTIANT_NDP_ERROR_* code
  */
 int syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
-        struct syntiant_ndp120_tiny_clk_config_data *cfg);
+        struct syntiant_ndp120_tiny_clk_config_data *cfg, uint32_t *mb_resp);
 
 /**
  * @brief get info from the device

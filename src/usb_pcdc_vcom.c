@@ -49,7 +49,7 @@ void start_usb_pcdc_thread( void )
 	/* create a emaphore with a count value of 1 */
 	g_usb_semaphore = xSemaphoreCreateCounting( 1, 1 );
 	/* create stream buffea stream buffer to save data */
-    g_streambuffer = xStreamBufferCreate(DATA_BUFFER_LENGTH_BYTES, 10 );
+    g_streambuffer = xStreamBufferCreate(DATA_BUFFER_LENGTH_BYTES, 3 );
     //vTaskDelay (10);
 #endif
 }

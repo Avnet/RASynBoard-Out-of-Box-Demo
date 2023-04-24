@@ -202,6 +202,107 @@ int check_sdcard_env(void)
     return 0;
 }
 
+uint32_t cat_file(char * src_file, char * dst_file, int flag)
+{
+    FRESULT res;
+    FIL fil_rd, fil_wr;
+    char path[64];
+	uint8_t buffer[512];
+    uint32_t br, bw;
+
+    res = f_mount(&fatfs_obj, "", 1);
+    if(res != FR_OK){
+        printf("f_mount fail %d\r\n",res);
+        return res;
+    }
+
+	/* open src file to read */
+	memset(path, 0, sizeof(path));
+	sprintf(path, "0:/%s", src_file);
+	res = f_open(&fil_rd, path, FA_READ);
+	if(res != FR_OK){
+		printf("f_open fail %d\r\n",res);
+		return res;
+	}
+
+	/* open src file to read */
+	memset(path, 0, sizeof(path));
+	sprintf(path, "0:/%s", dst_file);
+	if ( flag == 0) {
+		/* create a new file */
+		res = f_open(&fil_wr, path, FA_CREATE_ALWAYS | FA_WRITE);
+	} else {
+		/* append data to file */
+		res = f_open(&fil_wr, path, FA_OPEN_APPEND | FA_WRITE);
+	}
+	if(res != FR_OK){
+		printf("f_open fail %d\r\n",res);
+		return res;
+	}
+
+	/* Copy source to destination */
+    while (1) {
+		res = f_read(&fil_rd, buffer, sizeof(buffer), &br); 
+		if(res != FR_OK){
+			printf("f_read fail %d\r\n",res);
+			return res;
+		}
+
+        if (br == 0)
+			break; /* error or eof */
+
+        res = f_write(&fil_wr, buffer, br, &bw);
+		if(res != FR_OK){
+			printf("f_write fail %d\r\n",res);
+			return res;
+		}
+        if (bw < br)
+			break; /* error or disk full */
+    }
+
+    res =  f_close(&fil_rd);
+    if(res != FR_OK){
+        printf("f_close fail %d\r\n",res);
+    }
+    res =  f_close(&fil_wr);
+    if(res != FR_OK){
+        printf("f_close fail %d\r\n",res);
+    }
+
+    res = f_unmount("");
+    if(res != FR_OK){
+        printf("f_mount umount fail %d\r\n",res);
+    }
+    return bw;
+}
+
+uint32_t remove_file(char * file_name)
+{
+    FRESULT res;
+    char path[64];
+
+    sprintf(path, "0:/%s", file_name);
+
+    res = f_mount(&fatfs_obj, "", 1);
+    if(res != FR_OK){
+        printf("f_mount fail %d\r\n",res);
+        return res;
+    }
+
+	/* delete file */
+	res = f_unlink(path);
+	if(res != FR_OK){
+		printf("f_unlink fail %d\r\n",res);
+		return res;
+	}
+
+  res = f_unmount("");
+    if(res != FR_OK){
+        printf("f_mount umount fail %d\r\n",res);
+    }
+    return res;
+}
+
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
 {
     FRESULT res;
@@ -356,102 +457,3 @@ uint32_t get_synpkg_boot_mode( void )
 {
 	return boot_mode;
 }
-
-#ifdef DEBUG_TEST_BIN_LOADING
-#define LINELEN 81
-#define CHARS_PER_LINE 16
-static char *print_char =
-    "                "
-    "                "
-    " !\"#$%&'()*+,-./"
-    "0123456789:;<=>?"
-    "@ABCDEFGHIJKLMNO"
-    "PQRSTUVWXYZ[\\]^_"
-    "`abcdefghijklmno"
-    "pqrstuvwxyz{|}~ "
-    "                "
-    "                "
-    " ???????????????"
-    "????????????????"
-    "????????????????"
-    "????????????????"
-    "????????????????"
-    "????????????????";
-
-
-void dump_buf(const char *prompt, char *data, int len)
-{
-    int rc;
-    int idx;
-    char prn[LINELEN];
-    char lit[CHARS_PER_LINE + 1];
-    char hc[4];
-    short line_done = 1;
-
-    if( prompt )
-    {
-        printf("%s\r\n", prompt);
-    }
-
-    rc = len;
-    idx = 0;
-    lit[CHARS_PER_LINE] = '\0';
-    while (rc > 0)
-    {
-        if (line_done)
-            snprintf(prn, LINELEN, "%08X: ", idx);
-        do
-        {
-            unsigned char c = data[idx];
-            snprintf(hc, 4, "%02X ", c);
-            strncat(prn, hc, 4);
-            lit[idx % CHARS_PER_LINE] = print_char[c];
-            ++idx;
-        } while (--rc > 0 && (idx % CHARS_PER_LINE != 0));
-        line_done = (idx % CHARS_PER_LINE) == 0;
-        if (line_done)
-            printf("%s  %s\r\n", prn, lit);
-        else if (rc == 0)
-            strncat(prn, "   ", LINELEN);
-    }
-    if (!line_done)
-    {
-        lit[(idx % CHARS_PER_LINE)] = '\0';
-        while ((++idx % CHARS_PER_LINE) != 0)
-            strncat(prn, "   ", LINELEN);
-
-        printf("%s  %s\r\n", prn, lit);
-    }
-}
-
-
-#define LOAD_SPLIT_SIZE (256)
-
-void test_bianry_loading(void)
-{
-    unsigned char split_data[LOAD_SPLIT_SIZE];
-    int split_index = 0;
-    int split_len;
-
-    uint32_t package_len, read_size;
-    char synpkg_name[] = "mcu_fw_120.synpkg";
-
-    package_len = get_synpkg_size(synpkg_name);
-    printf("%s = %u\r\n", synpkg_name, package_len);
-
-
-    while (split_index < package_len) {
-        split_len = (LOAD_SPLIT_SIZE<(package_len-split_index))?
-                    LOAD_SPLIT_SIZE:(package_len-split_index);
-
-        read_size = read_synpkg_block(synpkg_name, split_index, split_data, split_len);
-        // dump data block
-        printf("read_size=%u:split_index=%u, split_len=%u\r\n",read_size, split_index, split_len);
-
-        dump_buf("", split_data, LOAD_SPLIT_SIZE);
-
-        split_index += split_len;
-    }
-
-}
-#endif

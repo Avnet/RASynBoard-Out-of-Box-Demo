@@ -67,15 +67,6 @@ enum SPI_FLASH_TRANSFER_TYPE {
 	SPI_FLASH_TYPE_NONE  = 3,
 };
 
-typedef union _ndp_fw_size {
-    struct ndp_fw_info {
-        uint32_t mcu_len;
-        uint32_t dsp_len;
-        uint32_t model_len;
-    }fw;
-    uint8_t size[16];
-}ndp_fw_len_t;
-
 int ndp_flash_init(void);
 uint16_t ndp_flash_get_deviceid(void);
 uint32_t ndp_flash_get_JEDEC_ID(void);
@@ -94,7 +85,5 @@ int ndp_flash_write_block(uint32_t address, uint8_t *buff, uint32_t length);
 
 void ndp_flash_print_data(uint32_t address, uint32_t count);
 int ndp_flash_program_all_fw(void);
-int ndp_flash_store_fw_info(void);
-int ndp_flash_get_fw_info(ndp_fw_len_t *info);
 
 #endif

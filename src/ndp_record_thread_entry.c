@@ -55,9 +55,9 @@ void ndp_record_thread_entry(void *pvParameters)
 	printf("Record_thread running\n");
 
 	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
-		printf("INFO: NDP record data should be saved to SD card,  \n");
-		printf("Exit Record_thread!\n");
-		return;
+	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
+	    vTaskDelete(NULL);
+	    vTaskDelay (1);
 	}
 #if 0
     s = ndp_core2_platform_tiny_get_samplesize(&sample_size);

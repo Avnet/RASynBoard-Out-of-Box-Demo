@@ -37,4 +37,7 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
 
+uint32_t cat_file(char * src_file, char * dst_file, int flag);
+uint32_t remove_file(char * file_name);
+
 #endif /* FAT_LOAD_H_ */

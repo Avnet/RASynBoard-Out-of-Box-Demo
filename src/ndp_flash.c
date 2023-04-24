@@ -384,44 +384,26 @@ static int ndp_flash_program_firmware(uint32_t address, char * file_name)
 int ndp_flash_program_all_fw(void)
 {
     int ret;
+	char flash_file_name[] = "temp_flash.bin";
 
 	printf("FLASH chip erase ...\n");
 	ret = ndp_flash_chip_erase();
 	if (ret) return ret;
 
     printf("FLASH programming starts ...\n");
-	ret = ndp_flash_program_firmware(FLASH_MCU_ADDR, mcu_file_name);
-	if (ret) return ret;
+	//concatenate files
+	printf("concatenate synpkg files\n");
+	cat_file(mcu_file_name, flash_file_name, 0);
+	cat_file(dsp_file_name, flash_file_name, 1);
+	cat_file(model_file_name, flash_file_name, 1);
 
-	ret = ndp_flash_program_firmware(FLASH_DSP_ADDR, dsp_file_name);
-	if (ret) return ret;
+	//flash boot file
+	ret = ndp_flash_program_firmware(0x00, flash_file_name);
 
-	ret = ndp_flash_program_firmware(FLASH_NN_ADDR, model_file_name);
+	//remove file
+	printf("remove %s \n", flash_file_name);
+	remove_file(flash_file_name);
+
     return ret;
 }
 
-int ndp_flash_store_fw_info(void)
-{
-    ndp_fw_len_t pkgs;
-
-    pkgs.fw.mcu_len = get_synpkg_size(mcu_file_name);
-    pkgs.fw.dsp_len = get_synpkg_size(dsp_file_name);
-    pkgs.fw.model_len = get_synpkg_size(model_file_name);
-
-	ndp_flash_page_erase(FLASH_FW_INFO_ADDR);
-	ndp_flash_write_page(FLASH_FW_INFO_ADDR, pkgs.size, sizeof(pkgs.size));
-
-	printf("\nStore to Flash: MCU 0x%X bytes, DSP 0x%X bytes, AIModel 0x%X bytes\n", \
-					pkgs.fw.mcu_len,  pkgs.fw.dsp_len,  pkgs.fw.model_len);
-
-	return 0;
-}
-
-int ndp_flash_get_fw_info(ndp_fw_len_t *info)
-{
-	ndp_flash_read_page(FLASH_FW_INFO_ADDR, info->size, sizeof(ndp_fw_len_t));
-	if (( ((int32_t)info->fw.mcu_len) < 0  ) || ( info->fw.mcu_len > (FLASH_MCU_LENGTH *2) ))
-		return  1;
-
-	return 0;
-}

@@ -1163,7 +1163,7 @@ error:
 
 int
 syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
-    struct syntiant_ndp120_tiny_clk_config_data *cfg)
+    struct syntiant_ndp120_tiny_clk_config_data *cfg, uint32_t *mb_resp)
 {
     int s = SYNTIANT_NDP120_ERROR_NONE;
     uint32_t addr = SYNTIANT_NDP120_CMD_RAM;
@@ -1181,7 +1181,7 @@ syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
 
     /* alerts DSP to start/stop execution */
     s = syntiant_ndp120_tiny_do_mailbox_req_no_sync(
-        ndp, SYNTIANT_NDP120_MB_MCU_CMD, NULL);
+        ndp, SYNTIANT_NDP120_MB_MCU_CMD, mb_resp);
 
 error:
     return s;

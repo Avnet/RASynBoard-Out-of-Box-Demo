@@ -67,6 +67,8 @@ void ndp_thread_entry(void *pvParameters)
     DA9231_open();
     DA9231_disable();
     DA9231_enable();
+    //R_BSP_SoftwareDelay(1000, BSP_DELAY_UNITS_MILLISECONDS);
+   // DA9231_dump_regs();
     DA9231_close();
 
     ndp_irq_init();
@@ -79,7 +81,7 @@ void ndp_thread_entry(void *pvParameters)
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
     /* Start NDP120 program */
-    ret = ndp_core2_platform_tiny_start(14, 1);
+    ret = ndp_core2_platform_tiny_start(0, 1);
     if(ret == 0) {
         printf("ndp_core2_platform_tiny_start done\r\n");
         xSemaphoreGive(g_binary_semaphore);
@@ -94,6 +96,8 @@ void ndp_thread_entry(void *pvParameters)
     }
     /* Enable NDP IRQ */
     ndp_irq_enable();
+
+
 
     memset(&last_stat, 0, sizeof(blink_msg_t));
     memset(&current_stat, 0, sizeof(blink_msg_t));
@@ -141,7 +145,7 @@ void ndp_thread_entry(void *pvParameters)
 					{
 						/*Judging the received 'Down""Down' keyword*/
 						TickType_t duration = current_stat.timestamp - last_stat.timestamp;
-						//printf("duration time =%d \n", duration);
+						printf("duration time =%d \n", duration);
 						if ( duration < pdMS_TO_TICKS(3000UL) )
 						{
 							/* valid, send led blink envent */
@@ -191,17 +195,22 @@ void ndp_thread_entry(void *pvParameters)
 				turn_led(BSP_LEDRED, BSP_LEDON);
 				ndp_flash_init();
 				ndp_flash_program_all_fw();
-				ndp_flash_store_fw_info();
 
 				turn_led(BSP_LEDRED, BSP_LEDOFF);
 				turn_led(BSP_LEDGREEN, BSP_LEDON);
-				/* display the data from spi Flash */
-				ndp_flash_print_data(FLASH_FW_INFO_ADDR, 16);
-				ndp_flash_print_data(FLASH_MCU_ADDR, 80);
-				ndp_flash_print_data(FLASH_DSP_ADDR, 80);
-				ndp_flash_print_data(FLASH_NN_ADDR, 80);
+#ifdef  FLASH_READBACK_CHECK
+                for(int i=0; i<3000 ; i++)
+                {
+                    uint8_t pdata[256];
+                    uint32_t address = i * 256;
+                    memset(pdata, 0, sizeof(pdata));
+                    ndp_flash_read_block(address, pdata, 256);
+                    write_wav_file("readback_flash.bin", pdata,  256, i+1);
+                }
+#endif
 				vTaskDelay (100);
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
+				printf ("Finished programming!\n\n");
 			}
 			else
 			{
