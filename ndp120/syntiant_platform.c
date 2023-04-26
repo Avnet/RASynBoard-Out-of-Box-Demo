@@ -685,6 +685,12 @@ static int do_auto_load_synpkg(struct syntiant_ndp_device_s *ndp)
 			SYNTIANT_TRACE("set HOLD pin failed %d\n", s);
 			return s;
 		}
+        /* set MSSB1/GPIO1 pin */
+        s = ndp_core2_platform_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
+        if (s) {
+            SYNTIANT_TRACE("set IMU MSSB1 failed %d\n", s);
+            return s;
+        }
 
 		s = syntiant_ndp120_tiny_soft_flash_boot(ndp);
 		if (s) {
