@@ -30,6 +30,7 @@ int  led_event_color[] = { \
 /* Local global variables */
 static FATFS fatfs_obj;
 static int boot_mode =  BOOT_MODE_NONE;
+static int print_console_type = CONSOLE_UART;
 
 void init_fatfs(void)
 {
@@ -363,6 +364,7 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
 static uint32_t read_config_file( void )
 {
     FRESULT res;
+    FILINFO fno;
     char inifile[] = "0:/config.ini";
     char color[16] = {0};
     char key[6] = {0};
@@ -372,6 +374,13 @@ static uint32_t read_config_file( void )
     res = f_mount(&fatfs_obj, "", 1);
     if(res != FR_OK){
         printf("f_mount fail %d\r\n",res);
+        return res;
+    }
+
+    /* checks the existence of a file */
+    res = f_stat (inifile, &fno);
+    if(res == FR_NO_FILE){
+        f_unmount("");
         return res;
     }
 
@@ -417,6 +426,7 @@ static uint32_t read_config_file( void )
 			led_event_color[idx] = LED_EVENT_NONE;
 		}
 	}
+	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 
     // unmount
     res = f_mount(NULL, "", 0);
@@ -437,6 +447,7 @@ uint32_t get_synpkg_config_info( void )
 		boot_mode = BOOT_MODE_SD;
 	}else{
 		boot_mode = BOOT_MODE_EMMC;
+		print_console_type = CONSOLE_USB_CDC;
 		return 0;
 	}
 
@@ -456,4 +467,9 @@ uint32_t get_synpkg_config_info( void )
 uint32_t get_synpkg_boot_mode( void )
 {
 	return boot_mode;
+}
+
+int get_print_console_type( void )
+{
+    return print_console_type;
 }

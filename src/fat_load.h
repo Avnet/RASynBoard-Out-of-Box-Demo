@@ -18,6 +18,12 @@ enum FW_LOAD_TYPE {
 	BOOT_MODE_NONE,
 };
 
+enum DBG_PRINT_CONSOLE_TYPE {
+    CONSOLE_UART = 1,
+    CONSOLE_USB_CDC = 2,
+    CONSOLE_NONE,
+};
+
 #define   LED_EVENT_NUM        10
 
 extern char mcu_file_name[32];
@@ -36,6 +42,7 @@ int check_sdcard_env(void);
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header);
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
+int get_print_console_type( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

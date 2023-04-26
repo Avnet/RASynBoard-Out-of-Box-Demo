@@ -11,15 +11,8 @@
 #include <stdio.h>
 #include "r_sci_uart.h"
 #include "hal_data.h"
+#include "fat_load.h"
 
-/* To implement _write() to redirect the printf(),
- * enable DEBUG_CONSOLE_USB_CDC to print via USB CDC
- * or enable DEBUG_CONSOLE_UART to print by UART.
- */
-//#define DEBUG_CONSOLE_USB_CDC
-#ifndef DEBUG_CONSOLE_USB_CDC
-  #define DEBUG_CONSOLE_UART
-#endif
 
 /* UART micro */
 #define g_console(x)    &g_uart4_##x

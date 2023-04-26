@@ -1,5 +1,4 @@
 #include "usb_pcdc_vcom.h"
-#include "console.h"
 
 //#define USB_COM_ECHO
 
@@ -23,9 +22,8 @@ SemaphoreHandle_t g_usb_semaphore;
 StreamBufferHandle_t g_streambuffer;
 static portTASK_FUNCTION_PROTO(usb_pcdc_thread_entry, pvParameters );
 
-/* redirecting output */
-#ifdef  DEBUG_CONSOLE_USB_CDC
-int _write(int fd, char *pBuffer, int size)
+/* print by USB VCOM */
+int usb_pcdc_print(char *pBuffer, int size)
 {
 	if (true == b_usb_attach)
 	{
@@ -34,11 +32,10 @@ int _write(int fd, char *pBuffer, int size)
 
     return size;
 }
-#endif
+
 
 void start_usb_pcdc_thread( void )
 {
-#ifdef  DEBUG_CONSOLE_USB_CDC
 	/* create a task to send data via usb */
 	xTaskCreate(usb_pcdc_thread_entry,
 		(const char*) "USB PCDC Thread", 
@@ -51,7 +48,6 @@ void start_usb_pcdc_thread( void )
 	/* create stream buffea stream buffer to save data */
     g_streambuffer = xStreamBufferCreate(DATA_BUFFER_LENGTH_BYTES, 3 );
     //vTaskDelay (10);
-#endif
 }
 
 /* USB PCDC Thread entry function */

@@ -40,10 +40,10 @@ void g_timer_callback(TimerHandle_t xTimer)
 
     if (tim % 2 ){
         User_Led_on();
-        xTimerChangePeriod(g_timer, pdMS_TO_TICKS(1000UL), 0);
+        xTimerChangePeriod(g_timer, pdMS_TO_TICKS(200UL), 0);
     } else {
         User_Led_off();
-        xTimerChangePeriod(g_timer, pdMS_TO_TICKS(1500UL), 0);
+        xTimerChangePeriod(g_timer, pdMS_TO_TICKS(2000UL), 0);
     }
     tim ++;
 }

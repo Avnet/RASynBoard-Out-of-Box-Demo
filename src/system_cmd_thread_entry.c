@@ -58,9 +58,11 @@ void system_cmd_thread_entry(void *pvParameters)
 				turn_led(BSP_LEDBLUE, BSP_LEDOFF);
 				/* Enter sleep mode */
 				vTaskDelay (2000);
+				R_USB_Close (&g_basic_ctrl);/* close usb */
 				wifi_sleep();
 				r_lpm_sleep();
 				wifi_wakup();
+				R_USB_Open (&g_basic_ctrl, &g_basic_cfg);/* open usb */
 				break;
 			default :
 				break;

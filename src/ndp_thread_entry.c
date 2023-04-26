@@ -58,7 +58,6 @@ void ndp_thread_entry(void *pvParameters)
     R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
     R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
     /* will create a task if using USB CDC */
-    start_usb_pcdc_thread();
     console_init();
     spi_init();
 
@@ -80,6 +79,12 @@ void ndp_thread_entry(void *pvParameters)
     R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
+    /* Choose the appropriate debug print console */
+    if (get_print_console_type() == CONSOLE_USB_CDC)
+    {
+        start_usb_pcdc_thread();
+        console_deinit();
+    }
     /* Start NDP120 program */
     ret = ndp_core2_platform_tiny_start(0, 1);
     if(ret == 0) {
@@ -146,7 +151,7 @@ void ndp_thread_entry(void *pvParameters)
 						/*Judging the received 'Down""Down' keyword*/
 						TickType_t duration = current_stat.timestamp - last_stat.timestamp;
 						printf("duration time =%d \n", duration);
-						if ( duration < pdMS_TO_TICKS(3000UL) )
+						if ( duration < pdMS_TO_TICKS(3600UL) )
 						{
 							/* valid, send led blink envent */
 							q_event =  LED_BLINK_DOUBLE_BLUE;
