@@ -20,14 +20,14 @@ typedef struct blink_msg
 	TickType_t  timestamp;
 } blink_msg_t;
 
-static enum at_cmd_voice{
+enum at_cmd_voice{
     V_WAKEUP = 0,
     V_UP = 1,
     V_DOWN = 2,
     V_BACK = 3,
     V_NEXT = 4,
     V_IDLE = 5,
-    V_STOP = 6
+    V_STOP = 6,
 };
 
 static char ble_at_sting[][36] = {
@@ -40,12 +40,22 @@ static char ble_at_sting[][36] = {
      "AT+ADVSTOP\r\n",
 };
 
+void ndp_info_display(void)
+{
+    int s, total_nn, total_labels;
+
+    s = ndp_core2_platform_tiny_get_info(&total_nn, &total_labels); 
+    if (!s) {
+        printf("ndp120 has %d network and %d labels loaded\n", total_nn, total_labels);
+    }
+}
+
 /* NDP Thread entry function */
 /* pvParameters contains TaskHandle_t */
 void ndp_thread_entry(void *pvParameters)
 {
     int ret;
-    uint8_t ndp_class_idx, ndp_nn_idx;
+    uint8_t ndp_class_idx, ndp_nn_idx, sec_val;
     EventBits_t   evbits;
     uint32_t q_event, notifications;
 	blink_msg_t  last_stat, current_stat;
@@ -99,6 +109,9 @@ void ndp_thread_entry(void *pvParameters)
         printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
                        SYNTIANT_NDP_FEATURE_PDM, ret);
     }
+
+    ndp_info_display();
+
     /* Enable NDP IRQ */
     ndp_irq_enable();
 
@@ -115,8 +128,9 @@ void ndp_thread_entry(void *pvParameters)
 		{
 			xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
 			ndp_core2_platform_tiny_poll(&notifications, 1);
-			ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, NULL);
-            printf("get ndp match with nn_id=%d, class_idx=%d\n\n", ndp_nn_idx, ndp_class_idx);
+			ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
+            printf("get ndp match with nn_id=%d, class_idx=%d %s sec-val\n\n", 
+                    ndp_nn_idx, ndp_class_idx, (sec_val>0)?"with":"without");
 			xSemaphoreGive(g_ndp_mutex);
 
 			switch (ndp_class_idx) {

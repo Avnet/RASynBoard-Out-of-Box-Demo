@@ -28,7 +28,8 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- */
+ 	** SDK: v100 **
+*/
 
 #ifndef SYNTIANT_NDP120_TINY_H
 #define SYNTIANT_NDP120_TINY_H
@@ -131,6 +132,7 @@ extern "C" {
 #define SYNTIANT_NDP120_DEF_SPI_SPEED   (1000000)
 #define SYNTIANT_NDP115_MAX_SPI_SPEED   (10000000)
 #define SYNTIANT_NDP120_MAX_SPI_SPEED   (12000000)
+#define SYNTIANT_NDP120_MAX_SPI_FLASH_SPEED   (10000000)
 
 /* soft boot from flash */
 #define NDP120_SOFT_FLASH_BOOT_SIG      0x53594E54U
@@ -201,6 +203,33 @@ enum {
     SYNTIANT_NDP120_SENSOR_CONTROL_AXES_MASK = 0x3C000000,
     SYNTIANT_NDP120_SENSOR_CONTROL_AXES_SHIFT = 26,
 
+    SYNTIANT_NDP120_SERIAL_BYTE_MAX = 12,
+    SYNTIANT_NDP120_SERIAL_CONTROL_RUN_SHIFT = 0,
+    SYNTIANT_NDP120_SERIAL_CONTROL_RUN_MASK = 0x1 << SYNTIANT_NDP120_SERIAL_CONTROL_RUN_SHIFT,
+    SYNTIANT_NDP120_SERIAL_CONTROL_CONTINUE_SHIFT = 1,
+    SYNTIANT_NDP120_SERIAL_CONTROL_CONTINUE_MASK = 0x1 << SYNTIANT_NDP120_SERIAL_CONTROL_CONTINUE_SHIFT,
+    SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_SHIFT = 6,
+    SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_MASK = 0x3 << SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_SHIFT,
+    SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_SUCCESS = 0,
+    SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_TIMEOUT = 1,
+    SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_ERROR = 2,
+    SYNTIANT_NDP120_SERIAL_CONTROL_ADDRESS_SHIFT = 8,
+    SYNTIANT_NDP120_SERIAL_CONTROL_ADDRESS_MASK = 0xff << SYNTIANT_NDP120_SERIAL_CONTROL_ADDRESS_SHIFT,
+    SYNTIANT_NDP120_SERIAL_CONTROL_OUTLEN_SHIFT = 16,
+    SYNTIANT_NDP120_SERIAL_CONTROL_OUTLEN_MASK = 0x3f << SYNTIANT_NDP120_SERIAL_CONTROL_OUTLEN_SHIFT,
+    SYNTIANT_NDP120_SERIAL_CONTROL_INLEN_SHIFT = 22,
+    SYNTIANT_NDP120_SERIAL_CONTROL_INLEN_MASK = 0x3f << SYNTIANT_NDP120_SERIAL_CONTROL_INLEN_SHIFT,
+
+    SYNTIANT_NDP120_SERIAL_ADDRESS_I2C_ADDRESS_MASK = 0x7f,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_I2C_ADDRESS_SHIFT = 0,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_SPI_SELECT_GPIO_MASK = 0x1f,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_SPI_SELECT_GPIO_SHIFT = 0,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_SPI_MODE_MASK = 0x60,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_SPI_MODE_SHIFT = 5,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_I2C_MASK = 0x80,
+    SYNTIANT_NDP120_SERIAL_ADDRESS_I2C_SHIFT = 7,
+    SYNTIANT_NDP120_GPIO_MAX = 32,
+
     SYNTIANT_NDP120_SENSOR_ID_NONE = 0,   /** no sensor */
     SYNTIANT_NDP120_SENSOR_ID_BMI160 = 1, /** Bosch BMI160 (<= 10 axis) */
     SYNTIANT_NDP120_SENSOR_ID_VM3011 = 2,  /** energy detecting mic */
@@ -212,7 +241,21 @@ enum {
     SYNTIANT_NDP120_SENSOR_ID_GPIO_DEBOUNCE = 7, /** Debounced GPIO pin */
     SYNTIANT_NDP120_SENSOR_ID_SPL_THRESHOLD = 8, /** SPL threshold */
     SYNTIANT_NDP120_SENSOR_ID_T5838 = 9,   /** TDK T5838 */
-    SYNTIANT_NDP120_SENSOR_ID_LAST = SYNTIANT_NDP120_SENSOR_ID_T5838
+    SYNTIANT_NDP120_SENSOR_ID_ICM42670 = 10,  /** TDK ICM-42670 */
+    SYNTIANT_NDP120_SENSOR_ID_LAST = SYNTIANT_NDP120_SENSOR_ID_ICM42670
+};
+
+/**
+ * @brief serial interface type
+ */
+enum SYNTIANT_NDP_SERIAL_INTERFACE_e {
+    SYNTIANT_NDP120_SERIAL_INTERFACE_I2C = 0,  /* I2C */
+    SYNTIANT_NDP120_SERIAL_INTERFACE_SPI0 = 1, /* SPI mode 0 */
+    SYNTIANT_NDP120_SERIAL_INTERFACE_SPI1 = 2, /* SPI mode 1 */
+    SYNTIANT_NDP120_SERIAL_INTERFACE_SPI2 = 3, /* SPI mode 2 */
+    SYNTIANT_NDP120_SERIAL_INTERFACE_SPI3 = 4, /* SPI mode 3 */
+    SYNTIANT_NDP120_SERIAL_INTERFACE_MAX =
+        SYNTIANT_NDP120_SERIAL_INTERFACE_SPI3
 };
 
 /** @brief debug counters of DSP firmware
@@ -280,10 +323,18 @@ struct syntiant_ndp120_sensor_state {
     uint32_t other_sensor_state[9];
 };
 
+struct ndp120_serial_s {
+    uint32_t control; /** address, outlen, inlen, finish */
+    uint32_t data[SYNTIANT_NDP120_SERIAL_BYTE_MAX / 4]; /** serial data buffer */
+};
+
 #define NDP120_PCM_DATA_FLOW_RULE_MAX 16
 #define NDP120_FUNC_DATA_FLOW_RULE_MAX 32
 #define NDP120_NN_DATA_FLOW_RULE_MAX 32
 #define NDP120_MCU_DATA_FLOW_RULE_MAX 8
+
+#define NDP120_MATCH_MISC_EVENT_SHIFT 16
+#define NDP120_SENSOR_DATA_READY_EVENT 7
 
 /* pass in a _rule_ */
 #define NDP120_DSP_DATA_FLOW_RULE_DST_STR(x) \
@@ -335,6 +386,11 @@ enum {
 enum {
     NDP120_DSP_DATA_FLOW_DST_SUBTYPE_AUDIO = NDP120_DSP_SAMPLE_TYPE_PCM_AUDIO,
     NDP120_DSP_DATA_FLOW_DST_SUBTYPE_FEATURE = NDP120_DSP_SAMPLE_TYPE_FUNCTION
+};
+
+enum {
+    SYNTIANT_NDP120_GET_FROM_ILIB = 0,
+    SYNTIANT_NDP120_GET_FROM_MCU
 };
 
 /**
@@ -577,6 +633,13 @@ enum {
   SYNTIANT_NDP120_HOST_BOOT   = 0,
   SYNTIANT_NDP120_SERIAL_BOOT = 1
 };
+
+enum {
+    PLL_PRESET_OP_VOLTAGE_0p9,
+    PLL_PRESET_OP_VOLTAGE_1p0,
+    PLL_PRESET_OP_VOLTAGE_1p1
+};
+
 /**
  * @brief NDP interface library internal state object
  */
@@ -625,7 +688,7 @@ struct syntiant_ndp120_tiny_device_s {
             uint32_t buffer_start;
             uint32_t prod_ptr_addr;
             uint32_t buffer_size_bytes;
-            uint32_t audio_sample_size;
+            uint32_t sample_size;
         } buffer_metadata;
         uint32_t meta_bytes[4];
     } u;
@@ -635,16 +698,7 @@ struct syntiant_ndp120_tiny_device_s {
     uint8_t device_id;
 };
 
-/**
- * @brief data structure for core clock configuration
- */
-struct syntiant_ndp120_tiny_clk_config_data {
-    uint32_t src;       /**< enum indicating ext, fll, or pll */
-    uint32_t ref_freq;  /**< input frequency, valid only for fll or pll */
-    uint32_t ref_type;  /**< clkpad or xtalin, valid only for fll or pll */
-    uint32_t core_freq; /**< core clock frequency */
-    uint32_t voltage;   /**< core voltage */
-};
+#define ARRAY_LEN(v)    (sizeof(v)/sizeof(v[0]))
 
 /**
  *  @Brief Represent results data corresponding to a match
@@ -679,7 +733,7 @@ struct syntiant_ndp120_tiny_dsp_audio_sample_annotation_t {
 #define SYNTIANT_NDP_SENSOR_ID_NAMES                                        \
     {                                                                       \
         "none", "bmi160", "vm3011", "edge_int", "da217", "kx120", "mc3419", \
-            "gpio_debounce", "spl_threshold", "t5838" \
+            "gpio_debounce", "spl_threshold", "t5838", "icm42670" \
     }
 #define SYNTIANT_NDP_SENSOR_ID_NAME(id)                                       \
     ((SYNTIANT_NDP120_SENSOR_ID_LAST < (id))  \
@@ -856,7 +910,9 @@ enum syntiant_ndp_extract_from_e {
 };
 
 enum syntiant_sc2_device_type {
-    SYNTIANT_NDP115_A0 = 0,
+    SYNTIANT_NDP_NONE = 0,
+    /**< no NDP device */
+    SYNTIANT_NDP115_A0,
     /**< NDP115A0 device */
     SYNTIANT_NDP120_B0
     /**< NDP120B0 device */
@@ -872,13 +928,11 @@ enum syntiant_ndp_read_write_mcu_spi_select {
 
 enum {
     /* gpio */
-    SYNTIANT_NDP120_CONFIG_SET_GPIO_DIR                  = 0x01,
-    SYNTIANT_NDP120_CONFIG_SET_GPIO_VALUE                = 0x02,
     SYNTIANT_NDP120_CONFIG_VALUE_GPIO_DIR_OUT            = 0x00,
     SYNTIANT_NDP120_CONFIG_VALUE_GPIO_DIR_IN             = 0x01
 };
 
-struct syntiant_ndp120_config_gpio_s{
+struct syntiant_ndp120_tiny_config_gpio_s{
     uint32_t gpio_num;
     uint32_t dir;
     uint32_t value;
@@ -894,7 +948,7 @@ struct syntiant_ndp120_config_gpio_s{
  * @return a @c SYNTIANT_NDP_ERROR_* code
  */
 int syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
-        struct syntiant_ndp120_tiny_clk_config_data *cfg, uint32_t *mb_resp);
+        int *clock_option, uint32_t *mb_resp);
 
 /**
  * @brief get info from the device
@@ -905,6 +959,15 @@ int syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
  */
 int syntiant_ndp120_tiny_get_info(struct syntiant_ndp120_tiny_device_s *ndp,
         struct syntiant_ndp120_tiny_info *idata);
+
+/**
+ * @brief get core clock from clock option
+ *
+ * @param clock_option from user input
+ * @param pointer to caller provided core clock freq
+ * @return a @c SYNTIANT_NDP_ERROR_* code
+ */
+int syntiant_ndp120_tiny_get_ext_freq(int clock_option, uint32_t *core_clock_freq);
 
 /**
  * @brief NDP120 get match summary.
@@ -1076,12 +1139,14 @@ int syntiant_ndp120_tiny_poll(struct syntiant_ndp120_tiny_device_s *ndp,
  * @param data represents the buffer and gets updated with data.
  * @param lenp indicates the length of data. The inherent assumption is
  *        that the user provided buffer is at least as large as one frame's data
+ * @param extract_from_buffer indicates to extract the data from the sample buffer
+ *        directly using the buffer metadata.
  * @return a @c SYNTIANT_NDP_ERROR_* code. The return value could be
  *        SYNTIANT_NDP_ERROR_DATA_REREAD, which indicates that enough data is
  *        not available and caller might retry.
  */
 int syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
-                        uint8_t *data, unsigned int *lenp, int sample_interrupt);
+        uint8_t *data, unsigned int *lenp, int extract_from_buffer);
 
 /**
  * @brief NDP120 interrupts enable
@@ -1135,12 +1200,16 @@ int syntiant_ndp120_tiny_get_audio_chunk_size(
  * Enables the sample ready interrupt in mcu firmware
  *
  * @param ndp NDP state object
+ * @param sample_size gets updated
+ * @param get_from:
+ *   SYNTIANT_NDP120_GET_FROM_ILIB gets the sample size form ilib struct
+ *   SYNTIANT_NDP120_GET_FROM_MCU gets the recording meta data from the mcu
  *
  * @return a @c SYNTIANT_NDP_ERROR_* code
  */
 int syntiant_ndp120_tiny_get_recording_metadata(
-    struct syntiant_ndp120_tiny_device_s *ndp);
-
+    struct syntiant_ndp120_tiny_device_s *ndp, uint32_t *sample_size,
+    int get_from);
 
 /**
  * @brief NDP120 audio extract start enables the match_per_frame interrupt
@@ -1259,9 +1328,43 @@ int syntiant_ndp120_tiny_poll_notification(
 int syntiant_ndp120_tiny_dsp_restart(
     struct syntiant_ndp120_tiny_device_s *ndp);
 
+/**
+ * @brief NDP120 syntiant_ndp120_tiny_config_gpio changes
+ * the modes and values of NDP120 GPIOs
+ * @param ndp NDP state object
+ * @param config GPIO configuration
+ */
 int syntiant_ndp120_tiny_config_gpio(
-    struct syntiant_ndp120_tiny_device_s *ndp, 
-    struct syntiant_ndp120_config_gpio_s *config);
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    struct syntiant_ndp120_tiny_config_gpio_s *config);
+
+/**
+ * @brief NDP120 syntiant_ndp120_tiny_serial_transfer
+ *
+ * @param ndp NDP state object
+ * @param ifc_type interface type from SYNTIANT_NDP_SERIAL_INTERFACE_e
+ * @param ifc_addr interface address (I2C or gpio # for SPI)
+ * @param out data to send on the interface
+ * @param outlen number of bytes to send on the interface
+ * @param in data received on the interface
+ * @param inlen number of bytes to receive on the interface
+ * @param continue_ true if transaction should be continued
+ */
+int syntiant_ndp120_tiny_serial_transfer(
+    struct syntiant_ndp120_tiny_device_s *ndp, unsigned int ifc_type,
+    unsigned int ifc_addr, uint8_t *out, unsigned int outlen, uint8_t *in,
+    unsigned int inlen, int continue_);
+
+/**
+ * @brief NDP120 syntiant_ndp120_tiny_enable_disable_sensor
+ * used to enable or disable the sensor
+ * @param ndp NDP state object
+ * @param sensor_id indicates the id of the sensor.
+ * @param enable: 1 for enable, 0 for disable
+ */
+int syntiant_ndp120_tiny_enable_disable_sensor(
+    struct syntiant_ndp120_tiny_device_s *ndp, uint8_t sensor_id,
+    int enable);
 
 #ifdef __cplusplus
 }

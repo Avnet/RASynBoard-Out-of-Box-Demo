@@ -28,14 +28,18 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- */
+ 	** SDK: v100 **
+*/
 
 #include <stdint.h>
 #include <string.h>
 #include <syntiant_ilib/syntiant_ndp120_tiny.h>
 
+#ifdef __linux__
+#include <stddef.h>
 #include <unistd.h>
 #include <sys/time.h>
+#endif
 
 #include "syntiant_common.h"
 
@@ -54,6 +58,9 @@
 
 #define NDP_MBIN_REQUEST_IGNORE_START (0xa)
 #define NDP_MBIN_REQUEST_IGNORE_END (0xf)
+
+#define PRESET_VALUE_LEN 21
+#define REFACTOR_PLL_INDEX 2
 
 #define IS_HOST2_MCU(cmd) (cmd < NDP_MBIN_REQUEST_IGNORE_START)
 
@@ -151,15 +158,6 @@
 #define NDP120_CHIP_CONFIG_WATERMARKINT 0x40009094U
 #define NDP120_DSP_CONFIG_BUFFILLLEVEL(i) (0x4000c14cU + ((i) << 2))
 
-#define NDP120_CHIP_CONFIG_GPIOSEL 0x4000901cU
-#define NDP120_GPIO_OUTSET 0x40011010U
-#define NDP120_GPIO_OUTCLR 0x40011014U
-#define NDP120_GPIO1_OUTSET 0x40010010U
-#define NDP120_GPIO1_OUTCLR 0x40010014U
-#define NDP120_GPIO_DATAOUT 0x40011004U
-#define NDP120_GPIO1_DATAOUT 0x40010004U
-
-
 #define PACKAGE_MODE_DONE (0)
 
 #define BUFDELTA(CUR, LAST, BUFSIZE) ((CUR) + ((CUR) < (LAST) ? (BUFSIZE) : 0) - (LAST))\
@@ -187,9 +185,19 @@
     ((x >> SYNTIANT_NDP120_DSP_MB_MESSAGE_SHIFT) & \
      SYNTIANT_NDP120_DSP_MB_MESSAGE_MASK)
 
+#define NDP120_CHIP_CONFIG_GPIOSEL (0x4000901cU)
+#define NDP120_GPIO_OUTSET (0x40011010U)
+#define NDP120_GPIO_OUTCLR (0x40011014U)
+#define NDP120_GPIO1_OUTSET (0x40010010U)
+#define NDP120_GPIO1_OUTCLR (0x40010014U)
+#define NDP120_GPIO_DATAOUT (0x40011004U)
+#define NDP120_GPIO1_DATAOUT (0x40010004U)
+
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #define FIRMWARE_MAX_SIZE (0xC000)
+#define FLL_CLOCK_FREQ      (32768)
+#define EXT_CLOCK_FREQ      (21504000)
 
 #if SYNTIANT_NDP120_DEBUG
 static int SYNTIANT_NDP120_PRINTF(const char * fmt, ...){
@@ -313,6 +321,11 @@ enum {
 };
 
 enum {
+    NDP120_D2M_INVALID_REQ = 0xBAD4,
+    NDP120_D2H_INVALID_REQ = 0xDEAD
+};
+
+enum {
     NDP120_FW_STATE_ADDRESS_INDEX_FW_STATE = 0x0,
     NDP120_FW_STATE_ADDRESS_INDEX_PH_DATA_COLL = 0x1,
     NDP120_FW_STATE_ADDRESS_INDEX_SMAX_SMOOTHER = 0x2,
@@ -347,7 +360,8 @@ enum {
     SYNTIANT_NDP120_EXTRACT_STOP = 0x6e,
     SYNTIANT_NDP120_GET_RECORDING_METADATA = 0x6f,
     SYNTIANT_NDP120_SET_TANK_SIZE = 0x70,
-    SYNTIANT_NDP120_VAD_MIC_CONTROL = 0x72
+    SYNTIANT_NDP120_VAD_MIC_CONTROL = 0x72,
+    SYNTIANT_NDP120_SERIAL_TRANSFER = 0x73
 };
 
 enum {
@@ -433,6 +447,427 @@ static uint8_t *syntiant_sc2_device_id[] = {
     syntiant_ndp120_b0_device_id,
     0
 };
+
+typedef struct {
+    const char *name;
+    uint32_t operating_voltage;
+    uint32_t input_freq;
+    uint32_t output_freq;
+    uint32_t pdm_freq;
+} ndp120_fll_preset_t;
+
+/* Define the table of FLL settings */
+static ndp120_fll_preset_t ndp120_fll_presets[] = {
+#ifndef EXCLUDE_CLOCK_OPTION
+    {"mode_fll_0p9v_15p360MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 15360000, 768000},
+#endif
+    {"mode_fll_0p9v_16p896MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 16896000, 768000},
+    { NULL, 0, 0, 0, 0}
+};
+
+typedef struct {
+    uint16_t offset;
+    uint16_t value;
+} ndp120_pll_preset_value_t;
+
+typedef struct {
+    const char *name;
+    uint32_t operating_voltage;
+    uint32_t input_freq;
+    uint32_t output_freq;
+    ndp120_pll_preset_value_t *values;
+} ndp120_pll_preset_t;
+
+/**
+ * @brief data structure for core clock configuration
+ */
+struct syntiant_ndp120_tiny_clk_config_data {
+    uint32_t src;       /**< enum indicating ext, fll, or pll */
+    uint32_t ref_freq;  /**< input frequency, valid only for fll or pll */
+    uint32_t ref_type;  /**< clkpad or xtalin, valid only for fll or pll */
+    uint32_t core_freq; /**< core clock frequency */
+    uint32_t voltage;   /**< core voltage */
+    ndp120_pll_preset_value_t preset_value[PRESET_VALUE_LEN];
+};
+
+#ifndef EXCLUDE_CLOCK_OPTION
+/* mode_0p9v_10p752MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_0p9v_10p752MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x148},
+    {0x3,0x1},
+    {0x4,0xd94},
+    {0x5,0x14bc},
+    {0x7,0xc94},
+    {0x8,0x1285},
+    {0xa,0x1fe},
+    {0xb,0x9d8},
+    {0xc,0x445},
+    {0x17,0x0},
+    {0x18,0x0},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x6},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_0p9v_15p360MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_0p9v_15p360MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x1d4},
+    {0x3,0x6},
+    {0x4,0xd94},
+    {0x5,0x14bc},
+    {0x7,0xc94},
+    {0x8,0x1285},
+    {0xa,0x1fe},
+    {0xb,0xe10},
+    {0xc,0x445},
+    {0x17,0x0},
+    {0x18,0x0},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x6},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+#endif
+
+/* mode_0p9v_21p504MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_0p9v_21p504MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x290},
+    {0x3,0x2},
+    {0x4,0xd94},
+    {0x5,0x14bc},
+    {0x7,0xc94},
+    {0x8,0x1285},
+    {0xa,0x1fe},
+    {0xb,0x13b0},
+    {0xc,0x445},
+    {0x17,0x0},
+    {0x18,0x0},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x6},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+#ifndef EXCLUDE_CLOCK_OPTION
+/* mode_0p9v_15p360MHz_4p096MHz */
+static ndp120_pll_preset_value_t mode_0p9v_15p360MHz_4p096MHz[] = {
+    {0x0,0x1f8},
+    {0x1,0xf},
+    {0x2,0x38},
+    {0x3,0x2},
+    {0x4,0x9cc},
+    {0x5,0xf80},
+    {0x7,0x9fa},
+    {0x8,0xfaf},
+    {0xa,0x1fe},
+    {0xb,0x1b0},
+    {0xc,0x32},
+    {0x17,0x0},
+    {0x18,0x0},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x6},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_0p9v_21p504MHz_4p096MHz */
+static ndp120_pll_preset_value_t mode_0p9v_21p504MHz_4p096MHz[] = {
+    {0x0,0x1f8},
+    {0x1,0xf},
+    {0x2,0x4e},
+    {0x3,0x6},
+    {0x4,0x992},
+    {0x5,0x10b7},
+    {0x7,0x9b3},
+    {0x8,0x10fa},
+    {0xa,0x1fe},
+    {0xb,0x25c},
+    {0xc,0x46},
+    {0x17,0x0},
+    {0x18,0x0},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x6},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p0v_49p152MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_1p0v_49p152MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x5dc},
+    {0x3,0x0},
+    {0x4,0xfc8},
+    {0x5,0x1580},
+    {0x7,0xec8},
+    {0x8,0x14b5},
+    {0xa,0x1fe},
+    {0xb,0x2d00},
+    {0xc,0xc83},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p0v_55p296MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_1p0v_55p296MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x697},
+    {0x3,0x4},
+    {0x4,0xfc8},
+    {0x5,0x1580},
+    {0x7,0xec8},
+    {0x8,0x14b5},
+    {0xa,0x1fe},
+    {0xb,0x32a0},
+    {0xc,0xc83},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p0v_49p152MHz_4p096MHz */
+static ndp120_pll_preset_value_t mode_1p0v_49p152MHz_4p096MHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x8},
+    {0x2,0x60},
+    {0x3,0x0},
+    {0x4,0xbc7},
+    {0x5,0x12fa},
+    {0x7,0xbf4},
+    {0x8,0x11aa},
+    {0xa,0x1fe},
+    {0xb,0x2e1},
+    {0xc,0xcd},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p1v_55p296MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_1p1v_55p296MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x697},
+    {0x3,0x4},
+    {0x4,0xf88},
+    {0x5,0x16ac},
+    {0x7,0xe88},
+    {0x8,0x15f4},
+    {0xa,0x1fe},
+    {0xb,0x32a0},
+    {0xc,0xfff},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p1v_76p800MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_1p1v_76p800MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0x927},
+    {0x3,0x6},
+    {0x4,0xf88},
+    {0x5,0x16ac},
+    {0x7,0xe88},
+    {0x8,0x15f4},
+    {0xa,0x1fe},
+    {0xb,0x4650},
+    {0xc,0xfff},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p1v_98p304MHz_32p768kHz */
+static ndp120_pll_preset_value_t mode_1p1v_98p304MHz_32p768kHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0xbb8},
+    {0x3,0x0},
+    {0x4,0xf88},
+    {0x5,0x16ac},
+    {0x7,0xe88},
+    {0x8,0x15f4},
+    {0xa,0x1fe},
+    {0xb,0x5a00},
+    {0xc,0xfff},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p1v_98p304MHz_0p512MHz */
+static ndp120_pll_preset_value_t mode_1p1v_98p304MHz_0p512MHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x1},
+    {0x2,0xc0},
+    {0x3,0x0},
+    {0x4,0xb86},
+    {0x5,0x12a8},
+    {0x7,0xba4},
+    {0x8,0x12e5},
+    {0xa,0x1fe},
+    {0xb,0x5c2},
+    {0xc,0x131},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+
+/* mode_1p1v_76p800MHz_4p096MHz */
+static ndp120_pll_preset_value_t mode_1p1v_76p800MHz_4p096MHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x4},
+    {0x2,0x4b},
+    {0x3,0x0},
+    {0x4,0xa86},
+    {0x5,0x11a8},
+    {0x7,0xaa4},
+    {0x8,0x11e5},
+    {0xa,0x1fe},
+    {0xb,0x240},
+    {0xc,0x98},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+
+/* mode_1p1v_98p304MHz_4p096MHz */
+static ndp120_pll_preset_value_t mode_1p1v_98p304MHz_4p096MHz[] = {
+    {0x0,0x1f8},
+    {0x1,0x4},
+    {0x2,0x60},
+    {0x3,0x0},
+    {0x4,0xa86},
+    {0x5,0x11a8},
+    {0x7,0xaa4},
+    {0x8,0x11e5},
+    {0xa,0x1fe},
+    {0xb,0x2e1},
+    {0xc,0x98},
+    {0x17,0x0},
+    {0x18,0x4},
+    {0x19,0x0},
+    {0x1a,0x0},
+    {0x20,0x1},
+    {0x23,0x0},
+    {0x24,0x0},
+    {0x27,0x14},
+    {0x38,0x0},
+    {0x0, 0x0}
+};
+#endif
+
+/* Define the table of PLL settings */
+ndp120_pll_preset_t ndp120_pll_presets[] = {
+#ifndef EXCLUDE_CLOCK_OPTION
+    {"mode_0p9v_10p752MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 10752000, mode_0p9v_10p752MHz_32p768kHz},
+    {"mode_0p9v_15p360MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 15360000, mode_0p9v_15p360MHz_32p768kHz},
+#endif
+    {"mode_0p9v_21p504MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_0p9, 32768, 21504000, mode_0p9v_21p504MHz_32p768kHz},
+#ifndef EXCLUDE_CLOCK_OPTION
+    {"mode_0p9v_15p360MHz_4p096MHz", PLL_PRESET_OP_VOLTAGE_0p9, 4096000, 15360000, mode_0p9v_15p360MHz_4p096MHz},
+    {"mode_0p9v_21p504MHz_4p096MHz", PLL_PRESET_OP_VOLTAGE_0p9, 4096000, 21504000, mode_0p9v_21p504MHz_4p096MHz},
+    {"mode_1p0v_49p152MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_1p0, 32768, 49152000, mode_1p0v_49p152MHz_32p768kHz},
+    {"mode_1p0v_55p296MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_1p0, 32768, 55296000, mode_1p0v_55p296MHz_32p768kHz},
+    {"mode_1p0v_49p152MHz_4p096MHz", PLL_PRESET_OP_VOLTAGE_1p0, 4096000, 49152000, mode_1p0v_49p152MHz_4p096MHz},
+    {"mode_1p1v_55p296MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_1p1, 32768, 55296000, mode_1p1v_55p296MHz_32p768kHz},
+    {"mode_1p1v_76p800MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_1p1, 32768, 76800000, mode_1p1v_76p800MHz_32p768kHz},
+    {"mode_1p1v_98p304MHz_32p768kHz", PLL_PRESET_OP_VOLTAGE_1p1, 32768, 98304000, mode_1p1v_98p304MHz_32p768kHz},
+    {"mode_1p1v_98p304MHz_0p512MHz", PLL_PRESET_OP_VOLTAGE_1p1, 512000, 98304000, mode_1p1v_98p304MHz_0p512MHz},
+    {"mode_1p1v_76p800MHz_4p096MHz", PLL_PRESET_OP_VOLTAGE_1p1, 4096000, 76800000, mode_1p1v_76p800MHz_4p096MHz},
+    {"mode_1p1v_98p304MHz_4p096MHz", PLL_PRESET_OP_VOLTAGE_1p1, 4096000, 98304000, mode_1p1v_98p304MHz_4p096MHz},
+#endif
+    {  NULL, 0, 0, 0, NULL}
+};
+
 
 /* helper functions */
 
@@ -787,9 +1222,19 @@ error:
 static int
 syntiant_read_match_producer(struct syntiant_ndp120_tiny_device_s *ndp)
 {
-    int s;
+    int s = SYNTIANT_NDP120_ERROR_NONE;
     uint32_t net_id = ndp->last_network_id;
     struct syntiant_ndp120_tiny_match_data match;
+    uint8_t match_sts;
+
+    s = ndp_spi_read(NDP120_SPI_MATCHSTS, &match_sts);
+    if (s) {
+        return s;
+    }
+    if (!match_sts) {
+        /* MPF interrupt, not an event match */
+        return s;
+    }
 
     /* read from Open RAM */
     s = syntiant_ndp120_tiny_read_block(ndp, SYNTIANT_NDP120_MCU_OP,
@@ -958,7 +1403,10 @@ mbout_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
         if (data & SYNTIANT_NDP120_MB_MCU_NETWORK_MASK) {
             ndp120->last_network_id
                 = (data & ~SYNTIANT_NDP120_MB_MCU_NETWORK_MASK) & 0xFF;
-            syntiant_read_match_producer(ndp120);
+            s = syntiant_read_match_producer(ndp120);
+            if (s) {
+                goto error;
+            }
             mbout_send_resp(ndp120, SYNTIANT_NDP120_MB_MCU_NOP);
             ndp120->matches++;
             *notify = SYNTIANT_NDP120_NOTIFICATION_MATCH;
@@ -1073,30 +1521,42 @@ dsp_mb_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
 
     switch (SYNTIANT_NDP120_DSP_MB_GET_MESSAGE(ndp120->mb_state.watermarkint)) {
     case SYNTIANT_NDP120_DSP_MB_D2H_WATERMARK:
-        *notify = SYNTIANT_NDP120_NOTIFICATION_WATER_MARK;
+        if (SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint)
+            != NDP120_D2H_INVALID_REQ) {
+            *notify = SYNTIANT_NDP120_NOTIFICATION_WATER_MARK;
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
-        syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
+            syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
                 NDP120_DSP_CONFIG_BUFFILLLEVEL(4), &data);
-        SYNTIANT_NDP120_PRINTF("FILL LEVEL: 0x%X\n", data);
-        SYNTIANT_NDP120_PRINTF("sending watermark ack\n");
+            SYNTIANT_NDP120_PRINTF("FILL LEVEL: 0x%X\n", data);
+            SYNTIANT_NDP120_PRINTF("sending watermark ack\n");
 #endif
-        syntiant_ndp120_tiny_mbin_send(ndp120,
-                SYNTIANT_NDP120_DSP_MB_H2D_WATERMARK);
+            syntiant_ndp120_tiny_mbin_send(
+                ndp120, SYNTIANT_NDP120_DSP_MB_H2D_WATERMARK);
+        }
         break;
 
     case SYNTIANT_NDP120_DSP_MB_D2H_EXTRACT_READY:
-        *notify |= SYNTIANT_NDP120_NOTIFICATION_EXTRACT_READY;
+        if (SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint)
+            != NDP120_D2H_INVALID_REQ) {
+            *notify |= SYNTIANT_NDP120_NOTIFICATION_EXTRACT_READY;
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
-        syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
+            syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
                 NDP120_DSP_CONFIG_BUFFILLLEVEL(4), &data);
-        SYNTIANT_NDP120_PRINTF("FILL LEVEL: 0x%X\n", data);
-        SYNTIANT_NDP120_PRINTF("Sending extract ack\n");
+            SYNTIANT_NDP120_PRINTF("FILL LEVEL: 0x%X\n", data);
+            SYNTIANT_NDP120_PRINTF("Sending extract ack\n");
 #endif
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
-        extract_count += 1;
-        SYNTIANT_NDP120_PRINTF("extract cnt: %d, payload: %d\n", extract_count,
-             SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint));
+            extract_count += 1;
+            SYNTIANT_NDP120_PRINTF("extract cnt: %d, payload: %d\n",
+                extract_count,
+                SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(
+                    ndp120->mb_state.watermarkint));
 #endif
+
+            /* send watermark as ack, as extract ready won't be accepted */
+            syntiant_ndp120_tiny_mbin_send(
+                ndp120, SYNTIANT_NDP120_DSP_MB_H2D_WATERMARK);
+        }
         break;
 
     case SYNTIANT_NDP120_DSP_MB_D2H_RESTART:
@@ -1161,13 +1621,87 @@ error:
     return s;
 }
 
+enum {
+    SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_PLL          = 0,
+    SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_FLL         = 1,
+    SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_EXT         = 2
+};
+
 int
-syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
-    struct syntiant_ndp120_tiny_clk_config_data *cfg, uint32_t *mb_resp)
+syntiant_ndp120_tiny_get_ext_freq(int clock_option, uint32_t *core_clock_freq)
 {
     int s = SYNTIANT_NDP120_ERROR_NONE;
+
+    if (clock_option == SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_FLL) { /* for FLL */
+        *core_clock_freq = ndp120_fll_presets[0].input_freq;
+    } else if (clock_option == SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_PLL) { /* for PLL */
+        *core_clock_freq = ndp120_pll_presets[0].input_freq;
+    } else {
+        s = SYNTIANT_NDP120_ERROR_ARG;
+    }
+    return s;
+}
+
+
+int
+syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
+    int *clock_options, uint32_t *mb_resp)
+{
+    int s = SYNTIANT_NDP120_ERROR_NONE;
+    uint32_t size;
     uint32_t addr = SYNTIANT_NDP120_CMD_RAM;
-    uint32_t cmd[2] = {SYNTIANT_NDP120_MAIN_CLK_CONFIG, sizeof(*cfg)};
+    uint32_t cmd[2] = {SYNTIANT_NDP120_MAIN_CLK_CONFIG, 0};
+    struct syntiant_ndp120_tiny_clk_config_data cfg;
+
+    memset(&cfg, 0, sizeof(cfg));
+    if (!clock_options) {
+        s = SYNTIANT_NDP120_ERROR_ARG;
+        goto error;
+    }
+    if (clock_options[0] == SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_EXT) {
+        cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_EXT;
+        cfg.ref_type = 0; /* ext clock uses clkpad as refsel */
+        cfg.ref_freq = EXT_CLOCK_FREQ;
+        cfg.core_freq = cfg.ref_freq;
+        cfg.voltage = PLL_PRESET_OP_VOLTAGE_0p9;
+    } else if (clock_options[0] == SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_FLL) { /* use FLL */
+        ndp120_fll_preset_t *fll_preset;
+        cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_FLL;
+        if (clock_options[1]) { /* XTAL */
+            cfg.ref_type = 1;
+        } else { /* clkpad */
+            cfg.ref_type = 0;
+        }
+        fll_preset = &ndp120_fll_presets[0];
+        cfg.core_freq = fll_preset->output_freq;
+        cfg.voltage = fll_preset->operating_voltage;
+        cfg.ref_freq = FLL_CLOCK_FREQ;
+    } else if (clock_options[0] == SYNTIANT_NDP120_CONFIG_CLOCK_OPTION_PLL) { /* use PLL */
+        ndp120_pll_preset_t *pll_preset;
+        cfg.src = SYNTIANT_NDP120_MAIN_CLK_SRC_PLL;
+        if (clock_options[1]) { /* XTAL */
+            cfg.ref_type = 1;
+        } else { /* clkpad */
+            cfg.ref_type = 0;
+        }
+        pll_preset = &ndp120_pll_presets[0];
+        cfg.core_freq = pll_preset->output_freq;
+        cfg.voltage = pll_preset->operating_voltage;
+        cfg.ref_freq = pll_preset->input_freq;
+        memcpy(cfg.preset_value, pll_preset->values, sizeof(cfg.preset_value));
+    } else {
+        s = SYNTIANT_NDP120_ERROR_ARG;
+        goto error;
+    }
+
+    /* copy preset table only for PLL */
+    if (cfg.src != SYNTIANT_NDP120_MAIN_CLK_SRC_PLL) {
+        size = (uint32_t) offsetof(struct syntiant_ndp120_tiny_clk_config_data,
+            preset_value);
+    } else {
+        size = sizeof(cfg);
+    }
+    cmd[1] = size;
 
     /* write cmd */
     s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP, addr,
@@ -1176,7 +1710,7 @@ syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
     addr += (uint32_t)sizeof(cmd);
     /* write payload */
     s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP, addr,
-            cfg, sizeof(*cfg));
+            &cfg, size);
     if (s) goto error;
 
     /* alerts DSP to start/stop execution */
@@ -1340,7 +1874,7 @@ syntiant_ndp120_tiny_init(struct syntiant_ndp120_tiny_device_s *ndp,
     int s = SYNTIANT_NDP120_ERROR_NONE;
     uint32_t data;
     uint8_t spi_data;
-    uint8_t **dev, *devid;
+    uint8_t **dev, *devid, i;
 
     if (iif) {
         ndp->iif = iif;
@@ -1372,10 +1906,10 @@ syntiant_ndp120_tiny_init(struct syntiant_ndp120_tiny_device_s *ndp,
         SYNTIANT_NDP120_SERIAL_BOOT : SYNTIANT_NDP120_HOST_BOOT;
 
     ndp->device_id = (uint8_t)data;
-    for (dev = syntiant_sc2_device_id; *dev; dev++) {
+    for (i = SYNTIANT_NDP_NONE, dev = syntiant_sc2_device_id; *dev; dev++, i++) {
         for (devid = *dev; *devid; devid++) {
             if (ndp->device_id == *devid) {
-                ndp->device_type = (uint8_t)(dev - syntiant_sc2_device_id);
+                ndp->device_type = ++i;
                 goto error;
             }
         }
@@ -1817,6 +2351,7 @@ int syntiant_ndp120_tiny_get_match_result(
     int s = SYNTIANT_NDP120_ERROR_NONE;
     uint32_t network_id = ndp->last_network_id;
     uint32_t match_sts;
+    uint8_t event_type;
 
     s = ndp_spi_read(NDP120_SPI_MATCHSTS, &match_sts);
     if (s) goto error;
@@ -1839,6 +2374,12 @@ int syntiant_ndp120_tiny_get_match_result(
         cons++;
         cons = cons == SYNTIANT_NDP120_MATCH_RING_SIZE ? 0 : cons;
         ndp->match_consumer[network_id] = cons;
+    }
+    event_type = (uint8_t)(match->summary >> NDP120_MATCH_MISC_EVENT_SHIFT);
+    if (event_type == NDP120_SENSOR_DATA_READY_EVENT) {
+        s = syntiant_ndp120_tiny_read_block(ndp, SYNTIANT_NDP120_MCU_OP,
+            SYNTIANT_NDP120_OPEN_RAM_RESULTS, &ndp->u.meta_bytes,
+            sizeof(ndp->u.meta_bytes));
     }
 
 error:
@@ -1913,9 +2454,48 @@ error:
     return s;
 }
 
+int syntiant_ndp120_tiny_enable_disable_sensor(
+    struct syntiant_ndp120_tiny_device_s *ndp, uint8_t sensor_id,
+    int enable)
+{
+    int s = SYNTIANT_NDP120_ERROR_NONE;
+    unsigned int ifc_type, ifc_addr;
+    uint8_t out[2];
+
+    switch (sensor_id) {
+        case SYNTIANT_NDP120_SENSOR_ID_NONE:
+            break;
+
+        case SYNTIANT_NDP120_SENSOR_ID_ICM42670:
+            if (enable) {
+                s = syntiant_ndp120_tiny_dsp_restart(ndp);
+                if (s) {
+                    goto error;
+                }
+                /* reset the last ptr */
+                ndp->last_ptr = 0;
+            } else {
+                ifc_type = SYNTIANT_NDP120_SERIAL_INTERFACE_SPI1;
+                ifc_addr = 9;
+                out[0] = 0x1f;
+                out[1] = 0x00;
+                s = syntiant_ndp120_tiny_serial_transfer(
+                    ndp, ifc_type, ifc_addr, out, sizeof(out), NULL, 0, 0);
+            }
+            break;
+
+        default:
+            s = SYNTIANT_NDP120_ERROR_ARG;
+            break;
+    }
+
+error:
+    return s;
+}
+
 int
 syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
-    uint8_t *data, unsigned int *lenp, int sample_interrupt)
+    uint8_t *data, unsigned int *lenp, int extract_from_buffer)
 {
     uint32_t frames;
     uint32_t buf_start, prod_ptr, buf_end;
@@ -1925,7 +2505,8 @@ syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
     size_t offset;
     uint32_t addr = SYNTIANT_NDP120_CMD_RAM + sizeof(uint32_t);
     int s = SYNTIANT_NDP120_ERROR_NONE;
-    if (sample_interrupt) {
+    if (extract_from_buffer) {
+        sample_size = ndp->u.buffer_metadata.sample_size;
         buf_start = ndp->u.buffer_metadata.buffer_start;
         buf_end = buf_start + ndp->u.buffer_metadata.buffer_size_bytes;
         s = syntiant_ndp120_tiny_read_block(ndp, SYNTIANT_NDP120_MCU_OP,
@@ -1933,17 +2514,23 @@ syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
         if (s) {
             goto error;
         }
+        *lenp = *lenp / sample_size * sample_size;
         if (!ndp->last_ptr) {
-            ndp->last_ptr = prod_ptr;
+            /* extract from the newest sample*/
+            if (prod_ptr == buf_start) {
+                ndp->last_ptr = buf_end - sample_size;
+            } else {
+                ndp->last_ptr = prod_ptr - sample_size;
+            }
         }
         bytes_available = (uint32_t)BUFDELTA(prod_ptr, ndp->last_ptr,
                             ndp->u.buffer_metadata.buffer_size_bytes);
-        if (bytes_available < *lenp) {
+        if (!bytes_available) {
             s = SYNTIANT_NDP120_ERROR_DATA_REREAD;
             goto error;
         }
-        sample_size = *lenp;
-        read_len_bytes = sample_size;
+        *lenp = MIN(*lenp, bytes_available);
+        read_len_bytes = *lenp;
         read_start_ptr = ndp->last_ptr;
         adx = read_start_ptr;
         offset = 0;
@@ -1954,7 +2541,7 @@ syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
                 adx, data, read_len_bytes);
             if (s) goto error;
             offset = read_len_bytes;
-            read_len_bytes = sample_size - read_len_bytes;
+            read_len_bytes = *lenp - read_len_bytes;
             adx = buf_start;
         }
         s = syntiant_ndp120_tiny_read_block(ndp, SYNTIANT_NDP120_MCU_OP, adx,
@@ -2019,7 +2606,7 @@ error:
 }
 
 int syntiant_ndp120_tiny_get_recording_metadata(struct
-    syntiant_ndp120_tiny_device_s *ndp)
+    syntiant_ndp120_tiny_device_s *ndp, uint32_t *sample_size, int get_from)
 {
     int s0;
     int s = SYNTIANT_NDP120_ERROR_NONE;
@@ -2031,6 +2618,11 @@ int syntiant_ndp120_tiny_get_recording_metadata(struct
                 "Error in syntiant_ndp120_tiny_get_audio_chunk_size\n");
             return s;
         }
+    }
+    if (get_from == SYNTIANT_NDP120_GET_FROM_ILIB) {
+        /* get from tiny ilib struct */
+        *sample_size = ndp->u.buffer_metadata.sample_size;
+        goto error;
     }
     /* write cmd */
     s = syntiant_ndp120_tiny_write_block(ndp, 1,
@@ -2047,6 +2639,7 @@ int syntiant_ndp120_tiny_get_recording_metadata(struct
         sizeof(ndp->u.meta_bytes));
     if (s) goto error;
 
+    *sample_size = ndp->u.buffer_metadata.sample_size;
     ndp->last_ptr = 0;
 
 error:
@@ -2488,6 +3081,11 @@ int syntiant_ndp120_tiny_dsp_tank_size_config(struct
             return s;
         }
     }
+    /* dsp restart required to have correct winstep value */
+    s = syntiant_ndp120_tiny_dsp_restart(ndp);
+    if (s) {
+        goto error;
+    }
     cmd[2] = pcm_tank_size_in_msec;
     /* write cmd, length of the payload and payload */
     s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP,
@@ -2634,8 +3232,8 @@ done:
 }
 
 int syntiant_ndp120_tiny_config_gpio(
-    struct syntiant_ndp120_tiny_device_s *ndp, 
-    struct syntiant_ndp120_config_gpio_s *config)
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    struct syntiant_ndp120_tiny_config_gpio_s *config)
 {
     int s;
     uint32_t data, data_old;
@@ -2666,13 +3264,12 @@ int syntiant_ndp120_tiny_config_gpio(
             if (s) goto error;
         } else {
 
-            s = syntiant_ndp120_tiny_write(ndp, 1, NDP120_GPIO_OUTCLR, mask_upper);
+            s = syntiant_ndp120_tiny_write(ndp, 1, NDP120_GPIO1_OUTCLR, mask_upper);
             if (s) goto error;
         }
     }
 
-
-    s = syntiant_ndp120_tiny_read(ndp, 1, 
+    s = syntiant_ndp120_tiny_read(ndp, 1,
         mask_lower ? NDP120_GPIO_DATAOUT : NDP120_GPIO1_DATAOUT, &data);
     if (s) goto error;
 
@@ -2684,9 +3281,188 @@ int syntiant_ndp120_tiny_config_gpio(
     }
 
     if (data != data_old) {
-        s = syntiant_ndp120_tiny_write(ndp, 1, 
+        s = syntiant_ndp120_tiny_write(ndp, 1,
             mask_lower ? NDP120_GPIO_DATAOUT : NDP120_GPIO1_DATAOUT, data);
         if (s) goto error;
+    }
+
+error:
+    return s;
+}
+
+static int syntiant_serial_address(
+    uint8_t interface, uint8_t interface_address, uint8_t *addressp)
+{
+    int s = SYNTIANT_NDP120_ERROR_NONE;
+    unsigned char address = interface_address;
+
+    if (interface == SYNTIANT_NDP120_SERIAL_INTERFACE_I2C) {
+        if (0x7f < interface_address) {
+            s = SYNTIANT_NDP120_ERROR_ARG;
+            goto out;
+        }
+        address |= SYNTIANT_NDP120_SERIAL_ADDRESS_I2C_MASK;
+    } else if (SYNTIANT_NDP120_SERIAL_INTERFACE_MAX < interface) {
+        s = SYNTIANT_NDP120_ERROR_ARG;
+        goto out;
+    } else {
+        address |= (uint8_t)
+            ((interface - SYNTIANT_NDP120_SERIAL_INTERFACE_SPI0)
+            << SYNTIANT_NDP120_SERIAL_ADDRESS_SPI_MODE_SHIFT);
+    }
+    *addressp = address;
+
+out:
+    return s;
+}
+
+static int syntiant_tiny_ndp120_read_write_sensor_serial(
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    struct ndp120_serial_s *serial, int set)
+{
+    int s0;
+    int s = SYNTIANT_NDP120_ERROR_NONE;
+    uint32_t cmd[] = {SYNTIANT_NDP120_SERIAL_TRANSFER, 0};
+    uint32_t length = sizeof(struct ndp120_serial_s);
+    uint32_t addr = SYNTIANT_NDP120_CMD_RAM;
+
+    if (ndp->iif->sync) {
+        s = (ndp->iif->sync)(ndp->iif->d);
+        if (s) {
+            SYNTIANT_NDP120_PRINTF(
+                "Error in syntiant_ndp120_read_sensor_serial\n");
+            return s;
+        }
+    }
+    if (!serial) {
+        s = SYNTIANT_NDP120_ERROR_UNINIT;
+        goto error;
+    }
+    if (set) {
+        cmd[1] = length;
+    }
+
+    s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP,
+        addr, cmd, sizeof(cmd));
+    if (s) {
+        goto error;
+    }
+
+    if (set) {
+        addr += (uint32_t) sizeof(cmd);
+        s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP,
+            addr, serial, length);
+        if (s) {
+            goto error;
+        }
+    }
+    /* send command */
+    s = syntiant_ndp120_tiny_do_mailbox_req_no_sync(ndp,
+        SYNTIANT_NDP120_MB_MCU_CMD, NULL);
+    if (s) {
+        goto error;
+    }
+
+    if (!set) {
+        s = syntiant_ndp120_tiny_read_block(ndp, SYNTIANT_NDP120_MCU_OP,
+            SYNTIANT_NDP120_OPEN_RAM_RESULTS, serial, length);
+        if (s) {
+            goto error;
+        }
+    }
+
+error:
+    if (ndp->iif->unsync) {
+        s0 = (ndp->iif->unsync)(ndp->iif->d);
+        s = s ? s : s0;
+    }
+    return s;
+}
+
+int syntiant_ndp120_tiny_serial_transfer(
+    struct syntiant_ndp120_tiny_device_s *ndp, unsigned int ifc_type,
+    unsigned int ifc_addr, uint8_t *out, unsigned int outlen, uint8_t *in,
+    unsigned int inlen, int continue_)
+{
+    int s = SYNTIANT_NDP120_ERROR_NONE;
+    struct ndp120_serial_s serial = {0};
+    unsigned int outn, outl, inn, inl;
+    uint8_t * outp,*inp;
+    uint8_t serial_address;
+
+    if ((unsigned char)ifc_type != SYNTIANT_NDP120_SERIAL_INTERFACE_I2C
+        && SYNTIANT_NDP120_GPIO_MAX <= (unsigned char)ifc_addr) {
+        s = SYNTIANT_NDP120_ERROR_ARG;
+        goto error;
+    }
+
+    s = syntiant_serial_address(
+        (uint8_t)ifc_type, (uint8_t)ifc_addr, &serial_address);
+    if (s) {
+        goto error;
+    }
+
+    outn = outlen;
+    inn = inlen;
+    outp = out;
+    inp = in;
+    while (outn || inn) {
+        outl = 0;
+        if (outn) {
+            outl = SYNTIANT_NDP120_SERIAL_BYTE_MAX <= outn
+                ? SYNTIANT_NDP120_SERIAL_BYTE_MAX
+                : outn;
+            memcpy(serial.data, outp, outl);
+            outn -= outl;
+            outp += outl;
+        }
+        inl = 0;
+        if (!outn && inn) {
+            inl = SYNTIANT_NDP120_SERIAL_BYTE_MAX <= inn
+                ? SYNTIANT_NDP120_SERIAL_BYTE_MAX
+                : inn;
+            inn -= inl;
+        }
+
+        serial.control =
+            (((unsigned int)serial_address)
+            << SYNTIANT_NDP120_SERIAL_CONTROL_ADDRESS_SHIFT)
+            | (((unsigned int)(outn || inn || continue_))
+            << SYNTIANT_NDP120_SERIAL_CONTROL_CONTINUE_SHIFT)
+            | (outl << SYNTIANT_NDP120_SERIAL_CONTROL_OUTLEN_SHIFT)
+            | (inl << SYNTIANT_NDP120_SERIAL_CONTROL_INLEN_SHIFT)
+            | SYNTIANT_NDP120_SERIAL_CONTROL_RUN_MASK;
+
+        s = syntiant_tiny_ndp120_read_write_sensor_serial(ndp, &serial, 1);
+        if (s) {
+            goto error;
+        }
+
+        s = syntiant_ndp120_tiny_do_mailbox_req_no_sync(ndp,
+            SYNTIANT_NDP120_DSP_MB_H2D_MODE_CHANGE, NULL);
+        if (s) {
+            goto error;
+        }
+
+        s = syntiant_tiny_ndp120_read_write_sensor_serial(ndp, &serial, 0);
+        if (s) {
+            goto error;
+        }
+
+        if (serial.control & SYNTIANT_NDP120_SERIAL_CONTROL_RUN_MASK) {
+            s = SYNTIANT_NDP120_ERROR_FAIL;
+            goto error;
+        }
+        s = (serial.control & SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_MASK)
+            >> SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_SHIFT;
+        if (s) {
+            s = (s == SYNTIANT_NDP120_SERIAL_CONTROL_STATUS_TIMEOUT)
+                ? SYNTIANT_NDP120_ERROR_TIMEOUT
+                : SYNTIANT_NDP120_ERROR_FAIL;
+            goto error;
+        }
+        memcpy(inp, serial.data, inl);
+        inp += inl;
     }
 
 error:
