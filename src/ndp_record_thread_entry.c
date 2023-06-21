@@ -1,16 +1,46 @@
 #include "ndp_record_thread.h"
 #include "syntiant_platform.h"
+#include "syntiant_common.h"
 #include "fat_load.h"
 #include "button.h"
+#include <stdio.h>
+#include "ndp_irq_service.h"
 
 
-#define   ENABLE_RECORD_THREAD
-#define   REC_BYTES_PER_SEC         32000U
-#define   REC_TIME_SEC                   30 /* record 30s default */
-#define   REC_FILE_NAME_PREFIX    "ndp_record_"
-#define   REC_BUFFER_SIZE               1024
-#define   SHORT_PRESS_TIME         pdMS_TO_TICKS(400UL)
+#define   AUDIO_REC_BYTES_PER_SEC         32000U
+#define   AUDIO_REC_TIME_SEC               10 /* record 1s default */
+#define   AUDIO_REC_BUFFER_SIZE            2048
+#define   AUDIO_REC_FILE_NAME_PREFIX    "ndp_audio_record_"
+
+#define   IMU_PRINTINT_TRIES            100
+#define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_"
+
+#define   SHORT_PRESS_TIME        pdMS_TO_TICKS(400UL)
 #define   LONG_PRESS_TIME         pdMS_TO_TICKS(3000UL)
+
+#define   IMU_SENSOR_INDEX         0
+
+enum short_press_button_to_record {
+	REC_SOUND = 1,
+	REC_IMU = 2,
+	REC_NONE = 11,
+};
+
+static int get_button_mapping_event(void)
+{
+	int ret = REC_NONE;
+	if (memcmp (button_switch, "sound", 5) == 0 )
+		ret = REC_SOUND;
+	if (memcmp (button_switch, "imu", 3) == 0 )
+		ret = REC_IMU;
+
+    return ret;
+}
+
+static int is_motion_mode(void)
+{
+    return (get_button_mapping_event() == REC_IMU);
+}
 
 /* assuming little endian, and structure with no padding */
 struct wav_header_s {
@@ -28,145 +58,6 @@ struct wav_header_s {
     char data[4];
     uint32_t data_size;
 };
-
-static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, int channels, int total_len);
-
-/* Record Thread entry function */
-/* pvParameters contains TaskHandle_t */
-void ndp_record_thread_entry(void *pvParameters)
-{
-#ifdef  ENABLE_RECORD_THREAD
-    int s;
-	uint32_t sample_size;
-    uint32_t sample_bytes;
-	char data_filename[32];
-	int match_count = 1;
-	uint32_t file_create = 0;
-	uint32_t actual_len = 0;
-	int total_len = REC_TIME_SEC * REC_BYTES_PER_SEC;
-	struct wav_header_s wav_hdr;
-	EventBits_t   evbits;
-	TickType_t time1 = 0, delta_time = 0;
-	bool  rec_process = false;
-
-    FSP_PARAMETER_NOT_USED (pvParameters);
-	/* Start recording after 6 seconds */
-	vTaskDelay (pdMS_TO_TICKS(3000UL));
-	printf("Record_thread running\n");
-
-	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
-	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
-	    vTaskDelete(NULL);
-	    vTaskDelay (1);
-	}
-#if 0
-    s = ndp_core2_platform_tiny_get_samplesize(&sample_size);
-    if (s) {
-        perror("get sample size failed\n");
-        return;;
-    }
-
-    sample_bytes = ndp_core2_platform_tiny_get_samplebytes();
-#endif
-	/*sample_bytes =2, sample_size=772*/
-
-#ifdef   ENABLE_IMU_DBG
-    {
-        uint8_t imu_val = 0;
-        uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
-
-        ndp_core2_platform_tiny_mspi_config();
-        ndp_core2_platform_tiny_mspi_write(1, 1, &reg, 0);
-        ndp_core2_platform_tiny_mspi_read(1, 1, &imu_val, 1);
-        printf("IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
-    }
-#endif
-
-    while (1)
-    {
-        evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_RISING, pdTRUE, pdFALSE , portMAX_DELAY);
-        time1 = xTaskGetTickCount();
-        evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_FALLING, pdTRUE, pdFALSE , LONG_PRESS_TIME);
-        delta_time = xTaskGetTickCount() - time1;
-        printf("press time=%d\n",delta_time);
-        if ((delta_time < SHORT_PRESS_TIME ) && ( evbits == EVENT_BIT_FALLING ))
-        {
-            rec_process = true; // click event to record
-        }
-        else if ((delta_time > (LONG_PRESS_TIME - 1) ) && ( evbits == 0 ))
-        {
-            rec_process = false; // long press button to flash
-            xEventGroupSetBits(g_ndp_event_group, EVENT_BIT_FLASH);
-            vTaskDelay (1);
-        }
-        else
-        {
-            rec_process = false;
-        }
-
-#if 0
-        while ( rec_process ) {
-            if (file_create == 0) {
-                snprintf(data_filename, sizeof(data_filename), "%s%04d.wav", REC_FILE_NAME_PREFIX, match_count);
-                /* Reserve the position of a wav header */
-                printf("Start to record data to %s \n", data_filename);
-                create_wav_header(&wav_hdr, sample_bytes, 1, total_len);
-
-                xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-                write_wav_file(data_filename, (uint8_t *)&wav_hdr,  sizeof(wav_hdr), 1);
-                xSemaphoreGive(g_ndp_mutex);
-                file_create = 1;
-            }
-            else
-            {
-                uint32_t extract_len;
-                uint8_t *data_ptr;
-
-                data_ptr = pvPortMalloc(REC_BUFFER_SIZE);
-                if ( ! data_ptr)   continue;
-                memset( data_ptr, 0x0, REC_BUFFER_SIZE );
-
-                /* Get FIFO data about 48000 bytes , aka 1.5s record */
-                while(1) {
-                    /* to record */
-                    extract_len = REC_BUFFER_SIZE;
-                    s = ndp_core2_platform_tiny_extract_data(data_ptr, &extract_len);
-                    if((s) || (!extract_len)) {
-                        //printf("totally extracted %d bytes from wakeword\n", actual_len);
-                        break;
-                    }
-
-                    /* single channel */
-                    xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-                    write_wav_file(data_filename, (uint8_t *)data_ptr,  extract_len, 0);
-                    xSemaphoreGive(g_ndp_mutex);
-
-                    actual_len += extract_len;
-                    if (actual_len >= total_len) {
-                        printf("enough query %d bytes for recording\n", actual_len);
-                        break;
-                    }
-                }
-
-                if (actual_len >= total_len) {
-                    file_create = 0;
-                    actual_len = 0;
-                    match_count ++;
-                    xEventGroupClearBits(g_ndp_event_group, EVENT_BIT_RISING);
-                    break;
-                }
-                vPortFree( data_ptr );
-
-                vTaskDelay (pdMS_TO_TICKS(500));
-            }
-        }
-#endif
-    }
-#else
-    vTaskDelete(NULL);
-    vTaskDelay (1);
-#endif
-}
 
 static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, int channels, int total_len)
 {
@@ -195,4 +86,337 @@ static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, in
     wav_hdr->data[2] = 't';
     wav_hdr->data[3] = 'a';
     wav_hdr->data_size = total_len;
+}
+
+/******************************************
+ * IMU record
+******************************************/
+static int imu_record_operation(int isstart)
+{
+    int s = 0;
+    int ints;
+
+    if (isstart) {
+        ints = 0;
+        s = ndp_core2_platform_tiny_interrupts(&ints);
+        if (s) {
+            printf("set interrupts to %d failed: %d\n", ints, s);
+            return s;
+        }
+
+        /* enable sensor */
+        s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+        if (s) {
+            printf("enable sensor[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            return s;
+        }
+    }
+    else {
+        s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+        if (s) {
+            printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            return s;
+        }
+
+        ints = 0x100;
+        s = ndp_core2_platform_tiny_interrupts(&ints);
+        if (s) {
+            printf("set interrupts to %d failed: %d\n", ints, s);
+            return s;
+        }
+    }
+
+    return s;
+}
+
+struct cb_sensor_arg_s {
+    char file_name[64];
+    uint32_t sets_count;
+};
+
+#define SENSOR_SAMPLE_SIZE  (6)
+void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *sensor_arg)
+{
+    char c = 'x';
+    int i, index = 0;
+    int16_t *acc_samples = (int16_t *)(sensor_data);
+    struct cb_sensor_arg_s *cb_sensor_arg = (struct cb_sensor_arg_s*)sensor_arg;
+
+    for (i = 0; i < sample_size / 2; i++) {
+        index = i % (sample_size / 2);
+#if 0
+        if (index < SENSOR_SAMPLE_SIZE / 2) {
+            printf("%c:%1.3fg  ", c + index,
+                acc_samples[i] / 16384.f);
+        } else {
+            printf("gyro %c:%6.3fdps  ", c + index - 3,
+                acc_samples[i] / 131.f);
+        }
+#else
+        if (index < SENSOR_SAMPLE_SIZE / 2) {
+            printf("%c:%d\t", c + index,
+                acc_samples[i]);
+            
+        } else {
+            printf("gyro %c:%d\t", c + index - 3,
+                acc_samples[i]);
+        }
+#endif
+    }
+    printf("\n");
+    cb_sensor_arg->sets_count ++;
+}
+
+static int imu_record_process(int max_tries, struct cb_sensor_arg_s *sensor_arg)
+{
+    int s;
+    uint32_t sample_size;
+    int imu_tries = max_tries;
+    uint8_t *data_ptr = NULL;
+
+    data_ptr = pvPortMalloc(AUDIO_REC_BUFFER_SIZE);
+    if (!data_ptr) return -1;
+
+    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 0, 1);
+    if (s) {
+        printf("audio record get metadata from ilib with notify failed: %d\n", s);
+        goto process_out;
+    }
+
+    while (imu_tries > 0) {
+        s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, sample_size, 
+                IMU_SENSOR_INDEX, icm42670_extraction_cb, sensor_arg);
+        if ((s) && (s != SYNTIANT_NDP_ERROR_DATA_REREAD)) {
+            printf("sensor extract data failed: %d\n", s);
+            imu_tries = 0;
+        }
+        else if (!s) {
+            imu_tries --;
+        }
+    }
+
+    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 0, 0);
+    if (s) {
+        printf("audio record get metadata from ilib without notify failed: %d\n", s);
+        goto process_out;
+    }
+
+process_out:
+    if (data_ptr) vPortFree(data_ptr);
+
+    return s;
+}
+
+/******************************************
+ * Audio record
+******************************************/
+static int audio_record_operation(int isstart, uint32_t *sample_size)
+{
+    int s = 0;
+    int ints;
+
+    if (isstart) {
+        ints = 0;
+        s = ndp_core2_platform_tiny_interrupts(&ints);
+        if (s) {
+            printf("set interrupts to %d failed: %d\n", ints, s);
+            return s;
+        }
+    }
+    else {
+        ints = 0x100;
+        s = ndp_core2_platform_tiny_interrupts(&ints);
+        if (s) {
+            printf("set interrupts to %d failed: %d\n", ints, s);
+            return s;
+        }
+    }
+
+    return s;
+}
+
+struct cb_audio_arg_s {
+    char file_name[64];
+    uint32_t total_len;
+};
+
+void audio_extraction_cb (uint32_t extract_size, uint8_t *audio_data, 
+                    void *audio_arg)
+{
+    struct cb_audio_arg_s *cb_audio_arg = (struct cb_audio_arg_s*)audio_arg;
+
+    if (extract_size > 0) {
+        xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+        write_wav_file(cb_audio_arg->file_name, audio_data, extract_size, 0);
+        cb_audio_arg->total_len += extract_size;
+        xSemaphoreGive(g_ndp_mutex);
+    }
+}
+
+static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg)
+{
+    int s = 0;
+    uint8_t *data_ptr = NULL;
+	struct wav_header_s wav_hdr;
+    uint32_t sample_size;
+    uint32_t sample_bytes = ndp_core2_platform_tiny_get_samplebytes();
+
+    data_ptr = pvPortMalloc(AUDIO_REC_BUFFER_SIZE);
+    if (!data_ptr) return -1;
+
+    /* sample ready interrupt is enabled in MCU firmware */
+    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 1, 1);
+    if (s) {
+        printf("audio record get metadata from mcu with notify failed: %d\n", s);
+        goto process_out;
+    }
+
+    create_wav_header(&wav_hdr, sample_bytes, 1, wanted_len);
+    xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+    write_wav_file(audio_arg->file_name, (uint8_t *)&wav_hdr, sizeof(wav_hdr), 1);
+    xSemaphoreGive(g_ndp_mutex);
+
+    printf("To audio record %d bytes for %d seconds\n", wanted_len, AUDIO_REC_TIME_SEC);
+    while (wanted_len > audio_arg->total_len) {
+        s = ndp_core2_platform_tiny_notify_extract_data(data_ptr, 
+                sample_size, audio_extraction_cb, audio_arg);
+        if ((s) && (s != SYNTIANT_NDP_ERROR_DATA_REREAD)) {
+            printf("audio extract data failed: %d\n", s);
+            break;
+        }
+    }
+    
+    /* sample ready interrupt is enabled in MCU firmware */
+    s = ndp_core2_platform_tiny_get_recording_metadata(sample_size, 1, 0);
+    if (s) {
+        printf("audio record get metadata from mcu without notify failed: %d\n", s);
+        goto process_out;
+    }
+
+process_out:
+    if (data_ptr) vPortFree(data_ptr);
+
+    return s;
+}
+
+/******************************************
+ *Record Thread entry function
+* pvParameters contains TaskHandle_t
+*******************************************/
+void ndp_record_thread_entry(void *pvParameters)
+{
+    int s, ret;
+	char data_filename[32];
+	uint32_t file_create = 0;
+	EventBits_t   evbits;
+	TickType_t time1 = 0, delta_time = 0;
+	bool rec_process = false;
+    int record_count = 0;
+    uint32_t sample_size;
+
+    FSP_PARAMETER_NOT_USED (pvParameters);
+	/* Start recording after 6 seconds */
+	vTaskDelay (pdMS_TO_TICKS(3000UL));
+	printf("Record_thread running\n");
+   
+	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
+	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
+	    vTaskDelete(NULL);
+	    vTaskDelay (1);
+	}
+
+	printf("short press user button to record %s data\n", button_switch);
+	printf("long press user button to flash the firmwares to FLASH\n");
+
+    while (1)
+    {
+        evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_RISING, pdTRUE, pdFALSE , portMAX_DELAY);
+        time1 = xTaskGetTickCount();
+        evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_FALLING, pdTRUE, pdFALSE , LONG_PRESS_TIME);
+        delta_time = xTaskGetTickCount() - time1;
+        printf("press time=%d\n",delta_time);
+        if ((delta_time < SHORT_PRESS_TIME ) && ( evbits == EVENT_BIT_FALLING ))
+        {
+            rec_process = true; // click event to record
+        }
+        else if ((delta_time > (LONG_PRESS_TIME - 1) ) && ( evbits == 0 ))
+        {
+            rec_process = false; // long press button to flash
+            xEventGroupSetBits(g_ndp_event_group, EVENT_BIT_FLASH);
+            vTaskDelay (1);
+        }
+        else
+        {
+            rec_process = false;
+        }
+
+        while ( rec_process ) {
+            if (file_create == 0) {
+                if (is_motion_mode()) //imu
+                    snprintf(data_filename, sizeof(data_filename), "%s%04d.txt", IMU_REC_FILE_NAME_PREFIX, record_count);
+                else //audio
+                    snprintf(data_filename, sizeof(data_filename), "%s%04d.wav", AUDIO_REC_FILE_NAME_PREFIX, record_count);
+
+                /* Reserve the position of a wav header */
+                printf("Start to record extraction data to %s \n", data_filename);
+                file_create = 1;
+                record_count ++;
+
+                if (is_motion_mode()) { //imu
+                    s = imu_record_operation(1);
+                }
+                else {
+                    s = audio_record_operation(1, &sample_size);
+                }
+                    
+                if (s) break;
+            }
+            else
+            {
+                if (is_motion_mode()) { //imu
+                    struct cb_sensor_arg_s cb_sensor_arg;
+
+                    memset(&cb_sensor_arg, 0, sizeof(struct cb_sensor_arg_s));
+                    strcpy(cb_sensor_arg.file_name, data_filename);
+                    cb_sensor_arg.sets_count = 0;
+
+                    s = imu_record_process(IMU_PRINTINT_TRIES, &cb_sensor_arg);
+                    if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
+                        printf("imu_record done got %d data_sets and saved to %s\n", 
+                                cb_sensor_arg.sets_count, cb_sensor_arg.file_name);
+                    }
+                    else {
+                        printf("imu_record failed: %d\n", s);
+                    }
+
+                    s = imu_record_operation(0);
+                }
+                else {
+                    struct cb_audio_arg_s cb_audio_arg;
+                    int wanted_len = AUDIO_REC_BYTES_PER_SEC * AUDIO_REC_TIME_SEC;
+
+                    memset(&cb_audio_arg, 0, sizeof(struct cb_audio_arg_s));
+                    strcpy(cb_audio_arg.file_name, data_filename);
+                    cb_audio_arg.total_len = 0;
+
+                    s = audio_record_process(wanted_len, &cb_audio_arg);
+                    if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
+                        printf("audio_record done saved %d bytes to %s\n", 
+                                cb_audio_arg.total_len, cb_audio_arg.file_name);
+                    }
+                    else {
+                        printf("audio_record failed: %d\n", s);
+                    }
+
+                    s = audio_record_operation(0, NULL);
+                }
+
+                file_create = 0;
+                rec_process = false;
+
+                xEventGroupClearBits(g_ndp_event_group, EVENT_BIT_RISING);
+                break;
+            }
+        }
+    }
 }

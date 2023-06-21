@@ -2606,11 +2606,12 @@ error:
 }
 
 int syntiant_ndp120_tiny_get_recording_metadata(struct
-    syntiant_ndp120_tiny_device_s *ndp, uint32_t *sample_size, int get_from)
+    syntiant_ndp120_tiny_device_s *ndp, uint32_t *sample_size, 
+    int get_from, uint32_t notify)
 {
     int s0;
     int s = SYNTIANT_NDP120_ERROR_NONE;
-    uint32_t cmd[2] = {SYNTIANT_NDP120_GET_RECORDING_METADATA, 0};
+    uint32_t cmd[3] = {SYNTIANT_NDP120_GET_RECORDING_METADATA, 1, 0};
     if (ndp->iif->sync) {
         s = (ndp->iif->sync)(ndp->iif->d);
         if (s) {
@@ -2624,6 +2625,8 @@ int syntiant_ndp120_tiny_get_recording_metadata(struct
         *sample_size = ndp->u.buffer_metadata.sample_size;
         goto error;
     }
+    
+    cmd[2] = notify;
     /* write cmd */
     s = syntiant_ndp120_tiny_write_block(ndp, 1,
         SYNTIANT_NDP120_CMD_RAM, cmd, sizeof(cmd));

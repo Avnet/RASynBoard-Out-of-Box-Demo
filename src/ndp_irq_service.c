@@ -34,12 +34,25 @@ int ndp_irq_enable(void)
     err = R_ICU_ExternalIrqEnable(&g_ndp_ext_irq05_ctrl);
     if (FSP_SUCCESS != err)
     {
-        printf ("\r\n**R_ICU_ExternalIrqOpen API FAILED**\r\n");
+        printf ("\r\n**R_ICU_ExternalIrqEnable API FAILED**\r\n");
     }
 
     return err;
 }
 
+int ndp_irq_disable(void)
+{
+    int err = FSP_SUCCESS;
+
+    /* Enable external irq */
+    err = R_ICU_ExternalIrqDisable(&g_ndp_ext_irq05_ctrl);
+    if (FSP_SUCCESS != err)
+    {
+        printf ("\r\n**R_ICU_ExternalIrqDisable API FAILED**\r\n");
+    }
+
+    return err;
+}
 
 void ndp_icu_deinit(void)
 {

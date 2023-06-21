@@ -30,6 +30,7 @@ extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];
 extern int  led_event_color[LED_EVENT_NUM];
+extern char button_switch[32];
 
 
 void init_fatfs(void);

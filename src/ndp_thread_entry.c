@@ -111,6 +111,12 @@ void ndp_thread_entry(void *pvParameters)
     }
 
     ndp_info_display();
+	if (memcmp (button_switch, "imu", 3) != 0) {
+        ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
+        if (!ret){
+            printf("disable sensor[0] functionality\n");
+        }
+	}
 
     /* Enable NDP IRQ */
     ndp_irq_enable();

@@ -17,6 +17,7 @@
 
 int ndp_irq_init(void);
 int ndp_irq_enable(void);
+int ndp_irq_disable(void);
 void ndp_icu_deinit(void);
 
 #endif /* NDP_IRQ_SERVICE_H_ */

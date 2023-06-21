@@ -79,7 +79,10 @@ enum {
 
 
 // sensor data callback
-typedef void (*sensor_data_cb_f)(uint32_t sample_size, uint8_t *sensor_data);
+typedef void (*sensor_data_cb_f)(uint32_t extract_size, uint8_t *sensor_data, 
+                    void *sensor_arg);
+typedef void (*audio_data_cb_f)(uint32_t extract_size, uint8_t *audio_data, 
+                    void *audio_arg);
 
 extern int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal);
 extern int ndp_core2_platform_tiny_feature_set(int feature_flag);
@@ -97,17 +100,25 @@ extern int ndp_core2_platform_tiny_mspi_read(int ssb, int num_bytes,
 extern int ndp_core2_platform_tiny_mspi_write(int ssb, int num_bytes, 
         uint8_t* data, int end_packet);
 
+extern int ndp_core2_platform_tiny_interrupts(int *cause);
 extern int ndp_core2_platform_tiny_halt_mcu(void);
 extern int ndp_core2_platform_tiny_vadmic_ctl(int mode);
 
 extern int ndp_core2_platform_tiny_get_samplesize(uint32_t *sample_size);
 extern uint32_t ndp_core2_platform_tiny_get_samplebytes(void);
 extern uint32_t ndp_core2_platform_tiny_get_samplerate(void);
-extern int ndp_core2_platform_tiny_get_extract(void);
+
+extern int ndp_core2_platform_tiny_get_recording_metadata(uint32_t *sample_size, 
+        int get_from, uint32_t notify);
+extern int ndp_core2_platform_tiny_notify_extract_data(uint8_t *data_buffer, 
+        uint32_t sample_size, audio_data_cb_f audio_data_cb, void *audio_arg);
+
 extern int ndp_core2_platform_tiny_extract_start(void);
 extern int ndp_core2_platform_tiny_extract_stop(void);
-extern int ndp_core2_platform_tiny_extract_data(uint8_t *extract_data, 
-        uint32_t *extract_len);
+#if 0
+extern int ndp_core2_platform_tiny_match_extract_data(uint8_t *data_buffer, 
+        audio_data_cb_f audio_data_cb);
+#endif
 
 extern int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels);
 
@@ -115,8 +126,9 @@ extern int ndp_core2_platform_gpio_config(int gpio_num,
         uint32_t dir, uint32_t value);
 
 extern int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable);
-extern int ndp_core2_platform_tiny_sensor_extract_data(int sensor_num, 
-        sensor_data_cb_f sensor_data_cb);
+extern int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
+        uint32_t sample_size, int sensor_num, 
+        sensor_data_cb_f sensor_data_cb, void *sensor_arg);
 
 extern void ndp_core2_platform_tiny_debug(void);
 

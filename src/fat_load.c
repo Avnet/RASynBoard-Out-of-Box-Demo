@@ -19,6 +19,7 @@
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
+char button_switch[32] = {"sound"};
 int  led_event_color[] = { \
                     LED_COLOR_YELLOW,  \
                     LED_COLOR_CYAN, \
@@ -368,7 +369,9 @@ static uint32_t read_config_file( void )
     char inifile[] = "0:/config.ini";
     char color[16] = {0};
     char key[6] = {0};
-	char section[12] = {0};
+    char section[24] = {0};
+    char tip[64] = {0};
+    int mode;
 
     // mount
     res = f_mount(&fatfs_obj, "", 1);
@@ -385,18 +388,21 @@ static uint32_t read_config_file( void )
     }
 
 	/* Read config.ini from sdcard */
-	if (ini_getl("NDP Firmware", "Mode", 2, inifile) == 1) {
-		strcpy(section, "Single Mic");
-	} else {
-		strcpy(section, "Dual Mic");
-	}
-	printf("Select mode: %s\r\n", section);
+	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
+	sprintf(section, "Function_%d", mode);
+
+	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
+	printf("Select mode[%d]: %s\r\n", mode, tip);
+
 	ini_gets(section, "MCU", MCU_FILE_NAME, \
 						mcu_file_name, sizeof(mcu_file_name), inifile);
 	ini_gets(section, "DSP", DSP_FILE_NAME, \
 						dsp_file_name, sizeof(dsp_file_name), inifile);
 	ini_gets(section, "DNN", MODEL_FILE_NAME, \
 						model_file_name, sizeof(model_file_name), inifile);
+	ini_gets(section, "Button_shift", "sound", \
+						button_switch, sizeof(button_switch), inifile);
+
 	/* Get led color accoding according to voice command */
 	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
 	{

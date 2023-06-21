@@ -1209,7 +1209,7 @@ int syntiant_ndp120_tiny_get_audio_chunk_size(
  */
 int syntiant_ndp120_tiny_get_recording_metadata(
     struct syntiant_ndp120_tiny_device_s *ndp, uint32_t *sample_size,
-    int get_from);
+    int get_from, uint32_t notify);
 
 /**
  * @brief NDP120 audio extract start enables the match_per_frame interrupt
