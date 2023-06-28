@@ -120,14 +120,15 @@ extern int ndp_core2_platform_tiny_match_extract_data(uint8_t *data_buffer,
         audio_data_cb_f audio_data_cb);
 #endif
 
-extern int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels);
+extern int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels, 
+        char *labels_get, int *labels_len);
 
 extern int ndp_core2_platform_gpio_config(int gpio_num, 
         uint32_t dir, uint32_t value);
 
 extern int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable);
 extern int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
-        uint32_t sample_size, int sensor_num, 
+        int sensor_num, 
         sensor_data_cb_f sensor_data_cb, void *sensor_arg);
 
 extern void ndp_core2_platform_tiny_debug(void);

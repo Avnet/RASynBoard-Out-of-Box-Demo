@@ -16,6 +16,7 @@
 
 
 /* Parse config.ini to save the settings */
+int mode_index = 1;
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
@@ -362,6 +363,78 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
     return bw;
 }
 
+#define SENSOR_SAMPLE_SIZE  (6)
+uint32_t write_sensor_file(char * file_name, uint32_t sample_size, 
+        int16_t *acc_samples, int header)
+{
+    FRESULT res;
+    FIL fil;
+    char path[64];
+    char buff[512];
+    uint32_t buff_len;
+    uint32_t bw;
+
+    sprintf(path, "0:/%s", file_name);
+
+    res = f_mount(&fatfs_obj, "", 1);
+    if(res != FR_OK){
+        printf("f_mount fail %d\r\n",res);
+        return res;
+    }
+
+	if ( header == 1 ) {
+		/* create a new file */
+		res = f_open(&fil, path, FA_CREATE_ALWAYS | FA_WRITE);
+	} else {
+		/* append data to file */
+		res = f_open(&fil, path, FA_OPEN_APPEND | FA_WRITE);
+	}
+	if(res != FR_OK){
+		printf("f_open fail %d\r\n",res);
+		return res;
+	}
+
+	if ( header == 1 ) {
+		sprintf(buff, "*** imu data from ndp120 side ***\n");
+	}
+    else {
+        int index = 0;
+        char c = 'x';
+        uint32_t buff_offset = 0;
+
+        for (int i = 0; i < sample_size / 2; i++) {
+            index = i % (sample_size / 2);
+            if (index < SENSOR_SAMPLE_SIZE / 2) {
+                buff_offset += snprintf(&buff[buff_offset], 
+                    "%c:%d\t", c + index, acc_samples[i]);
+                
+            } else {
+                buff_offset += snprintf(&buff[buff_offset], 
+                    "gyro %c:%d\t", c + index - 3, acc_samples[i]); 
+            }
+        }
+
+        buff_len = buff_offset;
+    }
+
+    res = f_write(&fil, buff, buff_len, &bw);
+    if(res != FR_OK){
+        printf("f_write fail %d\r\n",res);
+        return res;
+    }
+
+    res =  f_close(&fil);
+    if(res != FR_OK){
+        printf("f_close fail %d\r\n",res);
+    }
+
+    res = f_mount(NULL, "", 0);
+    if(res != FR_OK){
+        printf("f_mount umount fail %d\r\n",res);
+    }
+    return bw;
+}
+
 static uint32_t read_config_file( void )
 {
     FRESULT res;
@@ -389,6 +462,7 @@ static uint32_t read_config_file( void )
 
 	/* Read config.ini from sdcard */
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
+    mode_index = mode;
 	sprintf(section, "Function_%d", mode);
 
 	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
@@ -453,7 +527,7 @@ uint32_t get_synpkg_config_info( void )
 		boot_mode = BOOT_MODE_SD;
 	}else{
 		boot_mode = BOOT_MODE_EMMC;
-		print_console_type = CONSOLE_USB_CDC;
+		//print_console_type = CONSOLE_USB_CDC;
 		return 0;
 	}
 
@@ -478,4 +552,9 @@ uint32_t get_synpkg_boot_mode( void )
 int get_print_console_type( void )
 {
     return print_console_type;
+}
+
+int motion_to_disable(void)
+{
+    return ((mode_index!=3)?1:0);
 }

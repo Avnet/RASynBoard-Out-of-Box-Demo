@@ -808,7 +808,8 @@ static char *syntiant_ndp_sensor_id_name(int id)
     return SYNTIANT_NDP_SENSOR_ID_NAME(id);
 }
 
-int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels)
+int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels, 
+        char *labels_get, int *labels_len)
 {
     int s = SYNTIANT_NDP_ERROR_NONE;
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
@@ -878,6 +879,10 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels)
     }
 
     *total_labels = num_labels;
+    if (labels_get) {
+        memcpy(labels_get, label_data, info.labels_len);
+        *labels_len = info.labels_len;
+    }
 
 #ifdef PLATFORM_INFO_PRINT
     int i;
@@ -992,8 +997,6 @@ int ndp_core2_platform_tiny_match_process(uint8_t *nn_id, uint8_t *match_id,
     if(s) return s;
 
     summary = match.summary;
-    SYNTIANT_TRACE("get_match_summary: summary=0x%x, last_network_id=%d\n",
-           summary, ndpp->last_network_id);
 
     if (summary & NDP120_SPI_MATCH_MATCH_MASK) {
         match_found = 1;
@@ -1311,11 +1314,11 @@ int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable)
 }
 
 int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
-        uint32_t sample_size, int sensor_num, 
+        int sensor_num, 
         sensor_data_cb_f sensor_data_cb, void *sensor_arg)
 {
     int s;
-    uint32_t notifications, saved_size;
+    uint32_t notifications, saved_size, sample_size;
     uint8_t event_type;
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
     struct syntiant_ndp120_tiny_match_data match = {0};
@@ -1340,6 +1343,13 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
     s = syntiant_ndp120_tiny_get_match_result(ndpp, &match);
     if (s) {
         SYNTIANT_TRACE("syntiant_ndp120_tiny_get_match_result fail: %d\n", s);
+        return s;
+    }
+
+    s = syntiant_ndp120_tiny_get_recording_metadata(ndpp, &sample_size, 
+            SYNTIANT_NDP120_GET_FROM_ILIB, 1);
+    if (s) {
+        printf("audio record get metadata from ilib with notify failed: %d\n", s);
         return s;
     }
 

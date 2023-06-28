@@ -40,13 +40,62 @@ static char ble_at_sting[][36] = {
      "AT+ADVSTOP\r\n",
 };
 
+#define SYNTIANT_NDP120_MAX_CLASSES     32
+#define SYNTIANT_NDP120_MAX_NNETWORKS   4
+#define NDP120_MCU_LABELS_MAX_LEN       (0x200)
+
+static char *labels[SYNTIANT_NDP120_MAX_CLASSES];
+static char *labels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS]
+            [SYNTIANT_NDP120_MAX_CLASSES];
+static char numlabels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS];
+static char label_data[NDP120_MCU_LABELS_MAX_LEN] = "";
+
 void ndp_info_display(void)
 {
     int s, total_nn, total_labels;
+    int j, class_num, nn_num, prev_nn_num, num_labels, labels_len;
+    char *label_string;
 
-    s = ndp_core2_platform_tiny_get_info(&total_nn, &total_labels); 
-    if (!s) {
-        printf("ndp120 has %d network and %d labels loaded\n", total_nn, total_labels);
+    s = ndp_core2_platform_tiny_get_info(&total_nn, &total_labels, 
+            label_data, &labels_len); 
+    if (s) return;
+        
+    printf("ndp120 has %d network and %d labels loaded\n", total_nn, total_labels);
+  
+    /* get pointers to the labels */
+    num_labels = 0;
+    j = 0;
+
+    /* labels_len is 4 byte aligned. We continue processing
+       labels until the running sum of label characters
+       processed is within 3 bytes of labels_len */
+    while ((labels_len - j > 3) &&
+            (num_labels < SYNTIANT_NDP120_MAX_CLASSES)) {
+        labels[num_labels] = &label_data[j];
+        (num_labels)++;
+        for (; label_data[j]; j++)
+            ;
+        j++;
+    }
+
+    /* build an array that hold all labels based on network number */
+    class_num = 0;
+    nn_num = 0;
+    prev_nn_num = 0;
+
+    for (j = 0; j < num_labels; j++) {
+        label_string = labels[j];
+        nn_num = *(label_string + 2) - '0';
+        if (nn_num < 0 || nn_num >= SYNTIANT_NDP120_MAX_NNETWORKS) {
+            s = SYNTIANT_NDP_ERROR_INVALID_NETWORK;
+            return;
+        }
+        if (nn_num != prev_nn_num) {
+            class_num = 0;
+        }
+        labels_per_network[nn_num][class_num++] = label_string;
+        numlabels_per_network[nn_num] = class_num;
+        prev_nn_num = nn_num;
     }
 }
 
@@ -110,8 +159,22 @@ void ndp_thread_entry(void *pvParameters)
                        SYNTIANT_NDP_FEATURE_PDM, ret);
     }
 
+    if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
+        // read back info from FLASH
+        int mode_val = 0;
+        char button_val[32] = {0};
+        ret = ndp_flash_read_infos(&mode_val, button_val);
+        if (!ret) {
+            mode_index = mode_val;
+            strcpy(button_switch, button_val);
+            printf("read back from FLASH got mode: %d, button_switch: %s\n", 
+                    mode_index, button_switch);
+        }
+    }
+
     ndp_info_display();
-	if (memcmp (button_switch, "imu", 3) != 0) {
+
+	if (motion_to_disable()) {
         ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
         if (!ret){
             printf("disable sensor[0] functionality\n");
@@ -121,22 +184,22 @@ void ndp_thread_entry(void *pvParameters)
     /* Enable NDP IRQ */
     ndp_irq_enable();
 
-
-
     memset(&last_stat, 0, sizeof(blink_msg_t));
     memset(&current_stat, 0, sizeof(blink_msg_t));
     /* TODO: add your own code here */
     while (1)
     {
         /* Wait until NDP recognized voice keywords */
-		evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH, pdTRUE, pdFALSE , portMAX_DELAY);
+		evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH, 
+            pdTRUE, pdFALSE , portMAX_DELAY);
 		if( evbits & EVENT_BIT_VOICE ) 
 		{
 			xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
 			ndp_core2_platform_tiny_poll(&notifications, 1);
 			ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
-            printf("get ndp match with nn_id=%d, class_idx=%d %s sec-val\n\n", 
-                    ndp_nn_idx, ndp_class_idx, (sec_val>0)?"with":"without");
+            printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
+                    ndp_nn_idx, ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], 
+                    (sec_val>0)?"with":"without");
 			xSemaphoreGive(g_ndp_mutex);
 
 			switch (ndp_class_idx) {

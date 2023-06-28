@@ -85,5 +85,6 @@ int ndp_flash_write_block(uint32_t address, uint8_t *buff, uint32_t length);
 
 void ndp_flash_print_data(uint32_t address, uint32_t count);
 int ndp_flash_program_all_fw(void);
+int ndp_flash_read_infos(int *mode_val, char *button_val);
 
 #endif

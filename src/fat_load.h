@@ -26,6 +26,7 @@ enum DBG_PRINT_CONSOLE_TYPE {
 
 #define   LED_EVENT_NUM        10
 
+extern int mode_index;
 extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];
@@ -47,5 +48,6 @@ int get_print_console_type( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
+int motion_to_disable(void);
 
 #endif /* FAT_LOAD_H_ */
