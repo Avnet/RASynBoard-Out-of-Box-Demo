@@ -6,6 +6,8 @@
  */
 
 #include "console.h"
+#include "usb_pcdc_vcom.h"
+
 
 volatile bool           g_console_txComplete = false; /* Tx complete flags */
 

@@ -24,6 +24,12 @@ enum DBG_PRINT_CONSOLE_TYPE {
     CONSOLE_NONE,
 };
 
+enum LOW_POWER_MODE_TYPE {
+    DOWN_DOWN_LP_MODE = 0,
+    ALWAYS_ENTER_LP_MODE = 1,
+    LOW_POWER_MODE_NONE,
+};
+
 #define   LED_EVENT_NUM        10
 
 extern int mode_index;
@@ -32,7 +38,6 @@ extern char dsp_file_name[64];
 extern char model_file_name[64];
 extern int  led_event_color[LED_EVENT_NUM];
 extern char button_switch[32];
-
 
 void init_fatfs(void);
 int binary_loading(char * file_name);
@@ -45,6 +50,8 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
 int get_print_console_type( void );
+int get_recording_period( void );
+int get_low_power_mode( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

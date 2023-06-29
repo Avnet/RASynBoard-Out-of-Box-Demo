@@ -33,6 +33,8 @@ int  led_event_color[] = { \
 static FATFS fatfs_obj;
 static int boot_mode =  BOOT_MODE_NONE;
 static int print_console_type = CONSOLE_UART;
+int recording_period = 10;
+int low_power_mode = DOWN_DOWN_LP_MODE;
 
 void init_fatfs(void)
 {
@@ -466,7 +468,7 @@ static uint32_t read_config_file( void )
 	sprintf(section, "Function_%d", mode);
 
 	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
-	printf("Select mode[%d]: %s\r\n", mode, tip);
+	printf("\nmode[%d] selected: %s\r\n", mode, tip);
 
 	ini_gets(section, "MCU", MCU_FILE_NAME, \
 						mcu_file_name, sizeof(mcu_file_name), inifile);
@@ -477,7 +479,7 @@ static uint32_t read_config_file( void )
 	ini_gets(section, "Button_shift", "sound", \
 						button_switch, sizeof(button_switch), inifile);
 
-	/* Get led color accoding according to voice command */
+	/* Get led color according according to voice command */
 	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
 	{
 		sprintf(key, "IDX%d", idx);
@@ -506,7 +508,10 @@ static uint32_t read_config_file( void )
 			led_event_color[idx] = LED_EVENT_NONE;
 		}
 	}
+
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
+	recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
+	low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
 
     // unmount
     res = f_mount(NULL, "", 0);
@@ -537,9 +542,10 @@ uint32_t get_synpkg_config_info( void )
 		return res;
 	}
 
-	printf("MCU : %s\r\n", mcu_file_name);
-	printf("DSP : %s\r\n", dsp_file_name);
-	printf("DNN : %s\r\n", model_file_name);
+	printf("NDP120 images identified . . . \n");
+	printf("    MCU : %s\n", mcu_file_name);
+	printf("    DSP : %s\n", dsp_file_name);
+	printf("    DNN : %s\n", model_file_name);
 
 	return res;
 }
@@ -558,3 +564,15 @@ int motion_to_disable(void)
 {
     return ((mode_index!=3)?1:0);
 }
+// Returns number of seconds to record data (audio or IMU data)
+int get_recording_period( void )
+{
+    return recording_period;
+}
+
+// Returns the low power mode
+int get_low_power_mode( void )
+{
+    return low_power_mode;
+}
+
