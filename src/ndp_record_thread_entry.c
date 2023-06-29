@@ -6,7 +6,7 @@
 #include "led.h"
 #include <stdio.h>
 #include "ndp_irq_service.h"
-
+#include "led.h"
 
 #define   AUDIO_REC_BYTES_PER_SEC         32000U
 #define   AUDIO_REC_TIME_SEC               10 /* record 1s default */
@@ -279,7 +279,7 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
     write_wav_file(audio_arg->file_name, (uint8_t *)&wav_hdr, sizeof(wav_hdr), 1);
     xSemaphoreGive(g_ndp_mutex);
 
-    printf("To audio record %d bytes for %d seconds\n", wanted_len, AUDIO_REC_TIME_SEC);
+    printf("To audio record %d bytes for %d seconds\n", wanted_len, get_recording_period());
     while (wanted_len > audio_arg->total_len) {
         s = ndp_core2_platform_tiny_notify_extract_data(data_ptr, 
                 sample_size, audio_extraction_cb, audio_arg);
@@ -345,8 +345,22 @@ void ndp_record_thread_entry(void *pvParameters)
 	    vTaskDelay (1);
 	}
 
-	printf("short press user button to record %s data\n", button_switch);
-	printf("long press user button to flash the firmwares to FLASH\n");
+	// Check to see if we started up in low power mode.  If so, we can't enable the
+	// record feature.  Output a message to the user and exit this thread.
+	if(get_low_power_mode() == ALWAYS_ENTER_LP_MODE){
+
+	    printf("\nNote: The recording feature is disabled due to low power mode being set to 1!\n");
+	    printf("To enable the recording feature, edit config.ini on the microSD\n");
+	    printf("card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
+
+	    // Exit the Record_thread
+	    vTaskDelete(NULL);
+	    vTaskDelay (1);
+	}
+
+	printf("\nThe Recording feature is enabled!\n");
+	printf("Press user button < 400ms to record %s data\n", button_switch);
+	printf("Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
 
     while (1)
     {
@@ -389,6 +403,9 @@ void ndp_record_thread_entry(void *pvParameters)
                 }
                 else {
                     s = audio_record_operation(1, &sample_size);
+
+                    // Turn on the recording LED
+                    turn_led(BSP_LEDGREEN, BSP_LEDON);
                 }
                     
                 if (s) break;
@@ -415,7 +432,7 @@ void ndp_record_thread_entry(void *pvParameters)
                 }
                 else {
                     struct cb_audio_arg_s cb_audio_arg;
-                    int wanted_len = AUDIO_REC_BYTES_PER_SEC * AUDIO_REC_TIME_SEC;
+                    int wanted_len = AUDIO_REC_BYTES_PER_SEC * get_recording_period();
 
                     memset(&cb_audio_arg, 0, sizeof(struct cb_audio_arg_s));
                     strcpy(cb_audio_arg.file_name, data_filename);
@@ -425,9 +442,15 @@ void ndp_record_thread_entry(void *pvParameters)
                     if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
                         printf("audio_record done saved %d bytes to %s\n", 
                                 cb_audio_arg.total_len, cb_audio_arg.file_name);
+
+                        // Turn off the recording LED
+                        turn_led(BSP_LEDGREEN, BSP_LEDOFF);
                     }
                     else {
                         printf("audio_record failed: %d\n", s);
+
+                        // Turn off the recording LED
+                        turn_led(BSP_LEDGREEN, BSP_LEDOFF);
                     }
 
                     s = audio_record_operation(0, NULL);

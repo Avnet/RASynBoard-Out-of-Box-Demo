@@ -1,3 +1,12 @@
 Debug/
 Release/
 .settings/e2studio_project.prefs
+ra/arm/
+ra/aws/
+ra/fsp/
+ra_cfg/
+ra_gen/
+.secure_azone
+.secure_xml
+ra_cfg.txt
+.settings/com.renesas.cdt.ddsc.packs.componentfiles.prefs

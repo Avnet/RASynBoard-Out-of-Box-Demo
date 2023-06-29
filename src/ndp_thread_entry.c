@@ -99,6 +99,7 @@ void ndp_info_display(void)
     }
 }
 
+
 /* NDP Thread entry function */
 /* pvParameters contains TaskHandle_t */
 void ndp_thread_entry(void *pvParameters)

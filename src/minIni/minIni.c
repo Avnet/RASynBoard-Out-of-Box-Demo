@@ -681,7 +681,7 @@ int ini_puts(const TCHAR *Section, const TCHAR *Key, const TCHAR *Value, const T
   INI_FILETYPE rfp;
   INI_FILETYPE wfp;
   INI_FILEPOS mark;
-  INI_FILEPOS head, tail;
+  INI_FILEPOS head;
   TCHAR *sp, *ep;
   TCHAR LocalBuffer[INI_BUFFERSIZE];
   int len, match, flag, cachelen;

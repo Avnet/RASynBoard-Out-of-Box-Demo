@@ -30,9 +30,8 @@ static void DESELECT(void)
 
 static void SPI_TxByte(BYTE data)
 {
-	fsp_err_t err = FSP_SUCCESS;
 	/* Start a write/read transfer */
-	err = spi_write_read(&data, NULL, 1);
+	spi_write_read(&data, NULL, 1);
 }
 
 
@@ -42,19 +41,12 @@ static uint8_t SPI_RxByte(void)
 	dummy = 0xFF;
 	data = 0;
 
-	fsp_err_t err = FSP_SUCCESS;
-
 	/* Start a write/read transfer */
-	err = spi_write_read(&dummy, &data, 1);
+	spi_write_read(&dummy, &data, 1);
 
 	return data;
 }
 
-
-static void SPI_RxBytePtr(uint8_t *buff)
-{
-	*buff = SPI_RxByte();
-}
 
 
 static uint8_t SD_ReadyWait(void)
@@ -186,8 +178,11 @@ static bool SD_TxDataBlock(const BYTE *buff, BYTE token)
 			resp = SPI_RxByte();
 
 			if ((resp & 0x1F) == 0x05)
-				break;
-				i++;
+			{
+			    break;
+			}
+
+			i++;
 		}
 		while (SPI_RxByte() == 0);
 	}
