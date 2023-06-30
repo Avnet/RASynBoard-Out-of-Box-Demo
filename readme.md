@@ -32,32 +32,32 @@ To build and run the OOB application you need the install the Renesas e^2 Studio
 1. Launch the Renesas e^2 Studio
 1. Create a new workspace by browsing to the directory for your new workspace *I usually create a workspace folder at the same level as my cloned code base*
    1. Click "Launch"
-   1. ![Alt text](images\image.png)
+   1. ![Alt text](images/image.png)
 1. e^2 Studio Launches and presents the Welcome Screen
 1. Select the "Import existing projects" option
-   1. ![Alt text](images\image-1.png)
+   1. ![Alt text](images/image-1.png)
 1. The "Import Projects" dialog is displayed
 1. Use the "Browse..." button to browse the file system, select the cloned project directory
 1. Leave all the option at the default state
 1. Click the "Finish" button
-   1. ![Alt text](images\image-2.png)
+   1. ![Alt text](images/image-2.png)
 1. The project is imported into e^2 Studio
 1. Next we'll generate the "Flexable Software Package" (FSP) code
    1. Expand the project file tree in the "Project Explorer" window at the left side
    1. Double click on "configuration.xml" to open the FSP explorer
-      1. ![Alt text](images\image-12.png)
+      1. ![Alt text](images/image-12.png)
       1. If a dialog opens complaining about the current version of FSP installed, just accept the new version
-      1. ![Alt text](images\image-3.png)
+      1. ![Alt text](images/image-3.png)
    1. The Stacks Configuration tab opens
    1. Click on the "Generate Project Content" link in the upper right hanb corner
    1. The "Generate Project Content" dialog opens, select the "Proceed" button
    1. The project content is generated
-      1. ![Alt text](images\image-4.png)
+      1. ![Alt text](images/image-4.png)
 
 ### Build the Project 
 
 1. From the pull down menus select Project -> Build All or use the Ctrl+Alt+B keyboard shortcut
-1. ![Alt text](images\image-5.png)
+1. ![Alt text](images/image-5.png)
 1. The project builds and generates output files in the Debug Directory
    1. In the build directory we can see the output files.  Two files we're interseted in are . . 
       1. rasynboard_ew_demo.elf.  This is the file we'll load with the debugger
@@ -66,13 +66,13 @@ To build and run the OOB application you need the install the Renesas e^2 Studio
 ### Setup the Hardware
 
 1. If you have a USB to TTL serial cable, connect it to the PMOD connector as shown below
-1. ![Alt text](images\image-6.png)
+1. ![Alt text](images/image-6.png)
 1. Verify that jumper J5 on the Core board is not present
-1. ![Alt text](images\image-7.png)
+1. ![Alt text](images/image-7.png)
 1. Remove the jumper on J3 pins 1-2 on the IO board, if present
-1. ![Alt text](images\image-8.png)
+1. ![Alt text](images/image-8.png)
 1. Connect a USB-C cable betwen your development PC and the IO board as shows below
-1. ![Alt text](images\image-9.png)
+1. ![Alt text](images/image-9.png)
 
 ### Copy NDP120 Files to your microSD card
 
@@ -88,13 +88,13 @@ Now we can load and run the project on the RASynBoard!
 1. Click on the green bug icon in the toolbar
 1. If a dialog opens up confirming the Perspective Switch, select the "Switch" button
 1. If you see a dialog like the one shown below, then you likely cloned the project into a custom folder name.  Not a big deal, we can fix it
-   1. ![Alt text](images\image14.png)
+   1. ![Alt text](images/image14.png)
    1. Hit the "Cancel" button to exit the "Debug As" dialog
    1. Right click on the top level folder of your project and select "Debug As" --> "Debug Configuration . . ."
-   1. ![Alt text](images\image-15.png)
+   1. ![Alt text](images/image-15.png)
    1. Select the "Renesas GDB Hardware Debugging", then select the "Debugger" Tab, then change the "Target Device" to "R7FA6M4FA", then "Apply", then close
-   1. ![Alt text](images\image-16.png)
-1. ![Alt text](images\image-10.png)
+   1. ![Alt text](images/image-16.png)
+1. ![Alt text](images/image-10.png)
 1. The application is transfered to the board
 1. Application execution stops at the call to "SystemInit()"
    1. Press the F8 key to resume execution
@@ -108,7 +108,7 @@ Now that the application is on your RASynBoard, we can close the Renesas e^2 stu
 
 1. Disconnect the USB-C cable from your PC to power the device off
 1. Insert the jumper on J3 across (shorting out) pins 1-2 on the IO board
-1. ![Alt text](images\image-11.png)
+1. ![Alt text](images/image-11.png)
 1. Connect the USB-C cable back to your PC to power up the device
 1. The device boots and runs the OOB application!
 
@@ -130,7 +130,7 @@ The default model on the microSD card detects 5-keywords
    1. The NDP120 is still sampling audio data through the digital mic
    1. Speak any of the keywords
       1. The NDP120 detects the keyword, and asserts a gpio signal to wake up the RA6M4
-1. ![Alt text](images\image13.png)
+1. ![Alt text](images/image13.png)
 
 ## Record Traning Data to microSD card
 
