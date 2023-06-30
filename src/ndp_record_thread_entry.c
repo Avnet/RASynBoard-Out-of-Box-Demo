@@ -146,17 +146,11 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     int i, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
 
+#ifdef  DEBUG_IMU_ACC_GYRO_DATA
+    // show data on the serial console 
     for (i = 0; i < sample_size / 2; i++) {
         index = i % (sample_size / 2);
-#if 0
-        if (index < SENSOR_SAMPLE_SIZE / 2) {
-            printf("%c:%1.3fg  ", c + index,
-                acc_samples[i] / 16384.f);
-        } else {
-            printf("gyro %c:%6.3fdps  ", c + index - 3,
-                acc_samples[i] / 131.f);
-        }
-#else
+
         if (index < SENSOR_SAMPLE_SIZE / 2) {
             printf("%c:%d\t", c + index,
                 acc_samples[i]);
@@ -165,12 +159,13 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
             printf("gyro %c:%d\t", c + index - 3,
                 acc_samples[i]);
         }
-#endif
     }
     printf("\n");
-
-#if 0
-    write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
+#else
+	// save data to sdcard
+	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+	write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
+	xSemaphoreGive(g_ndp_mutex);
 #endif
 
     cb_sensor_arg->sets_count ++;
@@ -185,6 +180,10 @@ static int imu_record_process(int max_tries, struct cb_sensor_arg_s *sensor_arg)
 
     data_ptr = pvPortMalloc(IMU_REC_BUFFER_SIZE);
     if (!data_ptr) return -1;
+
+	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+	write_sensor_file(sensor_arg->file_name, 0, NULL, 1);
+	xSemaphoreGive(g_ndp_mutex);
 
     while (imu_tries > 0) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
@@ -389,7 +388,7 @@ void ndp_record_thread_entry(void *pvParameters)
 				turn_led(BSP_LEDRED, BSP_LEDON);
 
                 if (is_record_motion()) //imu
-                    snprintf(data_filename, sizeof(data_filename), "%s%04d.txt", IMU_REC_FILE_NAME_PREFIX, record_count);
+                    snprintf(data_filename, sizeof(data_filename), "%s%04d.csv", IMU_REC_FILE_NAME_PREFIX, record_count);
                 else //audio
                     snprintf(data_filename, sizeof(data_filename), "%s%04d.wav", AUDIO_REC_FILE_NAME_PREFIX, record_count);
 
