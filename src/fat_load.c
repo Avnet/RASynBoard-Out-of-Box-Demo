@@ -513,7 +513,7 @@ uint32_t get_synpkg_config_info( void )
 		boot_mode = BOOT_MODE_SD;
 	}else{
 		boot_mode = BOOT_MODE_EMMC;
-		//print_console_type = CONSOLE_USB_CDC;
+		print_console_type = CONSOLE_USB_CDC;
 		return 0;
 	}
 
@@ -538,7 +538,11 @@ uint32_t get_synpkg_boot_mode( void )
 
 int get_print_console_type( void )
 {
+#ifdef   FORCE_PRINT_TO_UART
+    return CONSOLE_UART;
+#else
     return print_console_type;
+#endif
 }
 
 int motion_to_disable(void)

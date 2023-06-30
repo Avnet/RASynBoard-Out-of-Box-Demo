@@ -308,7 +308,9 @@ static ndp_print_imu(void)
 
     /* set MSSB0/GPIO0 pin */
     ndp_core2_platform_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
-    
+    /* reset MSSB1/GPIO1 pin */
+    ndp_core2_platform_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
+
     //ndp_core2_platform_tiny_mspi_config();
     ndp_core2_platform_tiny_mspi_write(1, 1, &reg, 0);
     ndp_core2_platform_tiny_mspi_read(1, 1, &imu_val, 1);
@@ -336,7 +338,7 @@ void ndp_record_thread_entry(void *pvParameters)
 	vTaskDelay (pdMS_TO_TICKS(3000UL));
 	printf("Record_thread running\n");
 
-    ndp_print_imu();
+	//ndp_print_imu();
    
 	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
 	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
