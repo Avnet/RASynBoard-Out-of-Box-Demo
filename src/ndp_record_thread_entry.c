@@ -387,7 +387,8 @@ void ndp_record_thread_entry(void *pvParameters)
 
         while ( rec_process ) {
             if (file_create == 0) {
-				turn_led(BSP_LEDRED, BSP_LEDON);
+                // Turn on the recording LED
+                turn_led(BSP_LEDGREEN, BSP_LEDON);
 
                 if (is_record_motion()) //imu
                     snprintf(data_filename, sizeof(data_filename), "%s%04d.csv", IMU_REC_FILE_NAME_PREFIX, record_count);
@@ -404,9 +405,6 @@ void ndp_record_thread_entry(void *pvParameters)
                 }
                 else {
                     s = audio_record_operation(1, &sample_size);
-
-                    // Turn on the recording LED
-                    turn_led(BSP_LEDGREEN, BSP_LEDON);
                 }
                     
                 if (s) break;
@@ -443,23 +441,14 @@ void ndp_record_thread_entry(void *pvParameters)
                     if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
                         printf("audio_record done saved %d bytes to %s\n", 
                                 cb_audio_arg.total_len, cb_audio_arg.file_name);
-
-                        // Turn off the recording LED
-                        turn_led(BSP_LEDGREEN, BSP_LEDOFF);
                     }
                     else {
                         printf("audio_record failed: %d\n", s);
-
-                        // Turn off the recording LED
-                        turn_led(BSP_LEDGREEN, BSP_LEDOFF);
                     }
 
                     s = audio_record_operation(0, NULL);
                 }
-				turn_led(BSP_LEDRED, BSP_LEDOFF);
-
-				turn_led(BSP_LEDGREEN, BSP_LEDON);
-                vTaskDelay (20);
+				// Turn off the recording LED
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
 
                 file_create = 0;
