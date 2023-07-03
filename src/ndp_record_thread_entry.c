@@ -146,27 +146,17 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     int i, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
 
-#ifdef  DEBUG_IMU_ACC_GYRO_DATA
-    // show data on the serial console 
-    for (i = 0; i < sample_size / 2; i++) {
-        index = i % (sample_size / 2);
-
-        if (index < SENSOR_SAMPLE_SIZE / 2) {
-            printf("%c:%d\t", c + index,
-                acc_samples[i]);
-            
-        } else {
-            printf("gyro %c:%d\t", c + index - 3,
-                acc_samples[i]);
-        }
+    // show data on the serial console
+    index = sample_size / 2 - 1;
+    for (i = 0; i < index; i++) {
+		printf("%d,", acc_samples[i]);
     }
-    printf("\n");
-#else
+	printf("%d\n", acc_samples[index]);
+
 	// save data to sdcard
 	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
 	write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
 	xSemaphoreGive(g_ndp_mutex);
-#endif
 
     cb_sensor_arg->sets_count ++;
 }
@@ -184,6 +174,7 @@ static int imu_record_process(int max_tries, struct cb_sensor_arg_s *sensor_arg)
 	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
 	write_sensor_file(sensor_arg->file_name, 0, NULL, 1);
 	xSemaphoreGive(g_ndp_mutex);
+	printf("\nAcc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
 
     while (imu_tries > 0) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
