@@ -166,16 +166,16 @@ void ndp_thread_entry(void *pvParameters)
         char button_val[32] = {0};
         ret = ndp_flash_read_infos(&mode_val, button_val);
         if (!ret) {
-            mode_index = mode_val;
+            mode_circular_motion = mode_val;
             strcpy(button_switch, button_val);
-            printf("read back from FLASH got mode: %d, button_switch: %s\n", 
-                    mode_index, button_switch);
+            printf("read back from FLASH got mode_circular_motion: %s, button_switch: %s\n",
+                    (mode_circular_motion?"disable":"enable"), button_switch);
         }
     }
 
     ndp_info_display();
 
-	if (motion_to_disable()) {
+	if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
         ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
         if (!ret){
             printf("disable sensor[0] functionality\n");

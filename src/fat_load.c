@@ -16,7 +16,7 @@
 
 
 /* Parse config.ini to save the settings */
-int mode_index = 1;
+int mode_circular_motion = CIRCULAR_MOTION_DISABLE;
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
@@ -445,7 +445,6 @@ static uint32_t read_config_file( void )
 
 	/* Read config.ini from sdcard */
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
-    mode_index = mode;
 	sprintf(section, "Function_%d", mode);
 
 	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
@@ -545,10 +544,21 @@ int get_print_console_type( void )
 #endif
 }
 
+/* Identify circular_motion mode based on the DNN file in the SD card
+   or the setting value stored in the Flash */
 int motion_to_disable(void)
 {
-    return ((mode_index!=3)?1:0);
+	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
+	{
+		if (strstr (model_file_name, "motion") != NULL )
+		{
+			mode_circular_motion = CIRCULAR_MOTION_ENABLE;
+		}
+	}
+
+    return mode_circular_motion;
 }
+
 // Returns number of seconds to record data (audio or IMU data)
 int get_recording_period( void )
 {
