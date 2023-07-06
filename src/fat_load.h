@@ -30,9 +30,14 @@ enum LOW_POWER_MODE_TYPE {
     LOW_POWER_MODE_NONE,
 };
 
+enum CIRCULAR_MOTION_TYPE {
+    CIRCULAR_MOTION_ENABLE = 0,
+    CIRCULAR_MOTION_DISABLE = 1,
+};
+
 #define   LED_EVENT_NUM        10
 
-extern int mode_index;
+extern int mode_circular_motion;
 extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];

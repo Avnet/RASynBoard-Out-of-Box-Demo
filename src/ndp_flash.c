@@ -397,7 +397,8 @@ static int ndp_flash_program_infos(int mode_val, char *button_val,
 	uint32_t burn_addr = FLASH_INFO_ADDRESS;
     uint32_t burn_len = 0;
 
-	printf("FLASH programming mode: %d, button_swith: %s \n",mode_val, button_val);
+	printf("FLASH programming mode_circular_motion: %s, button_swith: %s \n", \
+			(mode_val?"disable":"enable"),  button_val);
 
     *(uint32_t*)&burn_data[burn_len] = mode_val;
     burn_len += sizeof(uint32_t);
@@ -434,7 +435,7 @@ int ndp_flash_program_all_fw(void)
 	printf("remove %s \n", flash_file_name);
 	remove_file(flash_file_name);
 
-    ret = ndp_flash_program_infos(mode_index, button_switch, strlen(button_switch));
+    ret = ndp_flash_program_infos(mode_circular_motion, button_switch, strlen(button_switch));
 
     return ret;
 }

@@ -16,7 +16,7 @@
 
 
 /* Parse config.ini to save the settings */
-int mode_index = 1;
+int mode_circular_motion = CIRCULAR_MOTION_DISABLE;
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
@@ -335,18 +335,6 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
 		return res;
 	}
 
-
-#if 0
-	if ( header == 1 ) {
-		/* create a new wav header */
-		res = f_rewind(&fil);
-		if(res != FR_OK){
-			printf("f_rewind fail %d\r\n",res);
-			return res;
-		}
-	}
-#endif
-
     res = f_write(&fil, buff, len, &bw);
     if(res != FR_OK){
         printf("f_write fail %d\r\n",res);
@@ -365,14 +353,13 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
     return bw;
 }
 
-#define SENSOR_SAMPLE_SIZE  (6)
 uint32_t write_sensor_file(char * file_name, uint32_t sample_size, 
         int16_t *acc_samples, int header)
 {
     FRESULT res;
     FIL fil;
     char path[64];
-    char buff[512];
+    char buff[128];
     uint32_t buff_len;
     uint32_t bw;
 
@@ -397,24 +384,18 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size,
 	}
 
 	if ( header == 1 ) {
-		sprintf(buff, "*** imu data from ndp120 side ***\n");
+		strcpy(buff, "Acc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
+		buff_len = strlen(buff);
 	}
     else {
-        int index = 0;
-        char c = 'x';
         uint32_t buff_offset = 0;
 
         for (int i = 0; i < sample_size / 2; i++) {
-            index = i % (sample_size / 2);
-            if (index < SENSOR_SAMPLE_SIZE / 2) {
-                buff_offset += snprintf(&buff[buff_offset], 
-                    "%c:%d\t", c + index, acc_samples[i]);
-                
-            } else {
-                buff_offset += snprintf(&buff[buff_offset], 
-                    "gyro %c:%d\t", c + index - 3, acc_samples[i]); 
-            }
+			buff_offset += snprintf(&buff[buff_offset], 128,
+                    "%d,", acc_samples[i]);
         }
+		buff_offset --; //Truncate the last comma in each line
+		buff_offset += snprintf(&buff[buff_offset], 128,"\r\n");
 
         buff_len = buff_offset;
     }
@@ -464,7 +445,6 @@ static uint32_t read_config_file( void )
 
 	/* Read config.ini from sdcard */
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
-    mode_index = mode;
 	sprintf(section, "Function_%d", mode);
 
 	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
@@ -532,7 +512,7 @@ uint32_t get_synpkg_config_info( void )
 		boot_mode = BOOT_MODE_SD;
 	}else{
 		boot_mode = BOOT_MODE_EMMC;
-		//print_console_type = CONSOLE_USB_CDC;
+		print_console_type = CONSOLE_USB_CDC;
 		return 0;
 	}
 
@@ -557,13 +537,28 @@ uint32_t get_synpkg_boot_mode( void )
 
 int get_print_console_type( void )
 {
+#ifdef   FORCE_PRINT_TO_UART
+    return CONSOLE_UART;
+#else
     return print_console_type;
+#endif
 }
 
+/* Identify circular_motion mode based on the DNN file in the SD card
+   or the setting value stored in the Flash */
 int motion_to_disable(void)
 {
-    return ((mode_index!=3)?1:0);
+	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
+	{
+		if (strstr (model_file_name, "motion") != NULL )
+		{
+			mode_circular_motion = CIRCULAR_MOTION_ENABLE;
+		}
+	}
+
+    return mode_circular_motion;
 }
+
 // Returns number of seconds to record data (audio or IMU data)
 int get_recording_period( void )
 {

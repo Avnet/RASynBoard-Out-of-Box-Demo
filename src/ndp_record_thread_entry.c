@@ -146,32 +146,17 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     int i, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
 
-    for (i = 0; i < sample_size / 2; i++) {
-        index = i % (sample_size / 2);
-#if 0
-        if (index < SENSOR_SAMPLE_SIZE / 2) {
-            printf("%c:%1.3fg  ", c + index,
-                acc_samples[i] / 16384.f);
-        } else {
-            printf("gyro %c:%6.3fdps  ", c + index - 3,
-                acc_samples[i] / 131.f);
-        }
-#else
-        if (index < SENSOR_SAMPLE_SIZE / 2) {
-            printf("%c:%d\t", c + index,
-                acc_samples[i]);
-            
-        } else {
-            printf("gyro %c:%d\t", c + index - 3,
-                acc_samples[i]);
-        }
-#endif
+    // show data on the serial console
+    index = sample_size / 2 - 1;
+    for (i = 0; i < index; i++) {
+		printf("%d,", acc_samples[i]);
     }
-    printf("\n");
+	printf("%d\n", acc_samples[index]);
 
-#if 0
-    write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
-#endif
+	// save data to sdcard
+	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+	write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
+	xSemaphoreGive(g_ndp_mutex);
 
     cb_sensor_arg->sets_count ++;
 }
@@ -185,6 +170,11 @@ static int imu_record_process(int max_tries, struct cb_sensor_arg_s *sensor_arg)
 
     data_ptr = pvPortMalloc(IMU_REC_BUFFER_SIZE);
     if (!data_ptr) return -1;
+
+	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+	write_sensor_file(sensor_arg->file_name, 0, NULL, 1);
+	xSemaphoreGive(g_ndp_mutex);
+	printf("\nAcc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
 
     while (imu_tries > 0) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
@@ -309,7 +299,9 @@ static ndp_print_imu(void)
 
     /* set MSSB0/GPIO0 pin */
     ndp_core2_platform_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
-    
+    /* reset MSSB1/GPIO1 pin */
+    ndp_core2_platform_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
+
     //ndp_core2_platform_tiny_mspi_config();
     ndp_core2_platform_tiny_mspi_write(1, 1, &reg, 0);
     ndp_core2_platform_tiny_mspi_read(1, 1, &imu_val, 1);
@@ -337,7 +329,7 @@ void ndp_record_thread_entry(void *pvParameters)
 	vTaskDelay (pdMS_TO_TICKS(3000UL));
 	printf("Record_thread running\n");
 
-    ndp_print_imu();
+	//ndp_print_imu();
    
 	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
 	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
@@ -386,10 +378,11 @@ void ndp_record_thread_entry(void *pvParameters)
 
         while ( rec_process ) {
             if (file_create == 0) {
-				turn_led(BSP_LEDRED, BSP_LEDON);
+                // Turn on the recording LED
+                turn_led(BSP_LEDGREEN, BSP_LEDON);
 
                 if (is_record_motion()) //imu
-                    snprintf(data_filename, sizeof(data_filename), "%s%04d.txt", IMU_REC_FILE_NAME_PREFIX, record_count);
+                    snprintf(data_filename, sizeof(data_filename), "%s%04d.csv", IMU_REC_FILE_NAME_PREFIX, record_count);
                 else //audio
                     snprintf(data_filename, sizeof(data_filename), "%s%04d.wav", AUDIO_REC_FILE_NAME_PREFIX, record_count);
 
@@ -403,9 +396,6 @@ void ndp_record_thread_entry(void *pvParameters)
                 }
                 else {
                     s = audio_record_operation(1, &sample_size);
-
-                    // Turn on the recording LED
-                    turn_led(BSP_LEDGREEN, BSP_LEDON);
                 }
                     
                 if (s) break;
@@ -442,23 +432,14 @@ void ndp_record_thread_entry(void *pvParameters)
                     if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
                         printf("audio_record done saved %d bytes to %s\n", 
                                 cb_audio_arg.total_len, cb_audio_arg.file_name);
-
-                        // Turn off the recording LED
-                        turn_led(BSP_LEDGREEN, BSP_LEDOFF);
                     }
                     else {
                         printf("audio_record failed: %d\n", s);
-
-                        // Turn off the recording LED
-                        turn_led(BSP_LEDGREEN, BSP_LEDOFF);
                     }
 
                     s = audio_record_operation(0, NULL);
                 }
-				turn_led(BSP_LEDRED, BSP_LEDOFF);
-
-				turn_led(BSP_LEDGREEN, BSP_LEDON);
-                vTaskDelay (20);
+				// Turn off the recording LED
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
 
                 file_create = 0;
