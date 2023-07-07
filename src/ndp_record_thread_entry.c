@@ -25,7 +25,7 @@
 extern int firmware_idx;
 
 enum short_press_button_to_record {
-	REC_SOUND = 1,
+	REC_AUDIO = 1,
 	REC_IMU = 2,
 	REC_NONE = 11,
 };
@@ -33,8 +33,8 @@ enum short_press_button_to_record {
 static int get_button_mapping_event(void)
 {
 	int ret = REC_NONE;
-	if (memcmp (button_switch, "sound", 5) == 0 )
-		ret = REC_SOUND;
+	if (memcmp (button_switch, "audio", 5) == 0 )
+		ret = REC_AUDIO;
 	if (memcmp (button_switch, "imu", 3) == 0 )
 		ret = REC_IMU;
 
@@ -338,21 +338,13 @@ void ndp_record_thread_entry(void *pvParameters)
 	}
 
 	// Check to see if we started up in low power mode.  If so, we can't enable the
-	// record feature.  Output a message to the user and exit this thread.
+	// record feature.  Exit this thread.
 	if(get_low_power_mode() == ALWAYS_ENTER_LP_MODE){
-
-	    printf("\nNote: The recording feature is disabled due to low power mode being set to 1!\n");
-	    printf("To enable the recording feature, edit config.ini on the microSD\n");
-	    printf("card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
 
 	    // Exit the Record_thread
 	    vTaskDelete(NULL);
 	    vTaskDelay (1);
 	}
-
-	printf("\nThe Recording feature is enabled!\n");
-	printf("Press user button < 400ms to record %s data\n", button_switch);
-	printf("Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
 
     while (1)
     {
