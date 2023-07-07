@@ -1,4 +1,4 @@
-# Avnet RASynBaord Out-Of-Box Application
+# Avnet RASynBoard Out-Of-Box Application
 
 The Out-of-Box (OOB) application's goal is to "Provide a working example application that exercise the RASynBoard hardware and gives development teams a strong starting point for their own custom designs and ML training data"
 
