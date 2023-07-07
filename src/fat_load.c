@@ -13,14 +13,14 @@
 #include "led.h"
 #include "minIni.h"
 #include "spi_drv.h"
-
+#include "version_string.h"
 
 /* Parse config.ini to save the settings */
 int mode_circular_motion = CIRCULAR_MOTION_DISABLE;
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
-char button_switch[32] = {"sound"};
+char button_switch[32] = {"audio"};
 int  led_event_color[] = { \
                     LED_COLOR_YELLOW,  \
                     LED_COLOR_CYAN, \
@@ -448,7 +448,6 @@ static uint32_t read_config_file( void )
 	sprintf(section, "Function_%d", mode);
 
 	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
-	printf("\nmode[%d] selected: %s\r\n", mode, tip);
 
 	ini_gets(section, "MCU", MCU_FILE_NAME, \
 						mcu_file_name, sizeof(mcu_file_name), inifile);
@@ -456,7 +455,7 @@ static uint32_t read_config_file( void )
 						dsp_file_name, sizeof(dsp_file_name), inifile);
 	ini_gets(section, "DNN", MODEL_FILE_NAME, \
 						model_file_name, sizeof(model_file_name), inifile);
-	ini_gets(section, "Button_shift", "sound", \
+	ini_gets(section, "Button_shift", "audio", \
 						button_switch, sizeof(button_switch), inifile);
 
 	/* Get led color according according to voice command */
@@ -492,6 +491,27 @@ static uint32_t read_config_file( void )
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 	recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
+
+    // Output application information to user
+    printf("\nApplication Version: %s\n", VERSION_STRING);
+    printf("Release Date       : %s\n\n", RELEASE_DATE);
+    printf("Features enabled in config.ini file:\n");
+
+    printf("\n  Operation mode=%d selected: %s\r\n", mode, tip);
+
+    // Output recording feature driven by Low Power Mode Selection
+    if(low_power_mode == DOWN_DOWN_LP_MODE){
+
+        printf("  The Recording feature is enabled!\n");
+        printf("    Press user button < 400ms to record %d seconds of %s data\n", recording_period, button_switch);
+        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
+    }
+    else {
+
+        printf("  Note: The recording feature is disabled due to low power mode being set to 1!\n");
+        printf("    To enable the recording feature, edit config.ini on the microSD\n");
+        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
+    }
 
     // unmount
     res = f_mount(NULL, "", 0);
