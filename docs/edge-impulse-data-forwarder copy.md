@@ -140,5 +140,4 @@ Click the `Start sampling` button and press the user button on the RASynBoard. A
 Once the sample period has completed, the data should be uploaded to Edge Impulse and you should see the samples appear:
 ![Collected Samples](assets/acq_sampled_data.png "Collected Samples")
 
-
 More information on the data forwarder can be found at the following link: https://docs.edgeimpulse.com/docs/edge-impulse-cli/cli-data-forwarder
