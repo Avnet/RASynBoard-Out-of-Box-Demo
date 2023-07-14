@@ -9,11 +9,10 @@
 #include "led.h"
 
 #define   AUDIO_REC_BYTES_PER_SEC         32000U
-#define   AUDIO_REC_TIME_SEC               10 /* record 1s default */
 #define   AUDIO_REC_BUFFER_SIZE            2048
 #define   AUDIO_REC_FILE_NAME_PREFIX    "ndp_audio_record_"
 
-#define   IMU_PRINTINT_TRIES            100
+#define   IMU_REC_BYTES_PER_SEC          100
 #define   IMU_REC_BUFFER_SIZE            256
 #define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_"
 
@@ -161,11 +160,10 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     cb_sensor_arg->sets_count ++;
 }
 
-static int imu_record_process(int max_tries, struct cb_sensor_arg_s *sensor_arg)
+static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_arg)
 {
     int s;
     uint32_t sample_size;
-    int imu_tries = max_tries;
     uint8_t *data_ptr = NULL;
 
     data_ptr = pvPortMalloc(IMU_REC_BUFFER_SIZE);
@@ -176,15 +174,12 @@ static int imu_record_process(int max_tries, struct cb_sensor_arg_s *sensor_arg)
 	xSemaphoreGive(g_ndp_mutex);
 	printf("\nAcc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
 
-    while (imu_tries > 0) {
+    while (extract_sets > sensor_arg->sets_count) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
                 IMU_SENSOR_INDEX, icm42670_extraction_cb, sensor_arg);
         if ((s) && (s != SYNTIANT_NDP_ERROR_DATA_REREAD)) {
             printf("sensor extract data failed: %d\n", s);
             break;
-        }
-        else if (!s) {
-            imu_tries --;
         }
     }
 
@@ -396,12 +391,13 @@ void ndp_record_thread_entry(void *pvParameters)
             {
                 if (is_record_motion()) { //imu
                     struct cb_sensor_arg_s cb_sensor_arg;
+                    int wanted_sets = IMU_REC_BYTES_PER_SEC * get_recording_period();
 
                     memset(&cb_sensor_arg, 0, sizeof(struct cb_sensor_arg_s));
                     strcpy(cb_sensor_arg.file_name, data_filename);
                     cb_sensor_arg.sets_count = 0;
 
-                    s = imu_record_process(IMU_PRINTINT_TRIES, &cb_sensor_arg);
+                    s = imu_record_process(wanted_sets, &cb_sensor_arg);
                     if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
                         printf("imu_record done got %d data_sets and saved to %s\n", 
                                 cb_sensor_arg.sets_count, cb_sensor_arg.file_name);
