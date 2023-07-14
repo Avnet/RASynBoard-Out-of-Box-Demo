@@ -35,6 +35,11 @@ enum CIRCULAR_MOTION_TYPE {
     CIRCULAR_MOTION_DISABLE = 1,
 };
 
+enum IMU_FUNC_TYPE {
+	IMU_FUNC_DISABLE = 0,
+    IMU_FUNC_ENABLE = 1,
+};
+
 #define   LED_EVENT_NUM        10
 
 extern int mode_circular_motion;
@@ -52,11 +57,14 @@ uint32_t get_synpkg_size(char * file_name);
 uint32_t read_synpkg_block(char * file_name, uint32_t offset, uint8_t *buff,  uint32_t split_len);
 int check_sdcard_env(void);
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header);
+uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_samples, int header);
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
+int is_imu_data_to_file( void );
+int is_imu_data_to_terminal( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

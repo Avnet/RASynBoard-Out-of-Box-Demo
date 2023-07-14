@@ -35,6 +35,8 @@ static int boot_mode =  BOOT_MODE_NONE;
 static int print_console_type = CONSOLE_UART;
 int recording_period = 10;
 int low_power_mode = DOWN_DOWN_LP_MODE;
+int imu_write_to_file = IMU_FUNC_ENABLE;
+int imu_print_to_terminal = IMU_FUNC_DISABLE;
 
 void init_fatfs(void)
 {
@@ -491,6 +493,10 @@ static uint32_t read_config_file( void )
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 	recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
+	imu_write_to_file = ini_getl("IMU data stream", "Write_to_file", \
+										IMU_FUNC_ENABLE, inifile);
+	imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
+										IMU_FUNC_DISABLE, inifile);
 
     // Output application information to user
     printf("\nApplication Version: %s\n", VERSION_STRING);
@@ -591,3 +597,11 @@ int get_low_power_mode( void )
     return low_power_mode;
 }
 
+int is_imu_data_to_file( void )
+{
+    return imu_write_to_file;
+}
+int is_imu_data_to_terminal( void )
+{
+    return imu_print_to_terminal;
+}

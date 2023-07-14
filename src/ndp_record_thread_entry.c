@@ -141,21 +141,24 @@ struct cb_sensor_arg_s {
 void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *sensor_arg)
 {
     struct cb_sensor_arg_s *cb_sensor_arg = (struct cb_sensor_arg_s*)sensor_arg;
-    char c = 'x';
     int i, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
 
-    // show data on the serial console
-    index = sample_size / 2 - 1;
-    for (i = 0; i < index; i++) {
-		printf("%d,", acc_samples[i]);
-    }
-	printf("%d\n", acc_samples[index]);
+	if (is_imu_data_to_terminal()) {
+		// show data on the serial console
+		index = sample_size / 2 - 1;
+		for (i = 0; i < index; i++) {
+			printf("%d,", acc_samples[i]);
+		}
+		printf("%d\n", acc_samples[index]);
+	}
 
-	// save data to sdcard
-	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-	write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
-	xSemaphoreGive(g_ndp_mutex);
+	if (is_imu_data_to_file()) {
+		// save data to sdcard
+		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+		write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
+		xSemaphoreGive(g_ndp_mutex);
+	}
 
     cb_sensor_arg->sets_count ++;
 }
@@ -169,10 +172,14 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
     data_ptr = pvPortMalloc(IMU_REC_BUFFER_SIZE);
     if (!data_ptr) return -1;
 
-	xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-	write_sensor_file(sensor_arg->file_name, 0, NULL, 1);
-	xSemaphoreGive(g_ndp_mutex);
-	printf("\nAcc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
+	if (is_imu_data_to_file()) {
+		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+		write_sensor_file(sensor_arg->file_name, 0, NULL, 1);
+		xSemaphoreGive(g_ndp_mutex);
+	}
+	if (is_imu_data_to_terminal()) {
+		printf("\nAcc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
+	}
 
     while (extract_sets > sensor_arg->sets_count) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
@@ -287,7 +294,7 @@ process_out:
     return s;
 }
 
-static ndp_print_imu(void)
+void ndp_print_imu(void)
 {
     uint8_t imu_val = 0;
     uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
@@ -374,7 +381,7 @@ void ndp_record_thread_entry(void *pvParameters)
                     snprintf(data_filename, sizeof(data_filename), "%s%04d.wav", AUDIO_REC_FILE_NAME_PREFIX, record_count);
 
                 /* Reserve the position of a wav header */
-                printf("Start to record extraction data to %s \n", data_filename);
+                printf("Start to record extraction data \n");
                 file_create = 1;
                 record_count ++;
 
@@ -399,8 +406,11 @@ void ndp_record_thread_entry(void *pvParameters)
 
                     s = imu_record_process(wanted_sets, &cb_sensor_arg);
                     if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
-                        printf("imu_record done got %d data_sets and saved to %s\n", 
-                                cb_sensor_arg.sets_count, cb_sensor_arg.file_name);
+                        printf("imu_record done got %d data_sets", cb_sensor_arg.sets_count);	
+						if (is_imu_data_to_file()) {
+							printf("and saved to %s", cb_sensor_arg.file_name);
+						}
+						printf("\n");
                     }
                     else {
                         printf("imu_record failed: %d\n", s);
