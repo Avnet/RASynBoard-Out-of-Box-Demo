@@ -22,20 +22,20 @@ npm install -g edge-impulse-cli
 
 ## Setting Up RASynBoard
 
-Clone or download the contents of the RASynBoard OOTB Demos repo: [link to repo] and copy all the files from `ndp120/synpkg_files` to the root of a `FAT 32` formatted microSD card.
+Clone or download the contents of the [RASynBoard OOB Demo repo](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo) and copy all the files from `ndp120/synpkg_files` to the root of a `FAT 32` formatted microSD card.
 
 Modify the config.ini to contain the following:
 
 ```
 [NDP Firmware]
-Mode=1        # select function mode:  1->Function_1;  2->Function_2;  3->Function_3; ...
+Mode=1      # select function mode:  1->Function_1;  2->Function_2;  3->Function_3; ...
 
 [Function_1]
 Description="Single Mic"
 MCU=mcu_fw_120_notify.synpkg
 DSP=dsp_firmware.synpkg
 DNN=menu_demo_512_general_newph_v100_rasyn_pdm0_ext_icm.synpkg
-Button_shift=imu 
+Button_shift=imu  # Stream IMU data when the user button is pressed
 
 [Function_2]
 Description="Dual Mic"
@@ -50,7 +50,6 @@ DSP=dsp_firmware.synpkg
 DNN=circular_motion_NDP120B0_icm42670.synpkg
 Button_shift=imu      # redefine the short press button to capture the IMU data
 
-
 [Led]
 # set led response color for each voice command, choose from "red","green","blue","yellow","cyan" and "magenta".
 IDX0=yellow     # ok-syntiant
@@ -61,11 +60,24 @@ IDX4=green      # next
 
 [Debug Print]
 Port=1          # select debug port:  1->by UART;  2->by USB-VCOM
-```
 
+[Recording Period] 
+# Defines the duration of voice or IMU data recording when the user button is pressed.
+Recording_Period=3600  # in seconds, stream IMU data for 60min to the debug uart
+
+[IMU data stream]
+# Select the feature:  0->Disable;  1->Enable
+Write_to_file=0        # write data to a file in sdcard
+Print_to_terminal=1    # output data to the serial debug terminal
+
+[Low Power Mode]
+# 0->Enter Low Power Mode with "down . . down" command; 1->Enter Low Power mode automatically after each feature detection 
+Power_Mode=0
+
+```
 Remove the microSD card and insert into the RAsynBoard. Connect a USB Serial adapter to the RASynBoard as shown below:
 
-[Insert picture of connected serial cable]
+![](../images/UartConnection.jpg "")
 
 Power on the RASynBoard.
 
