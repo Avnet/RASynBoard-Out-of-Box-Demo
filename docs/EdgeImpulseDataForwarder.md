@@ -86,7 +86,8 @@ Power on the RASynBoard.
 Create a free account with Edge Impulse and create a new project if one isn't already created: https://studio.edgeimpulse.com/studio/profile/projects
 
 Press the user button to start printing IMU data to the serial port:
-[Insert picture of user button]
+
+![](../images/UserButton.jpg "")
 
 From a terminal window, run the following command:
 

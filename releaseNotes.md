@@ -1,5 +1,21 @@
 # Release Notes for the Avnet Out-of-Box Application
 
+## Version: 1.1.0
+Release type: Feature Release
+
+### New Features
+- Supports capturing 6-axis IMU data to the debug uart or to a file
+- IMU data capture follows ```Recording_Period=xx``` configuration item
+- Added Edge Impulse [Data Uploader instructions](./docs/EdgeImpulseUploader.md)
+- Added Edge Impulse [Data Forwarder instructions](./docs/EdgeImpulseDataForwarder.md)
+- When the core board boots without a core board, send uart debug to USB-C on core board
+
+### Known Issues
+- When running the circular motion model ```mode=3``` the application hangs when the user presses the user button to record imu data. 
+  - To capture IMU data, select ```mode=1``` and add a new line ```Button_shift=imu``` at the end of the ```[Function_1]``` block
+- When in low-power mode ```Power_Mode=1``` the application does not start-up in low-power mode
+  - The application will enter low-power mode after the first inference result is detected
+  
 ## Version: 1.0.0
 Release type: Feature Release
 

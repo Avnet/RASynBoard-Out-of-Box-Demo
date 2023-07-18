@@ -84,7 +84,9 @@ Power on the RASynBoard.
 
 Create a free account with Edge Impulse and create a new project if one isn't already created: https://studio.edgeimpulse.com/studio/profile/projects
 
-Press the user button to start recording IMU data.
+Press the user button to start printing IMU data to the serial port:
+
+![](../images/UserButton.jpg "")
 
 Navigate back to the projects page and select your project. In the project, select the `Data Acqusition page. Startup the CSV Wizard by clicking CSV Wizard:
 ![Edge Impulse Acquisition Screen](assets/acq_upload_button.png "Edge Impulse Acquisition Screen")
