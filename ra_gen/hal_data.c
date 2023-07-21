@@ -1,5 +1,6 @@
 /* generated HAL source file - do not edit */
 #include "hal_data.h"
+
 dmac_instance_ctrl_t g_transfer1_ctrl;
 transfer_info_t g_transfer1_info =
 { .transfer_settings_word_b.dest_addr_mode = TRANSFER_ADDR_MODE_INCREMENTED,
@@ -64,7 +65,7 @@ const usb_cfg_t g_basic_cfg =
 { .usb_mode = USB_MODE_PERI,
   .usb_speed = USB_SPEED_FS,
   .module_number = 0,
-  .type = USB_CLASS_PCDC,
+  .type = USB_CLASS_PMSC,
 #if defined(g_usb_descriptor)
                 .p_usb_reg = g_usb_descriptor,
 #else
@@ -106,22 +107,22 @@ const usb_cfg_t g_basic_cfg =
 #else
   .hsirq_d1 = FSP_INVALID_VECTOR,
 #endif
-  .ipl = (12),
-  .ipl_r = (12),
-  .ipl_d0 = (12),
-  .ipl_d1 = (12),
+  .ipl = (13),
+  .ipl_r = (13),
+  .ipl_d0 = (13),
+  .ipl_d1 = (13),
   .hsipl = (BSP_IRQ_DISABLED),
   .hsipl_d0 = (BSP_IRQ_DISABLED),
   .hsipl_d1 = (BSP_IRQ_DISABLED),
 #if (BSP_CFG_RTOS != 0)
-                .p_usb_apl_callback = usb_pcdc_callback,
+                .p_usb_apl_callback = usb_composite_callback,
 #else
   .p_usb_apl_callback = NULL,
 #endif
-#if defined(NULL)
-                .p_context = NULL,
+#if defined(g_rm_block_media)
+                .p_context = g_rm_block_media,
 #else
-  .p_context = &NULL,
+  .p_context = &g_rm_block_media,
 #endif
 #if (RA_NOT_DEFINED == g_transfer0)
 #else

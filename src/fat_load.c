@@ -31,6 +31,7 @@ int  led_event_color[] = { \
 
 /* Local global variables */
 static FATFS fatfs_obj;
+static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int print_console_type = CONSOLE_UART;
 int recording_period = 10;
@@ -525,6 +526,9 @@ static uint32_t read_config_file( void )
         printf("f_mount umount fail %d\r\n",res);
     }
 
+    /* Get total sectors */
+    fatfs_total_sectors = (fatfs_obj.n_fatent - 2) * fatfs_obj.csize;
+
     return res;
 }
 
@@ -554,6 +558,11 @@ uint32_t get_synpkg_config_info( void )
 	printf("    DNN : %s\n", model_file_name);
 
 	return res;
+}
+
+uint32_t get_sdcard_total_sectors( void )
+{
+    return fatfs_total_sectors;
 }
 
 uint32_t get_synpkg_boot_mode( void )

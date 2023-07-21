@@ -208,6 +208,18 @@
       <description>USB Peripheral Communications Device Class</description>
       <originalPack>Renesas.RA.4.1.0.pack</originalPack>
     </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_pmsc" variant="" vendor="Renesas" version="4.1.0">
+      <description>USB Peripheral Mass Storage Class</description>
+      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_composite" variant="" vendor="Renesas" version="4.1.0">
+      <description>USB Composite</description>
+      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_block_media_user" variant="" vendor="Renesas" version="4.1.0">
+      <description>Block Media User Implementation</description>
+      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+    </component>
   </raComponentSelection>
   <raElcConfiguration/>
   <raIcuConfiguration/>
@@ -347,7 +359,17 @@
     <module id="module.driver.pcdc_on_usb.1744859941">
       <property id="module.driver.pcdc.name" value="g_pcdc"/>
     </module>
-    <module id="module.driver.basic_on_usb.956297984">
+    <module id="module.freertos.heap.4.1210728794"/>
+    <module id="module.driver.usb_composite.1313110113">
+      <property id="module.driver.r_usb_composite.name" value="g_r_usb_composite0"/>
+    </module>
+    <module id="module.driver.pmsc_on_usb.2010370931">
+      <property id="module.driver.pmsc.name" value="g_pmsc"/>
+    </module>
+    <module id="module.custom.block_media_pmsc.1523887492">
+      <property id="module.driver.rm_block_media.name" value="g_rm_block_media"/>
+    </module>
+    <module id="module.driver.basic_on_usb.1123255072">
       <property id="module.driver.basic.name" value="g_basic"/>
       <property id="module.driver.usb_basic.usb_mode" value="module.driver.usb_basic.usb_mode.host"/>
       <property id="module.driver.usb_basic.usb_speed" value="module.driver.usb_basic.usb_speed.fs"/>
@@ -355,17 +377,17 @@
       <property id="module.driver.usb_basic.usb_classtype" value="module.driver.usb_basic.usb_classtype.pcdc"/>
       <property id="module.driver.usb_basic.p_usb_reg" value="g_usb_descriptor"/>
       <property id="module.driver.usb_basic.complience_cb" value="NULL"/>
-      <property id="module.driver.usb_basic.ipl" value="board.icu.common.irq.priority12"/>
-      <property id="module.driver.usb_basic.ipl_r" value="board.icu.common.irq.priority12"/>
-      <property id="module.driver.usb_basic.ipl_d0" value="board.icu.common.irq.priority12"/>
-      <property id="module.driver.usb_basic.ipl_d1" value="board.icu.common.irq.priority12"/>
+      <property id="module.driver.usb_basic.ipl" value="board.icu.common.irq.priority13"/>
+      <property id="module.driver.usb_basic.ipl_r" value="board.icu.common.irq.priority13"/>
+      <property id="module.driver.usb_basic.ipl_d0" value="board.icu.common.irq.priority13"/>
+      <property id="module.driver.usb_basic.ipl_d1" value="board.icu.common.irq.priority13"/>
       <property id="module.driver.usb_basic.hsipl" value="_disabled"/>
       <property id="module.driver.usb_basic.hsipl_d0" value="_disabled"/>
       <property id="module.driver.usb_basic.hsipl_d1" value="_disabled"/>
-      <property id="module.driver.usb_basic.rtos_callback" value="usb_pcdc_callback"/>
+      <property id="module.driver.usb_basic.rtos_callback" value="usb_composite_callback"/>
       <property id="module.driver.usb_basic.other_context" value="NULL"/>
     </module>
-    <module id="module.driver.transfer_on_dmac.135334895">
+    <module id="module.driver.transfer_on_dmac.878685735">
       <property id="module.driver.transfer.name" value="g_transfer0"/>
       <property id="module.driver.transfer.channel" value="0"/>
       <property id="module.driver.transfer.mode" value="module.driver.transfer.mode.mode_normal"/>
@@ -385,7 +407,7 @@
       <property id="module.driver.transfer.offset" value="1"/>
       <property id="module.driver.transfer.src.buffer" value="1"/>
     </module>
-    <module id="module.driver.transfer_on_dmac.1243676105">
+    <module id="module.driver.transfer_on_dmac.1411494532">
       <property id="module.driver.transfer.name" value="g_transfer1"/>
       <property id="module.driver.transfer.channel" value="1"/>
       <property id="module.driver.transfer.mode" value="module.driver.transfer.mode.mode_normal"/>
@@ -405,7 +427,6 @@
       <property id="module.driver.transfer.offset" value="1"/>
       <property id="module.driver.transfer.src.buffer" value="1"/>
     </module>
-    <module id="module.freertos.heap.4.1210728794"/>
     <object id="rtos.awsfreertos.object.binary_semaphore.2047280178">
       <property id="rtos.awsfreertos.object.binary_semaphore.symbol" value="g_binary_semaphore"/>
       <property id="rtos.awsfreertos.object.binary_semaphore.allocation" value="rtos.awsfreertos.object.binary_semaphore.allocation.static"/>
@@ -442,11 +463,15 @@
       <stack module="module.driver.external_irq_on_icu.1898729065"/>
       <stack module="module.driver.uart_on_sci_uart.440878227"/>
       <stack module="module.driver.lpm.1188439335"/>
-      <stack module="module.driver.pcdc_on_usb.1744859941">
-        <stack module="module.driver.basic_on_usb.956297984" requires="module.driver.basic_on_usb.requires.basic">
-          <stack module="module.driver.transfer_on_dmac.135334895" requires="module.driver.basic_on_usb.requires.transfer_tx"/>
-          <stack module="module.driver.transfer_on_dmac.1243676105" requires="module.driver.basic_on_usb.requires.transfer_rx"/>
+      <stack module="module.driver.usb_composite.1313110113">
+        <stack module="module.driver.pmsc_on_usb.2010370931" requires="module.driver.r_usb_composite_pmsc_phid.requires.class1">
+          <stack module="module.custom.block_media_pmsc.1523887492" requires="module.driver.pmsc_on_usb.requires.rm_block_media"/>
+          <stack module="module.driver.basic_on_usb.1123255072" requires="module.driver.basic_on_usb.requires.basic">
+            <stack module="module.driver.transfer_on_dmac.878685735" requires="module.driver.basic_on_usb.requires.transfer_tx"/>
+            <stack module="module.driver.transfer_on_dmac.1411494532" requires="module.driver.basic_on_usb.requires.transfer_rx"/>
+          </stack>
         </stack>
+        <stack module="module.driver.pcdc_on_usb.1744859941" requires="module.driver.r_usb_composite_pmsc_phid.requires.class2"/>
       </stack>
       <stack module="module.freertos.heap.4.1210728794"/>
     </context>
@@ -501,6 +526,16 @@
     <config id="config.driver.ioport">
       <property id="config.driver.ioport.checking" value="config.driver.ioport.checking.system"/>
     </config>
+    <config id="config.driver.usb_pmsc">
+      <property id="config.driver.usb_pmsc.bulk_in" value="config.driver.usb_pmsc.bulk_in.pipe3"/>
+      <property id="config.driver.usb_pmsc.bulk_out" value="config.driver.usb_pmsc.bulk_out.pipe4"/>
+      <property id="config.driver.usb_pmsc.vendor" value="Vendor  "/>
+      <property id="config.driver.usb_pmsc.product" value="Mass Storage    "/>
+      <property id="config.driver.usb_pmsc.revision" value="1.00"/>
+      <property id="config.driver.usb_pmsc.sectorsize" value="config.driver.usb_pmsc.sectorsize.512"/>
+      <property id="config.driver.usb_pmsc.transCount" value="8"/>
+    </config>
+    <config id="config.driver.usb_pmsc_class"/>
     <config id="config.driver.icu">
       <property id="config.driver.icu.param_checking_enable" value="config.driver.icu.param_checking_enable.bsp"/>
     </config>
@@ -554,7 +589,7 @@
       <property id="config.awsfreertos.thread.configmessage_buffer_length_type" value="size_t"/>
       <property id="config.awsfreertos.thread.configsupport_static_allocation" value="config.awsfreertos.thread.configsupport_static_allocation.enabled"/>
       <property id="config.awsfreertos.thread.configsupport_dynamic_allocation" value="config.awsfreertos.thread.configsupport_dynamic_allocation.enabled"/>
-      <property id="config.awsfreertos.thread.configtotal_heap_size" value="32768"/>
+      <property id="config.awsfreertos.thread.configtotal_heap_size" value="61440"/>
       <property id="config.awsfreertos.thread.configapplication_allocated_heap" value="config.awsfreertos.thread.configapplication_allocated_heap.disabled"/>
       <property id="config.awsfreertos.thread.configgenerate_run_time_stats" value="config.awsfreertos.thread.configgenerate_run_time_stats.disabled"/>
       <property id="config.awsfreertos.thread.configuse_timers" value="config.awsfreertos.thread.configuse_timers.enabled"/>

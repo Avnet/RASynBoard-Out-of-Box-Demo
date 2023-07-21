@@ -140,10 +140,10 @@ void ndp_thread_entry(void *pvParameters)
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
     /* Choose the appropriate debug print console */
-    if (get_print_console_type() == CONSOLE_USB_CDC)
+    //if (get_print_console_type() == CONSOLE_USB_CDC)
     {
         start_usb_pcdc_thread();
-        console_deinit();
+        //console_deinit();
     }
     /* Start NDP120 program */
     ret = ndp_core2_platform_tiny_start(0, 1);

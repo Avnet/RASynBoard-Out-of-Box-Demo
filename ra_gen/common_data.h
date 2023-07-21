@@ -15,6 +15,7 @@
 #include "semphr.h"
 #include "r_icu.h"
 #include "r_external_irq_api.h"
+#include "rm_block_media_api.h"
 #include "r_ioport.h"
 #include "bsp_pin_cfg.h"
 FSP_HEADER
@@ -27,6 +28,16 @@ extern const external_irq_cfg_t g_ndp_ext_irq05_cfg;
 
 #ifndef ndp_irq_service
 void ndp_irq_service(external_irq_callback_args_t *p_args);
+#endif
+/** Block Media on Custom Implementation Instance */
+extern rm_block_media_instance_t g_rm_block_media;
+
+/** Access the Block Media Custom Implementation instance using these structures when calling API functions directly (::p_api is not used). */
+extern rm_block_media_ctrl_t g_rm_block_media_ctrl;
+extern const rm_block_media_cfg_t g_rm_block_media_cfg;
+
+#if !defined(g_rm_block_media)
+extern rm_block_media_instance_t g_rm_block_media;
 #endif
 /** External IRQ on ICU Instance. */
 extern const external_irq_instance_t g_btn_ext_irq13;

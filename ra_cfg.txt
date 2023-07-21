@@ -198,6 +198,18 @@ FSP Configuration
     Bulk Out Pipe: USB PIPE2
     Interrupt Out Pipe: USB PIPE6
     
+  Module "FreeRTOS Heap 4"
+  Module "USB Composite (r_usb_composite)"
+  Module "USB PMSC (r_usb_pmsc)"
+    Bulk Input Transfer Pipe: USB PIPE3
+    Bulk Output Transfer Pipe: USB PIPE4
+    Vendor Information: Vendor  
+    Product Information: Mass Storage    
+    Product Revision Level: 1.00
+    Sector size: 512
+    Number of Transfer Sectors: 8
+    
+  Module "Block Media Custom Implementation"
   Module "USB (r_usb_basic)"
     Parameter Checking: Default (BSP)
     PLL Frequency: Not Supported
@@ -218,7 +230,6 @@ FSP Configuration
   Module "Transfer (r_dmac)"
     Parameter Checking: Default (BSP)
     
-  Module "FreeRTOS Heap 4"
   FreeRTOS
     General: Custom FreeRTOSConfig.h: 
     General: Use Preemption: Enabled
@@ -252,7 +263,7 @@ FSP Configuration
     General: Message Buffer Length Type: size_t
     Memory Allocation: Support Static Allocation: Enabled
     Memory Allocation: Support Dynamic Allocation: Enabled
-    Memory Allocation: Total Heap Size: 32768
+    Memory Allocation: Total Heap Size: 61440
     Memory Allocation: Application Allocated Heap: Disabled
     Stats: Generate Run Time Stats: Disabled
     Timers: Use Timers: Enabled
@@ -394,67 +405,76 @@ FSP Configuration
       Deep Standby Options: Cancel Sources: 
       Deep Standby Options: Cancel Edges: 
       
-    Instance "g_pcdc USB PCDC (r_usb_pcdc)"
-      Name: g_pcdc
+    Instance "g_r_usb_composite0 USB Composite (r_usb_composite)"
+      Name: g_r_usb_composite0
       
-      Instance "g_basic USB (r_usb_basic)"
-        Name: g_basic
-        USB Mode: Peri mode
-        USB Speed: Full Speed
-        USB Module Number: USB_IP0 Port
-        USB Device Class: Peripheral Communications Device Class
-        USB Descriptor: g_usb_descriptor
-        USB Compliance Callback: NULL
-        USBFS Interrupt Priority: Priority 12
-        USBFS Resume Priority: Priority 12
-        USBFS D0FIFO Interrupt Priority: Priority 12
-        USBFS D1FIFO Interrupt Priority: Priority 12
-        USBHS Interrupt Priority: Not Supported
-        USBHS D0FIFO Interrupt Priority: Not Supported
-        USBHS D1FIFO Interrupt Priority: Not Supported
-        USB RTOS Callback: usb_pcdc_callback
-        USB Callback Context: NULL
+      Instance "g_pmsc USB PMSC (r_usb_pmsc)"
+        Name: g_pmsc
         
-        Instance "g_transfer0 Transfer (r_dmac) USBFS FIFO 1 (DMA transfer request 1)"
-          Name: g_transfer0
-          Channel: 0
-          Mode: Block
-          Transfer Size: 2 Bytes
-          Destination Address Mode: Fixed
-          Source Address Mode: Incremented
-          Repeat Area (Unused in Normal Mode): Destination
-          Destination Pointer: USB_DEST_ADDRESS
-          Source Pointer: 0
-          Number of Transfers: 0
-          Number of Blocks (Valid only in Repeat,Block or Repeat-Block Mode): 0
-          Activation Source: USBFS FIFO 1 (DMA transfer request 1)
-          Callback: usb_ip0_d1fifo_callback
-          Context: NULL
-          Transfer End Interrupt Priority: Priority 3
-          Interrupt Frequency: Interrupt after all transfers have completed
-          Offset value (Valid only when address mode is \'Offset\'): 0
-          Source Buffer Size: 1
+        Instance "g_rm_block_media Block Media Custom Implementation"
+          Name: g_rm_block_media
           
-        Instance "g_transfer1 Transfer (r_dmac) USBFS FIFO 0 (DMA transfer request 0)"
-          Name: g_transfer1
-          Channel: 1
-          Mode: Block
-          Transfer Size: 2 Bytes
-          Destination Address Mode: Incremented
-          Source Address Mode: Fixed
-          Repeat Area (Unused in Normal Mode): Source
-          Destination Pointer: 0
-          Source Pointer: USB_SRC_ADDRESS
-          Number of Transfers: 0
-          Number of Blocks (Valid only in Repeat,Block or Repeat-Block Mode): 0
-          Activation Source: USBFS FIFO 0 (DMA transfer request 0)
-          Callback: NULL
-          Context: NULL
-          Transfer End Interrupt Priority: Priority 3
-          Interrupt Frequency: Interrupt after all transfers have completed
-          Offset value (Valid only when address mode is \'Offset\'): 0
-          Source Buffer Size: 1
+        Instance "g_basic USB (r_usb_basic)"
+          Name: g_basic
+          USB Mode: Peri mode
+          USB Speed: Full Speed
+          USB Module Number: USB_IP0 Port
+          USB Device Class: Peripheral Mass Storage Class
+          USB Descriptor: g_usb_descriptor
+          USB Compliance Callback: NULL
+          USBFS Interrupt Priority: Priority 13
+          USBFS Resume Priority: Priority 13
+          USBFS D0FIFO Interrupt Priority: Priority 13
+          USBFS D1FIFO Interrupt Priority: Priority 13
+          USBHS Interrupt Priority: Not Supported
+          USBHS D0FIFO Interrupt Priority: Not Supported
+          USBHS D1FIFO Interrupt Priority: Not Supported
+          USB RTOS Callback: usb_composite_callback
+          USB Callback Context: g_rm_block_media
           
+          Instance "g_transfer0 Transfer (r_dmac) USBFS FIFO 1 (DMA transfer request 1)"
+            Name: g_transfer0
+            Channel: 0
+            Mode: Block
+            Transfer Size: 2 Bytes
+            Destination Address Mode: Fixed
+            Source Address Mode: Incremented
+            Repeat Area (Unused in Normal Mode): Destination
+            Destination Pointer: USB_DEST_ADDRESS
+            Source Pointer: 0
+            Number of Transfers: 0
+            Number of Blocks (Valid only in Repeat,Block or Repeat-Block Mode): 0
+            Activation Source: USBFS FIFO 1 (DMA transfer request 1)
+            Callback: usb_ip0_d1fifo_callback
+            Context: NULL
+            Transfer End Interrupt Priority: Priority 3
+            Interrupt Frequency: Interrupt after all transfers have completed
+            Offset value (Valid only when address mode is \'Offset\'): 0
+            Source Buffer Size: 1
+            
+          Instance "g_transfer1 Transfer (r_dmac) USBFS FIFO 0 (DMA transfer request 0)"
+            Name: g_transfer1
+            Channel: 1
+            Mode: Block
+            Transfer Size: 2 Bytes
+            Destination Address Mode: Incremented
+            Source Address Mode: Fixed
+            Repeat Area (Unused in Normal Mode): Source
+            Destination Pointer: 0
+            Source Pointer: USB_SRC_ADDRESS
+            Number of Transfers: 0
+            Number of Blocks (Valid only in Repeat,Block or Repeat-Block Mode): 0
+            Activation Source: USBFS FIFO 0 (DMA transfer request 0)
+            Callback: NULL
+            Context: NULL
+            Transfer End Interrupt Priority: Priority 3
+            Interrupt Frequency: Interrupt after all transfers have completed
+            Offset value (Valid only when address mode is \'Offset\'): 0
+            Source Buffer Size: 1
+            
+      Instance "g_pcdc USB PCDC (r_usb_pcdc)"
+        Name: g_pcdc
+        
     Instance "FreeRTOS Heap 4"
   Thread "LED IDLE Thread"
     Symbol: led_threadx

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "usb_pcdc_vcom.h"
 
 //#define USB_COM_ECHO
@@ -58,11 +59,13 @@ void usb_pcdc_thread_entry(void * pvParameters)
 	uint8_t   rcv_data[DATA_BUFFER_LENGTH_BYTES];
 	size_t rcv_len;
 	
+	printf("FreeRTOS USB_thread running\n");
+
 	/* Open USB instance */
 	err = R_USB_Open (&g_basic_ctrl, &g_basic_cfg);
 	if (FSP_SUCCESS != err)
 	{
-		return ;
+		printf("Error in initializing USBPMSC, USB_Open failed !!!\n");
 	}
 
     while (1) {
@@ -103,7 +106,8 @@ void deinit_usb(void)
  * @param[IN]   usb_onoff_t         state
  * @retval      None
  **********************************************************************************************************************/
-void usb_pcdc_callback(usb_event_info_t * p_pcdc_event , usb_hdl_t task, usb_onoff_t state)
+//void usb_pcdc_callback(usb_event_info_t * p_pcdc_event , usb_hdl_t task, usb_onoff_t state)
+void usb_composite_callback(usb_event_info_t * p_pcdc_event , usb_hdl_t task, usb_onoff_t state)
 {
     FSP_PARAMETER_NOT_USED (task);
     FSP_PARAMETER_NOT_USED (state);

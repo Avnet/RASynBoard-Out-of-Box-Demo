@@ -8,6 +8,8 @@
 #ifndef FAT_LOAD_H_
 #define FAT_LOAD_H_
 
+#include <stdint.h>
+
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
 #define MODEL_FILE_NAME         "ei_model.synpkg"
@@ -60,6 +62,7 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
 uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_samples, int header);
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
+uint32_t get_sdcard_total_sectors( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
