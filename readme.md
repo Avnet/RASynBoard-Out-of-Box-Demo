@@ -106,7 +106,7 @@ Now we can load and run the project on the RASynBoard!
    1. Right click on the top level folder of your project and select "Debug As" --> "Debug Configuration . . ."
 
    1. ![Alt text](images/image-15.png)
-   1. Select the "Renesas GDB Hardware Debugging", then select the "Debugger" Tab, then change the "Target Device" to "R7FA6M4FA", then "Apply", then close
+   1. Select the "Renesas GDB Hardware Debugging", then select the "Debugger" Tab, then change the "Target Device" to "R7FA6M4AF", then "Apply", then close
 
    1. ![Alt text](images/image-16.png)
    1. Now start the debugger by clicking on the green bug icon in the toolbar

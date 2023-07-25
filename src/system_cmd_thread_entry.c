@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "fat_load.h"
 
-#define   wifi_sleep()				R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW)
+#define   wifi_sleep()			R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW)
 #define   wifi_wakup()			R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH)
 
 // Local globals
@@ -20,7 +20,14 @@ void system_cmd_thread_entry(void *pvParameters)
 	uint32_t led_event;
     FSP_PARAMETER_NOT_USED (pvParameters);
 
-    /* TODO: add your own code here */
+    // Check to see if we started up in low power mode.  If so, enter low power mode right away
+    if(get_low_power_mode() == ALWAYS_ENTER_LP_MODE){
+
+        printf("\n\n\nCall enter_low_power_mode()\n\n\n");
+        enter_low_power_mode();
+    }
+
+    // Loop until we receive a new message on the g_led_queue
     while (1)
     {
         turn_led(BSP_LEDBLUE, BSP_LEDOFF);
@@ -57,6 +64,8 @@ void system_cmd_thread_entry(void *pvParameters)
 				break;
 		    }
 
+		// If we're in low power mode, go back to low power
+		// after each feature detection
 		if(get_low_power_mode() == ALWAYS_ENTER_LP_MODE){
 
 		    enter_low_power_mode ();
