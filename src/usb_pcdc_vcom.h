@@ -15,5 +15,7 @@
 /* Function declaration */
 void start_usb_pcdc_thread( void );
 int usb_pcdc_print(char *pBuffer, int size);
+void usb_enable(void);
+void usb_disable(void);
 
 #endif /* USB_PCDC_VCOM_H_ */

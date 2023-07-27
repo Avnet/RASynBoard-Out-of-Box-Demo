@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "ndp_irq_service.h"
 #include "led.h"
+#include "usb_pcdc_vcom.h"
 
 #define   AUDIO_REC_BYTES_PER_SEC         32000U
 #define   AUDIO_REC_BUFFER_SIZE            2048
@@ -384,6 +385,7 @@ void ndp_record_thread_entry(void *pvParameters)
                 printf("Start to record extraction data \n");
                 file_create = 1;
                 record_count ++;
+                usb_disable();
 
                 if (is_record_motion()) { //imu
                     s = imu_record_operation(1);
@@ -442,6 +444,7 @@ void ndp_record_thread_entry(void *pvParameters)
 
                 file_create = 0;
                 rec_process = false;
+                usb_enable();
 
                 xEventGroupClearBits(g_ndp_event_group, EVENT_BIT_RISING);
                 break;

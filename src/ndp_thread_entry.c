@@ -139,12 +139,7 @@ void ndp_thread_entry(void *pvParameters)
     R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
-    /* Choose the appropriate debug print console */
-    //if (get_print_console_type() == CONSOLE_USB_CDC)
-    {
-        start_usb_pcdc_thread();
-        //console_deinit();
-    }
+
     /* Start NDP120 program */
     ret = ndp_core2_platform_tiny_start(0, 1);
     if(ret == 0) {
@@ -182,6 +177,8 @@ void ndp_thread_entry(void *pvParameters)
         }
 	}
 
+    /* Start USB thread to enable CDC serial communication and MSC mass storage function */
+    start_usb_pcdc_thread();
     /* Enable NDP IRQ */
     ndp_irq_enable();
 
@@ -280,6 +277,7 @@ void ndp_thread_entry(void *pvParameters)
 		{
 			if ( 0 == check_sdcard_env())
 			{
+				usb_disable();
 				printf ("\nBegin to program the spi flash ..... \n");
 				turn_led(BSP_LEDRED, BSP_LEDON);
 				ndp_flash_init();
@@ -300,6 +298,7 @@ void ndp_thread_entry(void *pvParameters)
 				vTaskDelay (100);
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
 				printf ("Finished programming!\n\n");
+				usb_enable();
 			}
 			else
 			{

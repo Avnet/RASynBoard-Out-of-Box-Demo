@@ -10,6 +10,8 @@
 #define TASK_STACK_SIZE_BYTE        (8192U)
 #define DATA_BUFFER_LENGTH_BYTES    (128U)
 
+#define deinit_usb     usb_disable
+
 /* Buffer to store user data */
 uint8_t user_data_buf[DATA_LEN] = {0};
 /* Flag to indicate USB resume/suspend status */
@@ -83,12 +85,18 @@ void usb_pcdc_thread_entry(void * pvParameters)
     }
 }
 
-/*******************************************************************************************************************//**
- *  @brief       Deinitialize initialized USB instance
- *  @param[in]   None
- *  @retval      None
- **********************************************************************************************************************/
-void deinit_usb(void)
+void usb_enable(void)
+{
+    fsp_err_t err = FSP_SUCCESS;
+
+    /* Open module */
+    err = R_USB_Open (&g_basic_ctrl, &g_basic_cfg);
+    if (FSP_SUCCESS != err)
+    {
+    }
+}
+
+void usb_disable(void)
 {
     fsp_err_t err = FSP_SUCCESS;
 
