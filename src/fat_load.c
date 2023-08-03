@@ -33,6 +33,7 @@ int  led_event_color[] = { \
 static FATFS fatfs_obj;
 static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
+static int sdcard_slot_status =  SDCARD_IN_SLOT;
 static int print_console_type = CONSOLE_UART;
 int recording_period = 10;
 int low_power_mode = DOWN_DOWN_LP_MODE;
@@ -440,6 +441,9 @@ static uint32_t read_config_file( void )
         return res;
     }
 
+    /* Get total sectors */
+    fatfs_total_sectors = (fatfs_obj.n_fatent - 2) * fatfs_obj.csize;
+
     /* checks the existence of a file */
     res = f_stat (inifile, &fno);
     if(res == FR_NO_FILE){
@@ -529,9 +533,6 @@ static uint32_t read_config_file( void )
         printf("f_mount umount fail %d\r\n",res);
     }
 
-    /* Get total sectors */
-    fatfs_total_sectors = (fatfs_obj.n_fatent - 2) * fatfs_obj.csize;
-
     return res;
 }
 
@@ -542,18 +543,21 @@ uint32_t get_synpkg_config_info( void )
 
 	sdcard = (sdmmc_exist_check() == 1) ?  true : false;
 	if (sdcard){
-		boot_mode = BOOT_MODE_SD;
+		sdcard_slot_status =  SDCARD_IN_SLOT;
 	}else{
-		boot_mode = BOOT_MODE_EMMC;
+		sdcard_slot_status =  SDCARD_NOT_IN_SLOT;
+		boot_mode = BOOT_MODE_FLASH;
 		print_console_type = CONSOLE_USB_CDC;
 		return 0;
 	}
 
 	res = read_config_file();
 	if(res != FR_OK){
-		printf("read config.txt failed %d\n", res);
+		printf("Cannot find config.txt in sdcard, try to boot from Flash\n");
+		boot_mode = BOOT_MODE_FLASH;
 		return res;
 	}
+	boot_mode = BOOT_MODE_SD;
 
 	printf("NDP120 images identified . . . \n");
 	printf("    MCU : %s\n", mcu_file_name);
@@ -568,11 +572,17 @@ uint32_t get_sdcard_total_sectors( void )
     return fatfs_total_sectors;
 }
 
+uint32_t get_sdcard_slot_status( void )
+{
+	return sdcard_slot_status;
+}
+
 uint32_t get_synpkg_boot_mode( void )
 {
 	return boot_mode;
 }
 
+#define FORCE_PRINT_TO_UART
 int get_print_console_type( void )
 {
 #ifdef   FORCE_PRINT_TO_UART

@@ -15,9 +15,14 @@
 #define MODEL_FILE_NAME         "ei_model.synpkg"
 
 enum FW_LOAD_TYPE {
-	BOOT_MODE_EMMC = 0,
+	BOOT_MODE_FLASH = 0,
 	BOOT_MODE_SD,
 	BOOT_MODE_NONE,
+};
+
+enum SDCARD_EXIST_TYPE {
+    SDCARD_IN_SLOT = 1,
+    SDCARD_NOT_IN_SLOT,
 };
 
 enum DBG_PRINT_CONSOLE_TYPE {
@@ -68,6 +73,7 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
 uint32_t get_sdcard_total_sectors( void );
+uint32_t get_sdcard_slot_status( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
