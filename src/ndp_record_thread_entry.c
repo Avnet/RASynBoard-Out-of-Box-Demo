@@ -312,6 +312,30 @@ void ndp_print_imu(void)
 
 }
 
+static void check_record_file_name(char *fname, int *findex)
+{
+    char valid_filename[32] = {0};
+    int count = *findex;
+    do {
+        if (is_record_motion()){//imu
+            snprintf(valid_filename, sizeof(valid_filename), "%s%04d.csv", \
+            IMU_REC_FILE_NAME_PREFIX, count);
+            if (is_imu_data_to_file() == IMU_FUNC_DISABLE)
+                break;
+        } else {//audio
+            snprintf(valid_filename, sizeof(valid_filename), "%s%04d.wav", \
+            AUDIO_REC_FILE_NAME_PREFIX, count);
+        }
+        /* check if the file exist */
+        if (is_file_exist_in_sdcard(valid_filename))
+            break;
+
+        count ++;
+    }while(1);
+    *findex = count;
+    memcpy(fname, valid_filename, sizeof(valid_filename));
+}
+
 /******************************************
  *Record Thread entry function
 * pvParameters contains TaskHandle_t
@@ -376,10 +400,7 @@ void ndp_record_thread_entry(void *pvParameters)
                 // Turn on the recording LED
                 turn_led(BSP_LEDGREEN, BSP_LEDON);
 
-                if (is_record_motion()) //imu
-                    snprintf(data_filename, sizeof(data_filename), "%s%04d.csv", IMU_REC_FILE_NAME_PREFIX, record_count);
-                else //audio
-                    snprintf(data_filename, sizeof(data_filename), "%s%04d.wav", AUDIO_REC_FILE_NAME_PREFIX, record_count);
+                check_record_file_name(data_filename, &record_count);
 
                 /* Reserve the position of a wav header */
                 printf("Start to record extraction data \n");

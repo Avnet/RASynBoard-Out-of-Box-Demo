@@ -68,6 +68,7 @@ int get_recording_period( void );
 int get_low_power_mode( void );
 int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
+int is_file_exist_in_sdcard( char *filename );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

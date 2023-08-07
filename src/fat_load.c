@@ -610,7 +610,36 @@ int is_imu_data_to_file( void )
 {
     return imu_write_to_file;
 }
+
 int is_imu_data_to_terminal( void )
 {
     return imu_print_to_terminal;
+}
+
+int is_file_exist_in_sdcard( char *filename )
+{
+    FRESULT res;
+    FILINFO fno;
+    int status = 0;
+
+    // mount
+    res = f_mount(&fatfs_obj, "", 1);
+    if(res != FR_OK){
+        printf("f_mount fail %d\r\n",res);
+        return res;
+    }
+
+    /* checks the existence of a file */
+    res = f_stat (filename, &fno);
+    if(res == FR_NO_FILE){
+        status = 1;
+    }
+
+    // unmount
+    res = f_unmount("");
+    if(res != FR_OK){
+        printf("f_mount umount fail %d\r\n",res);
+    }
+
+    return status;
 }
