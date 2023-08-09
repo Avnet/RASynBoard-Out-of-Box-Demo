@@ -18,17 +18,13 @@ This document captures the minimal test plan to complete before releasing new co
 1. Test the record option feature (short user button press)
    1. Green LED lights up while recording
    1. Green LED turns off after recording stops
-   1. Pull *.wav file from microSD card
+   1. View the *.wav file on microSD card
    1. Verify the audio recording
 1. Press the user button > 3 seconds
    1. Verify the red LED turns on
    1. Verify NDP120 images are written to flash
    1. Verify the red LED turns off
    1. Remove the microSD card and test the 5-keywords again
-1. Change config.ini: [Low Power Mode] -> Power_Mode=1
-   1. Power up the board with the microSD card inserted
-   1. Verify board enters low-power mode on startup
-   1. Speak one of the 5-keywords and verify that the device enters low-power mode after each keyword is detected 
 1. If you have the dual microphone hardware test [NDP Firmware] --> Mode=2
    1. Run the default configuration
    1. Test the 5-keywords
@@ -53,6 +49,9 @@ This document captures the minimal test plan to complete before releasing new co
    1. set [IMU data stream]--> Write_to_file=1
    1. Run the application with the new configuration
       1. Press the user button
-      1. Verify that sensor data is output to the debug uart for 30 seconds
-      1. Remove the microSD card verify that a csv file was created and contains sensor data
-       
+      1. Verify that sensor data is output to the debug uart for 10 seconds
+      1. View the microSD card files and verify that a csv file was created and contains sensor data
+1. Change config.ini: [Low Power Mode] -> Power_Mode=1
+   1. Power up the board with the microSD card inserted
+   1. Verify board enters low-power mode on startup
+   1. Speak one of the 5-keywords and verify that the device enters low-power mode after each keyword is detected        

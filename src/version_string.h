@@ -12,7 +12,7 @@
 #define MAJOR_VERSION "1"
 
 // Increment Minor Version when new features are added
-#define MINOR_VERSION "0"
+#define MINOR_VERSION "2"
 
 // Increment Build Version when Major and Minor versions do not change
 // If Major or Minor versions change, reset BUILD_VERSION to 0
@@ -20,6 +20,6 @@
 #define DOT "."
 
 #define VERSION_STRING MAJOR_VERSION DOT MINOR_VERSION DOT BUILD_VERSION
-#define RELEASE_DATE "7/7/23"
+#define RELEASE_DATE "8/10/23"
 
 #endif /* VERSION_STRING_H_ */
