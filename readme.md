@@ -4,10 +4,7 @@ The Out-of-Box (OOB) application's goal is to "Provide a working example applica
 
 ## Application Errata
 
-This section lists the currently known and documented issues with the application
-
-1. Recording IMU data to the microSD card is currently not working
-1. Outputting IMU data to the debug serial port is not currently working
+Please refer to the [Release Notes](./releaseNotes.md) for details on known issues with this release
 
 # Getting Started
 
