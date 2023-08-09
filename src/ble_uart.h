@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "r_sci_uart.h"
 #include "hal_data.h"
+#include "fat_load.h"
 
 extern volatile bool            g_uart3_txComplete;  /* Tx complete flags */
 
