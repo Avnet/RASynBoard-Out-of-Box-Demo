@@ -38,6 +38,7 @@ int recording_period = 10;
 int low_power_mode = DOWN_DOWN_LP_MODE;
 int imu_write_to_file = IMU_FUNC_ENABLE;
 int imu_print_to_terminal = IMU_FUNC_DISABLE;
+int ble_mode = BLE_DISABLE;
 
 void init_fatfs(void)
 {
@@ -498,6 +499,8 @@ static uint32_t read_config_file( void )
 										IMU_FUNC_ENABLE, inifile);
 	imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
 										IMU_FUNC_DISABLE, inifile);
+	ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
+
 
     // Output application information to user
     printf("\nApplication Version: %s\n", VERSION_STRING);
@@ -642,4 +645,9 @@ int is_file_exist_in_sdcard( char *filename )
     }
 
     return status;
+}
+
+int get_ble_mode( void )
+{
+    return ble_mode;
 }

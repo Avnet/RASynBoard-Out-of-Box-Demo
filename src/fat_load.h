@@ -42,6 +42,11 @@ enum IMU_FUNC_TYPE {
     IMU_FUNC_ENABLE = 1,
 };
 
+enum BLE_MODE_TYPE {
+    BLE_DISABLE = 0,
+    BLE_ENABLE = 1,
+};
+
 #define   LED_EVENT_NUM        10
 
 extern int mode_circular_motion;
@@ -69,6 +74,7 @@ int get_low_power_mode( void );
 int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
 int is_file_exist_in_sdcard( char *filename );
+int get_ble_mode( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

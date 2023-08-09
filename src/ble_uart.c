@@ -44,7 +44,13 @@ void ble_uart_callback(uart_callback_args_t *p_args)
 
 int ble_send(char *pBuffer, int size)
 {
+
     fsp_err_t              err = FSP_SUCCESS;
+
+    // If we disabled BLE mode, then just return
+    if(get_ble_mode() == BLE_DISABLE){
+        return 0;
+    }
 
     g_uart3_txComplete = false;
     err = R_SCI_UART_Write(&g_uart3_ctrl, (uint8_t *)pBuffer, (uint32_t)size);

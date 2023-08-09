@@ -30,7 +30,7 @@ enum at_cmd_voice{
     V_STOP = 6,
 };
 
-static char ble_at_sting[][36] = {
+static char ble_at_string[][36] = {
      "AT+BLETX={\"Action\":\"WakeUp\"}\r\n",
      "AT+BLETX={\"Action\":\"Up\"}\r\n",
      "AT+BLETX={\"Action\":\"Down\"}\r\n",
@@ -206,14 +206,14 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_sting[V_WAKEUP], strlen(ble_at_sting[V_WAKEUP]));
+					ble_send(ble_at_string[V_WAKEUP], strlen(ble_at_string[V_WAKEUP]));
 					break;
 				case 1:
 				    /* Voice: Up; light Cyan Led */
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_sting[V_UP], strlen(ble_at_sting[V_UP]));
+					ble_send(ble_at_string[V_UP], strlen(ble_at_string[V_UP]));
 					break;
 				case 2:
 				    /* Voice: Down; light Magenta Led */
@@ -225,7 +225,7 @@ void ndp_thread_entry(void *pvParameters)
 						/* first receive 'Down'  keyword */
 						q_event = led_event_color[ndp_class_idx];
 						xQueueSend(g_led_queue, (void *)&q_event, 0U );
-						ble_send(ble_at_sting[V_DOWN], strlen(ble_at_sting[V_DOWN]));
+						ble_send(ble_at_string[V_DOWN], strlen(ble_at_string[V_DOWN]));
 					}
 					else
 					{
@@ -238,8 +238,8 @@ void ndp_thread_entry(void *pvParameters)
 							q_event =  LED_BLINK_DOUBLE_BLUE;
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
 							/* Send 'idle' and 'advstop' to bluetooth */
-							ble_send(ble_at_sting[V_IDLE], strlen(ble_at_sting[V_IDLE]));
-							ble_send(ble_at_sting[V_STOP], strlen(ble_at_sting[V_STOP]));
+							ble_send(ble_at_string[V_IDLE], strlen(ble_at_string[V_IDLE]));
+							ble_send(ble_at_string[V_STOP], strlen(ble_at_string[V_STOP]));
 							/* clear led state */
 							current_stat.led = LED_EVENT_NONE;
 						}
@@ -248,7 +248,7 @@ void ndp_thread_entry(void *pvParameters)
 							/* invalid time */
 							q_event = led_event_color[ndp_class_idx];
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							ble_send(ble_at_sting[V_DOWN], strlen(ble_at_sting[V_DOWN]));
+							ble_send(ble_at_string[V_DOWN], strlen(ble_at_string[V_DOWN]));
 						}
 					}
 					break;
@@ -257,14 +257,14 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_sting[V_BACK], strlen(ble_at_sting[V_BACK]));
+					ble_send(ble_at_string[V_BACK], strlen(ble_at_string[V_BACK]));
 					break;
 				case 4:
 				    /* Voice: Next; light Green Led */
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_sting[V_NEXT], strlen(ble_at_sting[V_NEXT]));
+					ble_send(ble_at_string[V_NEXT], strlen(ble_at_string[V_NEXT]));
 					break;
 				default :
 					break;
