@@ -119,6 +119,10 @@ void ndp_thread_entry(void *pvParameters)
     R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
     /* will create a task if using USB CDC */
     console_init();
+
+    // Free the initialization Semaphore
+    xSemaphoreGive(g_xInitialSemaphore);
+
     spi_init();
 
     printf("FreeRTOS ndp_thread running\n");
