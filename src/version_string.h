@@ -20,6 +20,6 @@
 #define DOT "."
 
 #define VERSION_STRING MAJOR_VERSION DOT MINOR_VERSION DOT BUILD_VERSION
-#define RELEASE_DATE "8/10/23"
+#define RELEASE_DATE "Engineering Build: x/xx/xx"
 
 #endif /* VERSION_STRING_H_ */
