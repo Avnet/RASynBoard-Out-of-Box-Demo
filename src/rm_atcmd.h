@@ -41,7 +41,6 @@ fsp_err_t loadAWS_certificates(const char *cert);
 fsp_err_t discovery();
 fsp_err_t identity(char* identityURL);
 fsp_err_t AWSmqttTest(char *Host, char *PubT, char *SubT, char *username);
-char* buildAWSTelemetry();
 
 int getTempSensor();
 int getPressureSensor();

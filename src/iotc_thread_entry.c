@@ -8,12 +8,12 @@
 #include "string.h"
 #include "queue.h"
 #include "certs.h"
+#include "iotc_thread_entry.h"
 
 #define Router_SSID "IoTDemo"
 #define Router_PWD  "IoTDemo2001"
 #define IoTC_CPID   "97FF86E8728645E9B89F7B07977E4B15"
 #define IoTC_ENV    "poc"
-//#define UID "RASynBoardBW"
 #define MAX_RETRIES 5
 #define OUTPUT_MQTT_DEBUG
 
@@ -38,11 +38,9 @@
 #define UID "RASynBW02"
 #endif
 
-
 #define MY_CHAR_ARRAY_SIZE 64
 #define IDENTITY_URL_SIZE 128
 #define JSON_STRING_SIZE 2048
-
 
 // Local globals
 char *buf;
@@ -415,7 +413,9 @@ void run_discovery(void)
         return;
     }
 
-    evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , portMAX_DELAY);
+    // Wait here for the https response to trigger the event bit, we 
+    // set a 5 second timeout incase we never get a response
+    evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 5000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
         if(MAX_RETRIES == delayCnt++){
@@ -491,7 +491,7 @@ void get_identity(void)
 #define FINAL_IDENTITY_SIZE 256
     char finalIdentityURL[FINAL_IDENTITY_SIZE] = {'\0'};
     char jsonString[JSON_STRING_SIZE] = {'\0'};
-    int delayCnt = 0;
+    static int errCnt = 0;
     EventBits_t evbits;
 
     iotc_print("******** Enter State: GET_IDENTITY ********\n");
@@ -512,18 +512,35 @@ void get_identity(void)
     memset(buf, '\0', ATBUF_SIZE);
     if (FSP_SUCCESS != rm_atcmd_send(finalIdentityURL, 5000,buf, sizeof(buf)))
     {
+
         printf("ERROR: Failed to pull Identity from IoTConnect, trying again . . .\n");
-        return;
-    }
 
-    evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , portMAX_DELAY);
-    if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
-
-        if(MAX_RETRIES == delayCnt++){
-            printf("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
-            currentState = SETUP_NETWORK;
+        // If we fail here for more than MAX_RETRIES times, something is
+        // wrong and we likely won't be able to connect.  Enter the failure
+        // state.
+        if(MAX_RETRIES == ++errCnt){
+            currentState = FAILURE_STATE;
             return;
         }
+
+        printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
+        currentState = SETUP_NETWORK;
+    }
+
+
+    // Wait here for the https response to trigger the event bit, we 
+    // set a 5 second timeout incase we never get a response
+    evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 5000);
+    if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
+
+        if(MAX_RETRIES == ++errCnt){
+            printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
+            currentState = FAILURE_STATE;
+            return;
+        }
+
+        printf("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
+        currentState = SETUP_NETWORK;
     }
 
     // Pull the JSON from httpsBuffer
@@ -696,20 +713,28 @@ void setup_mqtt(void)
     return;
 }
 
-char* buildAWSTelemetry()
+void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
 {
 
 #define TIME_BUF_SIZE 32
     char timeBuf[TIME_BUF_SIZE]={'\0'};
     int position = 0;
     fsp_err_t err;
-    static int messageCount = 0;
 
+    // Verify we have a valid JSON document, if not the call returns NULL
+    cJSON *userTelemetry = cJSON_Parse(newTelemetry);
+    if (userTelemetry == NULL) {
+                printf("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
+                cJSON_Delete(userTelemetry);
+                return;
+    }
+
+    printf("%s\n", newTelemetry);
 
     // Get the current time to include in the telemetry message
-    memset(buf, '\0', ATBUF_SIZE);
     do
     {
+        memset(buf, '\0', ATBUF_SIZE);
         err = rm_atcmd_check_value("AT+TIME=?",1000,buf,sizeof(buf));
         //iotc_print("TIMEIS: %s\n",buf);
 
@@ -722,6 +747,7 @@ char* buildAWSTelemetry()
          position = i;
          break;
         }
+
     for ( int j = position ; j <= (int)strlen(buf);j++)
         timeBuf[j]=buf[j];
 
@@ -733,102 +759,69 @@ char* buildAWSTelemetry()
 
     strcat(timeBuf, ".000Z");
 
-    cJSON *root1; cJSON *fmt; cJSON *img; cJSON *thm;
+    cJSON *root;
+    cJSON *fmt;
+    cJSON *thm;
 
-    root1 = cJSON_CreateObject();
-    cJSON_AddItemToObject(root1, "dt", cJSON_CreateString(timeBuf));
-    cJSON_AddItemToObject(root1, "d", fmt = cJSON_CreateArray());
+    root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "dt", cJSON_CreateString(timeBuf));
+    cJSON_AddItemToObject(root, "d", fmt = cJSON_CreateArray());
     cJSON_AddItemToArray(fmt, thm = cJSON_CreateObject());
     cJSON_AddItemToObject(thm, "dt", cJSON_CreateString(timeBuf));
-    cJSON_AddItemToObject(thm, "d", img = cJSON_CreateObject());
-    cJSON_AddNumberToObject(img, "msgCount", messageCount++);
-//    cJSON_AddNumberToObject(img, "temperature", temperature);
-//    cJSON_AddNumberToObject(img, "Pressure", pressure);
+    cJSON_AddItemToObject(thm, "d", userTelemetry);
 
-    // BW fix this return pointer
-    char *JSONString =  cJSON_PrintUnformatted(root1);
+    char *JSONString =  cJSON_PrintUnformatted(root);
+    strcpy(awsTelemetry, JSONString);
 
-    cJSON_Delete(root1);
-    return JSONString;
+    cJSON_Delete(root);
 }
 
 void wait_for_telemetry(void){
 
-/*
+    telemetryQueueMsg_t newMsg;
 
-    int loopCounter = 0;
-    char mqttPublishMessage[256] = {'\0'};
-    char incommingTelemetryJson[128] = {'\0'};
+    // Declare the message buffer that will contain the AT command + the
+    // full JSON message
+#define MQTT_JSON_SIZE 256
+#define MQTT_MSG_SIZE 512
+    char mqttPublishMessage[MQTT_MSG_SIZE] = {'\0'};
+    char mqttJson[MQTT_JSON_SIZE] = {'\0'};
 
-    iotc_print("\n******** Enter State: WAIT_FOR_TELEMETRY_DATA ********\n");
+    // Create a pointer to the location right after AT+NWMQMSG=
+//    const int atCmdSize = sizeof("AT+NWMQMSG=") - 1;
+//    char* mqttJsonPtr = mqttPublishMessage + atCmdSize;
 
-    printf("SEND 3 MESSAGES to IoTConnect and break!\n");
+    printf("Waiting for Telemery data!\n");
 
-    do{
+    while(pdTRUE){
 
-        memset(mqttPublishMessage,0,sizeof(mqttPublishMessage));
-        snprintf(mqttPublishMessage, sizeof(mqttPublishMessage), "AT+NWMQMSG='%s'",buildAWSTelemetry());
+        xQueueReceive(g_telemetry_queue, &newMsg, portMAX_DELAY);
+        // printf("RX Telemetry from Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
 
-        if(FSP_SUCCESS != rm_atcmd_send(mqttPublishMessage, 2000, buf, sizeof(buf))){
-            currentState = DISCOVERY;
+        // Verify we have a valid MQTT connection before sending telemetry
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_check_value("AT+NWMQCL",5000,buf,sizeof(buf));
+        if(buf[0] != '1'){
+            currentState = SETUP_MQTT;
             return;
         }
 
-        printf( "PUBLISHED MQTT MESSAGE to IoTConnect: \n%s\n",mqttPublishMessage);
-        vTaskDelay(1000);
+        // Construct the IoTConnect telemetry
+        memset(mqttPublishMessage,'\0' ,MQTT_MSG_SIZE);
+        memset(mqttJson, '\0', MQTT_JSON_SIZE);
+        buildAWSTelemetry(newMsg.msgPtr, mqttJson);
+        snprintf(mqttPublishMessage, sizeof(mqttPublishMessage), "AT+NWMQMSG='%s'",mqttJson);
 
-    }while (true);// ( ++loopCounter != 3);
-
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+NWMQCL=0", 1000,buf, sizeof(buf));
-    iotc_print("MQTT CLIENT DISABLED: OK\n");
-
-    // Delay for 5 minutes before goint back to the setup mqtt state
-    vTaskDelay(5*60000);
-
-
-    currentState = SETUP_MQTT;
-    return;
-
-*/
-
-    int loopCounter = 0;
-    char mqttPublishMessage[256] = {'\0'};
-
-    printf("SEND 3 MESSAGES to IoTConnect and break!\n");
-
-    do{
-
-
-//        xQueueReceive(g_telemetry_queue, (void*)incommingTelemetryJson, 0U);
-//        printf("%d messages in the queue\n", g_telemetry_queue->uxMessagesWaiting);
-//        printf("Incomming JSON: %s\n", incommingTelemetryJson);
-
-
-        memset(mqttPublishMessage,0,sizeof(mqttPublishMessage));
-        snprintf(mqttPublishMessage, sizeof(mqttPublishMessage), "AT+NWMQMSG='%s'",buildAWSTelemetry());
-
+        // Send the message
+        memset(buf, '\0', ATBUF_SIZE);
         if(FSP_SUCCESS != rm_atcmd_send(mqttPublishMessage, 2000,buf, sizeof(buf))){
             currentState = DISCOVERY;
             return;
         }
 
-        printf( "PUBLISHED MQTT MESSAGE to IoTConnect: \n%s\n",mqttPublishMessage);
-
-        vTaskDelay(60000);
-    }while ( ++loopCounter != 3);
-
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+NWMQCL=0", 1000,buf, sizeof(buf));
-    printf("MQTT CLIENT DISABLED: OK\n");
-
-    // Delay for 5 minutes before goint back to the setup mqtt state
-    vTaskDelay(5*60000);
-
-
-    currentState = SETUP_MQTT;
-    return;
-
+        vTaskDelay(100);
+        vPortFree((void*) newMsg.msgPtr);
+    }
 }
 
 void failure_state(void){

@@ -12,7 +12,7 @@
 #include "syntiant_platform.h"
 #include "ble_uart.h"
 #include "usb_pcdc_vcom.h"
-
+#include "iotc_thread_entry.h"
 
 typedef struct blink_msg
 {
@@ -99,6 +99,40 @@ void ndp_info_display(void)
     }
 }
 
+// Helper function to create
+void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
+{
+#define MAX_TELEMETRY_LEN 256
+
+    static int msgCnt = 0;
+    char telemetryMsg[MAX_TELEMETRY_LEN] = {'\0'};
+    telemetryQueueMsg_t newMsg;
+    char* telemetryPtr;
+    int telemetryMsgLen;
+
+    // Create the JSON
+    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"InterenceResultIndex\": %d, \"InferenceResultString\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);
+
+    // Allocate memory on the heap for the JSON string.
+    // We allocate the memory here, then free the memory
+    // when the message is pulled from the queue
+    telemetryMsgLen = strlen(telemetryMsg);
+    telemetryPtr = pvPortMalloc(telemetryMsgLen);
+
+    // Verify we have memory for the message
+    if(NULL == telemetryPtr){
+        return;
+    }
+
+    // Copy the incomming telemetry to the heap memory
+    strncpy(telemetryPtr, telemetryMsg, telemetryMsgLen+1);
+    
+    // Populate the queue data structure, and enqueue the message 
+    newMsg.msgSize = telemetryMsgLen;
+    newMsg.msgPtr = telemetryPtr;
+    xQueueSend(g_telemetry_queue, (void *)&newMsg, 0U);
+    return;
+}
 
 /* NDP Thread entry function */
 /* pvParameters contains TaskHandle_t */
@@ -211,6 +245,7 @@ void ndp_thread_entry(void *pvParameters)
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					ble_send(ble_at_string[V_WAKEUP], strlen(ble_at_string[V_WAKEUP]));
+					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 1:
 				    /* Voice: Up; light Cyan Led */
@@ -218,6 +253,7 @@ void ndp_thread_entry(void *pvParameters)
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					ble_send(ble_at_string[V_UP], strlen(ble_at_string[V_UP]));
+                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 2:
 				    /* Voice: Down; light Magenta Led */
@@ -230,6 +266,7 @@ void ndp_thread_entry(void *pvParameters)
 						q_event = led_event_color[ndp_class_idx];
 						xQueueSend(g_led_queue, (void *)&q_event, 0U );
 						ble_send(ble_at_string[V_DOWN], strlen(ble_at_string[V_DOWN]));
+	                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					}
 					else
 					{
@@ -262,6 +299,7 @@ void ndp_thread_entry(void *pvParameters)
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					ble_send(ble_at_string[V_BACK], strlen(ble_at_string[V_BACK]));
+                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 4:
 				    /* Voice: Next; light Green Led */
@@ -269,6 +307,7 @@ void ndp_thread_entry(void *pvParameters)
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					ble_send(ble_at_string[V_NEXT], strlen(ble_at_string[V_NEXT]));
+                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				default :
 					break;
