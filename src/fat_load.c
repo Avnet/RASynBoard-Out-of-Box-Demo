@@ -40,6 +40,15 @@ int imu_write_to_file = IMU_FUNC_ENABLE;
 int imu_print_to_terminal = IMU_FUNC_DISABLE;
 int ble_mode = BLE_DISABLE;
 
+// WiFi configuration items
+char wifi_ap_name[32] = {'\0'};
+char wifi_pw[32] = {'\0'};
+
+// IoTConnect configuration items
+char iotc_uid[32] = {'\0'};
+char iotc_env[32] = {'\0'};
+char iotc_cpid[33] = {'\0'};
+
 void init_fatfs(void)
 {
     MX_FATFS_Init();
@@ -501,6 +510,22 @@ static uint32_t read_config_file( void )
 										IMU_FUNC_DISABLE, inifile);
 	ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
 
+	// WiFi configuration
+    ini_gets("WIFI", "Access_Point", "WiFi AP Name Undefined", \
+                        wifi_ap_name, sizeof(wifi_ap_name), inifile);
+
+    ini_gets("WIFI", "Access_Point_Password", "WiFi PasswordUndefined", \
+                        wifi_pw, sizeof(wifi_pw), inifile);
+
+    // IoTConnect configuration
+    ini_gets("IoTConnect", "CPID", "Undefined", \
+                        iotc_cpid, sizeof(iotc_cpid), inifile);
+
+    ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
+                        iotc_uid, sizeof(iotc_uid), inifile);
+
+    ini_gets("IoTConnect", "Environment", "Undefined", \
+                        iotc_env, sizeof(iotc_env), inifile);
 
     // Output application information to user
     printf("\nApplication Version: %s\n", VERSION_STRING);
@@ -651,3 +676,29 @@ int get_ble_mode( void )
 {
     return ble_mode;
 }
+
+char* get_wifi_ap( void )
+{
+    return wifi_ap_name;
+}
+
+char* get_wifi_pw( void )
+{
+    return wifi_pw;
+}
+
+char* get_iotc_uid( void )
+{
+    return iotc_uid;
+}
+
+char* get_iotc_env( void )
+{
+    return iotc_env;
+}
+
+char* get_iotc_cpid( void )
+{
+    return iotc_cpid;
+}
+

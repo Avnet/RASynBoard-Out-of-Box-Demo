@@ -10,33 +10,9 @@
 #include "certs.h"
 #include "iotc_thread_entry.h"
 
-#define Router_SSID "IoTDemo"
-#define Router_PWD  "IoTDemo2001"
-#define IoTC_CPID   "97FF86E8728645E9B89F7B07977E4B15"
 #define IoTC_ENV    "poc"
 #define MAX_RETRIES 5
 #define OUTPUT_MQTT_DEBUG
-
-
-#ifdef USE_RASYN01_CONFIG
-#define UID "RASYN01"
-#endif
-
-#ifdef RASynBoardBW
-#define UID "RASynBoardBW"
-#endif
-
-#ifdef RASynBoardBW2
-#define UID "RASynBoardBW2"
-#endif
-
-#ifdef USE_RASYNBW01
-#define UID "RASynBW01"
-#endif
-
-#ifdef USE_RASYNBW02
-#define UID "RASynBW02"
-#endif
 
 #define MY_CHAR_ARRAY_SIZE 64
 #define IDENTITY_URL_SIZE 128
@@ -319,13 +295,20 @@ void setup_network(void){
     memset(buf, '\0', ATBUF_SIZE);
     rm_atcmd_send("AT+WFCC=US",1000,buf,sizeof(buf));
 
+    // Verify that the AP SSID is configured before trying to connect to the network
+    if(strcmp(get_wifi_ap(), "WiFi AP Name Undefined") == 0){
+        printf("ERROR: WiFi credentials are not defined.  Edit config.ini file to add WiFi credentials\n");
+        currentState = FAILURE_STATE;
+        return;
+    }
+
     // Construct the "Connect to AP" command using
     // * SSID from configuration
     // * 4 == WPA+WPA2
     // * 1 == Key Index
     // * SSID password from configuration
     char atcmd[256]={'\0'};
-    snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", Router_SSID, 4, 1, Router_PWD);
+    snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
     rm_atcmd_check_ok(atcmd, 10000);
 
     // Start the DHCP Client
@@ -405,7 +388,7 @@ void run_discovery(void)
 
     // Build the discovery command using the configured IoTConnect CPID and env strings
     memset(httpsBuffer,'\0',sizeof(httpsBuffer));
-    snprintf(jsonString, JSON_STRING_SIZE, discoveryString, IoTC_CPID, IoTC_ENV);
+    snprintf(jsonString, JSON_STRING_SIZE, discoveryString,  get_iotc_cpid(), get_iotc_env());
 
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send(jsonString, 5000, buf, sizeof(buf))){
@@ -474,7 +457,7 @@ void run_discovery(void)
 
 
     // Use the base URL and the device ID (UID) to construct the Identity URL
-    sprintf(identityURL, "%s%s%s", baseURL,"/uid/", UID);
+    sprintf(identityURL, "%s%s%s", baseURL,"/uid/", get_iotc_uid());
 
     iotc_print("IDENTITY URL: %s\n\r",identityURL);
 
@@ -633,6 +616,8 @@ void setup_mqtt(void)
 {
 
     char atCmdBuffer[256] = {'\0'};
+#define MAX_TIMEOUTS 10
+    int timeoutCnt = 0;
 
     iotc_print("******** Enter State: SETUP_MQTT ********\n");
 
@@ -646,7 +631,7 @@ void setup_mqtt(void)
     // Set the MQTT Client ID
     memset(buf, '\0', ATBUF_SIZE);
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
-    snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",UID);
+    snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_iotc_uid());
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
         currentState = DISCOVERY;
         return;
@@ -704,6 +689,12 @@ void setup_mqtt(void)
         if(buf[0] == '1'){
             break;
         }
+
+        // If we have to wait too long for the MQTT connect, exit to try again.
+        if(MAX_TIMEOUTS == ++timeoutCnt){
+            currentState = DISCOVERY;
+            return;
+        }
         vTaskDelay(2000);
     }
 
@@ -711,6 +702,13 @@ void setup_mqtt(void)
 
     currentState = WAIT_FOR_TELEMETRY_DATA;
     return;
+}
+
+void printHeapSize(const char* ref)
+{
+    HeapStats_t myHeap;
+    vPortGetHeapStats(&myHeap);
+    printf("%s: %d\n",ref, myHeap.xAvailableHeapSpaceInBytes);
 }
 
 void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
@@ -728,7 +726,6 @@ void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
                 cJSON_Delete(userTelemetry);
                 return;
     }
-
     printf("%s\n", newTelemetry);
 
     // Get the current time to include in the telemetry message
@@ -739,7 +736,6 @@ void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
         //iotc_print("TIMEIS: %s\n",buf);
 
     } while ( err != FSP_SUCCESS );
-
 
     for ( int i=0; i <= (int)strlen(buf); i++)
         if (buf[1] == ':')
@@ -764,15 +760,14 @@ void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
     cJSON *thm;
 
     root = cJSON_CreateObject();
-    cJSON_AddItemToObject(root, "dt", cJSON_CreateString(timeBuf));
+    cJSON_AddStringToObject(root, "dt", timeBuf);
     cJSON_AddItemToObject(root, "d", fmt = cJSON_CreateArray());
     cJSON_AddItemToArray(fmt, thm = cJSON_CreateObject());
-    cJSON_AddItemToObject(thm, "dt", cJSON_CreateString(timeBuf));
+    cJSON_AddStringToObject(thm, "dt", timeBuf);
     cJSON_AddItemToObject(thm, "d", userTelemetry);
-
     char *JSONString =  cJSON_PrintUnformatted(root);
     strcpy(awsTelemetry, JSONString);
-
+    vPortFree(JSONString);
     cJSON_Delete(root);
 }
 
@@ -786,10 +781,6 @@ void wait_for_telemetry(void){
 #define MQTT_MSG_SIZE 512
     char mqttPublishMessage[MQTT_MSG_SIZE] = {'\0'};
     char mqttJson[MQTT_JSON_SIZE] = {'\0'};
-
-    // Create a pointer to the location right after AT+NWMQMSG=
-//    const int atCmdSize = sizeof("AT+NWMQMSG=") - 1;
-//    char* mqttJsonPtr = mqttPublishMessage + atCmdSize;
 
     printf("Waiting for Telemery data!\n");
 
@@ -819,7 +810,10 @@ void wait_for_telemetry(void){
             return;
         }
 
+        // Delay for a short period in case we found the queue with many messages
         vTaskDelay(100);
+
+        // Free the memory that held the incoming JSON.
         vPortFree((void*) newMsg.msgPtr);
     }
 }
