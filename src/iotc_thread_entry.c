@@ -70,6 +70,13 @@ void iotc_thread_entry(void *pvParameters)
     /* Wait for console thread initialization to complete */
     xSemaphoreTake( g_xInitialSemaphore, portMAX_DELAY );
 
+
+    // Check to see if we're configured to connect to Avnet's IoT Connect Cloud Solution
+    // If not, then kill this task
+    if(CLOUD_IOTCONNECT != get_target_cloud()){
+        vTaskDelete(NULL);
+    }
+
     iotc_print("IoT Connect on AWS (MQTT) Thread Running...\r\n");
 
     // The application is using the FreeRTOS heap4 heap management implementation.
@@ -91,6 +98,12 @@ void iotc_thread_entry(void *pvParameters)
         vTaskDelete(NULL);
     }
     memset(buf, '\0', ATBUF_SIZE);
+
+    // Initialize the AT module UART and start the atcmd thread.  We do this here
+    // so that the nep_thread can send BLE commands even if we're not connecting the
+    // device to the cloud.
+    rm_wifi_da16600_init();
+
 
     // Set the initial state
     currentState = INIT_DA16600;
@@ -143,16 +156,13 @@ void init_da16600(void){
 
     static int failCnt = 0;
 
-    iotc_print("******** Enter State: INIT_DA16600 ********\n");
+    iotc_print("IoTConnect-state: INIT_DA16600\n");
 
     if(MAX_RETRIES == failCnt ){
         printf("ERROR: Could not initialize DA16600\n");
         currentState = FAILURE_STATE;
         return;
     }
-
-    /* Initialize the AT module UART and start the atcmd thread */
-    rm_wifi_da16600_init();
 
     if( FSP_SUCCESS != rm_wifi_da16600_check_at(10)){
         printf("ERROR: DA16600 WiFi module not ready, trying again . . . \r\n");
@@ -223,7 +233,7 @@ void load_certs(){
     }
 
 
-    iotc_print("******** Enter State: LOAD_CERTIFICATES ********\n");
+    iotc_print("IoTConnect-state: LOAD_CERTIFICATES\n");
 
     // Delete all TLS certificates stored in the DA16600
     if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWDCRT",10000)){
@@ -274,7 +284,7 @@ void setup_network(void){
     size_t nwipReturnStringLen = 0;
     static int failCnt = 0;
 
-    iotc_print("******** Enter State: SETUP_NETWORK ********\n");
+    iotc_print("IoTConnect-state: SETUP_NETWORK\n");
 
     // Check to see if we're stuck trying to connect to the network
     if(MAX_RETRIES == failCnt){
@@ -377,7 +387,7 @@ void run_discovery(void)
     static const char discoveryString[] = {"AT+NWHTCH=https://awsdiscovery.iotconnect.io/api/v2.1/dsdk/cpId/%s/env/%s,get"};
     char jsonString[JSON_STRING_SIZE]= {'\0'};
 
-    iotc_print("******** Enter State: RUN_DISCOVERY ********\n");
+    iotc_print("IoTConnect-state: RUN_DISCOVERY\n");
 
     // Check to see if we're stuck trying to receive the discovery data
     if(MAX_RETRIES == failCnt){
@@ -477,7 +487,7 @@ void get_identity(void)
     static int errCnt = 0;
     EventBits_t evbits;
 
-    iotc_print("******** Enter State: GET_IDENTITY ********\n");
+    iotc_print("IoTConnect-state: GET_IDENTITY\n");
 
     // Catch the case where we entered this state but we don't
     // have a valid identityURL string.  Fall back to the Discovery
@@ -512,7 +522,7 @@ void get_identity(void)
 
 
     // Wait here for the https response to trigger the event bit, we 
-    // set a 5 second timeout incase we never get a response
+    // set a 5 second timeout in case we never get a response
     evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 5000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
@@ -619,7 +629,7 @@ void setup_mqtt(void)
 #define MAX_TIMEOUTS 10
     int timeoutCnt = 0;
 
-    iotc_print("******** Enter State: SETUP_MQTT ********\n");
+    iotc_print("IoTConnect-state: SETUP_MQTT\n");
 
     // Disable the MQTT client while we setup the connection details
     memset(buf, '\0', ATBUF_SIZE);
@@ -793,7 +803,7 @@ void wait_for_telemetry(void){
         memset(buf, '\0', ATBUF_SIZE);
         rm_atcmd_check_value("AT+NWMQCL",5000,buf,sizeof(buf));
         if(buf[0] != '1'){
-            currentState = SETUP_MQTT;
+            currentState = SETUP_NETWORK;
             return;
         }
 
@@ -820,7 +830,7 @@ void wait_for_telemetry(void){
 
 void failure_state(void){
 
-    iotc_print("******** Enter State: FAILURE_STATE ********\n");
+    iotc_print("IoTConnect: Enter FAILURE_STATE\n");
     printf("ERROR: Fatal error encountered, stopping thread!\n");
 
     // We tried all the tricks we know to get the IoTConnect connection up.  If we're in
