@@ -50,6 +50,7 @@ int mode;
 // WiFi configuration items
 char wifi_ap_name[32] = {'\0'};
 char wifi_pw[32] = {'\0'};
+char wifi_cc[3] = {'\0'};
 
 // IoTConnect configuration items
 char iotc_uid[32] = {'\0'};
@@ -522,6 +523,10 @@ static uint32_t read_config_file( void )
     ini_gets("WIFI", "Access_Point_Password", "WiFi PasswordUndefined", \
                         wifi_pw, sizeof(wifi_pw), inifile);
 
+    ini_gets("WIFI", "Country_Code", "US", \
+                        wifi_cc, sizeof(wifi_cc), inifile);
+
+
     // IoTConnect configuration
     ini_gets("IoTConnect", "CPID", "Undefined", \
                         iotc_cpid, sizeof(iotc_cpid), inifile);
@@ -687,7 +692,7 @@ void printConfg(void)
                 printf("    IMU data will be captured to the microSD card\n");
             }
 
-            if((IMU_FUNC_DISABLE == imu_print_to_terminal) &&  (IMU_FUNC_DISABLE == imu_write_to_file)){
+            if((IMU_FUNC_DISABLE == imu_print_to_terminal) && (IMU_FUNC_DISABLE == imu_write_to_file)){
                 printf("    WARNING: The application is configured to capture IMU data, but the configuration does indicate where to capture the IMU data!\n");
                 printf("             Please edit the config.ini file, section [IMU data stream]\n");
             }
@@ -731,6 +736,7 @@ void printConfg(void)
         printf("\n  WiFi Configuration\n");
         printf("    Access Point (SSID)  : %s\n", wifi_ap_name);
         printf("    Access Point password: %s\n\n", wifi_pw);
+        printf("    Country Code         : %s\n", wifi_cc);
     }
 }
 
@@ -747,6 +753,10 @@ char* get_wifi_ap( void )
 char* get_wifi_pw( void )
 {
     return wifi_pw;
+}
+
+char* get_wifi_cc( void ){
+    return wifi_cc;
 }
 
 char* get_iotc_uid( void )

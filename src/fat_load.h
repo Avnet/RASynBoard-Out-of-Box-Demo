@@ -84,6 +84,7 @@ int is_file_exist_in_sdcard( char *filename );
 int get_ble_mode( void );
 char* get_wifi_ap( void );
 char* get_wifi_pw( void );
+char* get_wifi_cc( void );
 char* get_iotc_uid( void );
 char* get_iotc_env( void );
 char* get_iotc_cpid( void );

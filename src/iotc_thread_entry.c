@@ -283,6 +283,7 @@ void setup_network(void){
 
     size_t nwipReturnStringLen = 0;
     static int failCnt = 0;
+    char atcmd[256]={'\0'};
 
     iotc_print("IoTConnect-state: SETUP_NETWORK\n");
 
@@ -303,7 +304,8 @@ void setup_network(void){
 
     // Set the two letter Wi-Fi country code: https://www.iso.org/obp/ui/#search
     memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+WFCC=US",1000,buf,sizeof(buf));
+    snprintf(atcmd, sizeof(atcmd), "AT+WFCC=%s", get_wifi_cc());
+    rm_atcmd_send(atcmd,1000,buf,sizeof(buf));
 
     // Verify that the AP SSID is configured before trying to connect to the network
     if(strcmp(get_wifi_ap(), "WiFi AP Name Undefined") == 0){
@@ -317,7 +319,6 @@ void setup_network(void){
     // * 4 == WPA+WPA2
     // * 1 == Key Index
     // * SSID password from configuration
-    char atcmd[256]={'\0'};
     snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
     rm_atcmd_check_ok(atcmd, 10000);
 
