@@ -358,7 +358,7 @@ void ndp_record_thread_entry(void *pvParameters)
 
 	//ndp_print_imu();
    
-	if (get_sdcard_slot_status() != SDCARD_IN_SLOT) {
+	if (SDCARD_IN_SLOT != get_sdcard_slot_status()) {
 	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
 	    vTaskDelete(NULL);
 	    vTaskDelay (1);
@@ -387,7 +387,7 @@ void ndp_record_thread_entry(void *pvParameters)
         else if ((delta_time > (LONG_PRESS_TIME - 1) ) && ( evbits == 0 ))
         {
             rec_process = false; // long press button to flash
-			if (get_synpkg_boot_mode() != BOOT_MODE_FLASH)
+			if (BOOT_MODE_FLASH != get_synpkg_boot_mode())
 			{
 				xEventGroupSetBits(g_ndp_event_group, EVENT_BIT_FLASH);
 			}

@@ -64,7 +64,7 @@ fsp_err_t RM_BLOCK_MEDIA_SD_MediaInit (rm_block_media_ctrl_t * const p_ctrl)
 {
     rm_block_media_sd_instance_ctrl_t * p_instance_ctrl = (rm_block_media_sd_instance_ctrl_t *) p_ctrl;
 
-    if (get_sdcard_slot_status() == SDCARD_IN_SLOT) {
+    if (SDCARD_IN_SLOT == get_sdcard_slot_status()) {
         p_instance_ctrl->sector_count      = get_sdcard_total_sectors();
         p_instance_ctrl->sector_size_bytes = 512;
     }

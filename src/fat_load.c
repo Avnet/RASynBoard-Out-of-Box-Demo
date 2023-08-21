@@ -582,7 +582,6 @@ uint32_t get_synpkg_boot_mode( void )
 	return boot_mode;
 }
 
-#define FORCE_PRINT_TO_UART
 int get_print_console_type( void )
 {
 #ifdef   FORCE_PRINT_TO_UART
