@@ -14,7 +14,7 @@ When the ndp120 detects a ML feature in the data it interrupts the RA6 MCU and p
 1. Optionally send a MQTT telemetry message to the target cloud implementation if enabled (see the ```[Cloud Connectivity]``` section below).
 
 ## Data Collection for Developing/Testing New ML Models
-Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse will generate the *.syspkg files that can be used on the RASynBoard with the OOB application.
+Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse will generate the \*.syspkg files that can be used on the RASynBoard with the OOB application.
 
 **Note: RASynBoard Edge Impulse support is scheduled to be released in late October 2023**
 
@@ -26,10 +26,10 @@ The OOB application also implements multiple ways to collect data from the on-bo
 1. (Future enablement) Using additional external sensors
 
 ### Flash microSD card images to core board SPI Flash
-When developing a RASynBoard ML application it's common to use the microSD card to manage the config.ini and *.synpkg files.  However if users get to a point where they want to deploy the RASynBoard core board without the I/O board, they can move the config.ini and *.synpkg files to the on-board SPI flash by pressing the user button for > 3 seconds.  
+When developing a RASynBoard ML application it's common to use the microSD card to manage the config.ini and \*.synpkg files.  However if users get to a point where they want to deploy the RASynBoard core board without the I/O board, they can move the config.ini and \*.synpkg files to the on-board SPI flash by pressing the user button for > 3 seconds.  
 
 Once the > 3 second button press is detected the application will . . .
-1. Erase the SPI Flash region that holds the config.ini and *.synpkg files
+1. Erase the SPI Flash region that holds the config.ini and \*.synpkg files
 1. Concatenate all the files into a single binary blob
 1. Flash the binary blob to the SPI Flash
 
@@ -50,13 +50,13 @@ The microSD card located on the underside of the I/O board is used for making co
 The OOB application reads application configuration data from the config.ini file located in the root directory of the microSD file system.  The config.ini file is read on power-up, but also if the card is removed and re-inserted while the OOB application is running.  Using this approach the OOB application can be reconfigured without having to rebuild the application code.
 
 ### Syntiant Binary Images
-The microSD card is also used to add syntiant binary images that are used by the NDP120.  These files end with the *.synpkg file extension.  There are three *.synpkg files for any given ML model.  Using this approach, ML models can be added to the OOB application without having to rebuild the application.  The user defines which *.synpkg files get loaded onto the NDP120 with config.ini configuration changes (details below).
+The microSD card is also used to add syntiant binary images that are used by the NDP120.  These files end with the \*.synpkg file extension.  There are three \*.synpkg files for any given ML model.  Using this approach, ML models can be added to the OOB application without having to rebuild the application.  The user defines which \*.synpkg files get loaded onto the NDP120 with config.ini configuration changes (details below).
 
 ### Data Recording
 The other main use of the microSD card is to capture training data from either the on-board TDK digital microphone, or the TDK 6-Axis IMU sensor. 
 
-1. When audio data is recorded, the application will write *.wav file(s) to the root directory.  
-1. When 6-Axis IMU data is recorded, the application will write *.csv file(s) to the root directory.
+1. When audio data is recorded, the application will write \*.wav file(s) to the root directory.  
+1. When 6-Axis IMU data is recorded, the application will write \*.csv file(s) to the root directory.
 
 **Note:** Data file names contain a number that is incremented when additional files are written.  It's the users responsibility to remove or delete these files if the microSD card becomes full.
 
@@ -69,7 +69,7 @@ When using the I/O board with a microSD card, the user can access the file syste
 
 **Note: The PMSC Mass Storage Driver is automatically disabled when the OOB application is recording audio, or 6-axis IMU data to the microSD card.  When the recording period ends, the PMSC Mass Storage Driver is automatically enabled and the external drive will enumerate on the development PC.**
 
-**Note: When booting with a blank microSD card, the recording features are automatically disabled.  Copy all the required files to the microSD card and restart the application.  The required microSD card files are included in the GitHub releases (microSD-Files-\<version\>.zip) or from the GitHub repo in the /ndp120/synpkg_files/* directory.  Simply copy all the files to the root directory of the microSD card.**
+**Note: When booting with a blank microSD card, the recording features are automatically disabled.  Copy all the required files to the microSD card and restart the application.  The required microSD card files are included in the GitHub releases (microSD-Files-\<version\>.zip) or from the GitHub repo in the /ndp120/synpkg_files/ directory.  Simply copy all the files to the root directory of the microSD card.**
 
 **Note: The on-board E2-Light debugger interface is only available from the USB-C connector on the I/O board.  It's okay to use both USB-C interfaces at the same time.  One to access the microSD card (core board connector) and one to use the built in E2-Light interface (I/O board connector)**
 
@@ -84,7 +84,7 @@ The application will output the current configuration.
 ![](./assets/configOutput.jpg "")
 
 ## ndp120 Configuration
-The ndp120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the *.synpkg files.  These files are usually delivered together and should only be used together. New model files and ndp120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the ndp120 files in the root directory of the microSD card.
+The ndp120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the \*.synpkg files.  These files are usually delivered together and should only be used together. New model files and ndp120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the ndp120 files in the root directory of the microSD card.
 
 There are two areas in the config.ini file to configure which ndp120 files are loaded to the ndp120 at startup.
 
@@ -129,7 +129,7 @@ The application can record audio or IMU data.
 ![](./assets/recordingPeriodConfig.jpg "")
 
 ## 6-Axis IMU Data Stream Features
-The OOB application can capture 6-Axis IMU data either to a *.csv file on the microSD card, and/or stream data out the debug UART.  
+The OOB application can capture 6-Axis IMU data either to a \*.csv file on the microSD card, and/or stream data out the debug UART.  
 
 **Note: in order to capture 6-Axis IMU data the active ```[Function_x]``` block must contain ```Button_shift=imu``` within the block.  This is true for any active ```[Function_x]``` block even if the block defines audio detection files.**
 
@@ -139,7 +139,7 @@ The OOB application can capture 6-Axis IMU data either to a *.csv file on the mi
 
 1. ```[IMU data stream]-->Write_to_file=x``` 
 
-- ```[IMU data stream]-->Write_to_file=1``` tells the application to capture IMU data for ```[Recording Period]-->Recording_Period``` seconds when the user button is pressed.  A *.csv file will be generated and if there are multiple recording events, the filename will contain an incrementing number to distinguish between the different files.  These *.csv files can be used with the [Edge Impulse Uploader](EdgeImpulseUploader.md) to upload data to Edge Impulse for ML model creation and testing.  
+- ```[IMU data stream]-->Write_to_file=1``` tells the application to capture IMU data for ```[Recording Period]-->Recording_Period``` seconds when the user button is pressed.  A \*.csv file will be generated and if there are multiple recording events, the filename will contain an incrementing number to distinguish between the different files.  These \*.csv files can be used with the [Edge Impulse Uploader](EdgeImpulseUploader.md) to upload data to Edge Impulse for ML model creation and testing.  
 - ```[IMU data stream]-->Write_to_file=0``` disables this feature  
 
 1. ```[IMU data stream]-->Print_to_terminal=x```
@@ -194,7 +194,7 @@ The application currently only supports IoTConnect on AWS, however we have featu
 
 - ```[Cloud Connectivity]-->Target_Cloud=0```: No cloud connectivity.  
 
-**Note: If ```Target_Cloud=0``` the application will not attempt establish a WiFi connection.**
+**Note: If ```Target_Cloud=0``` the application will not attempt to establish a WiFi connection.**
 
 - ```[Cloud Connectivity]-->Target_Cloud=1```: Connect to the Avnet IoTConnect cloud solution on AWS.  See the ```[IotConnect]``` configuration items below to define required details to connect to IoTConnect.  
 - ```[Cloud Connectivity]-->Target_Cloud=2```: Connect to AWS (Not currently implemented)  
