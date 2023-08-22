@@ -13,17 +13,18 @@ Please follow the links below to learn more about the Avnet RasynBoard Out-of-Bo
 - [Edge Impulse Data Forwarder instructions](./docs/EdgeImpulseDataForwarder.md): Details on using the Edge Impulse Data Forwarder CLI tool to stream 6-Axis IMU data directly into your Edge Impulse ML project
 - [Edge Impulse Uploader instructions](./docs/EdgeImpulseUploader.md): Details on using the Edge Impulse Uploader CLI tool to upload audio (\*.wav) or 6-Axis IMU data (\*.csv) data files directly into your Edge Impulse ML project
 - [Avnet IoTConnect Configuration Details](./docs/IoTConnect.md)
-- [Out-of-Box Development Notes](): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applicaitons.
+- [Out-of-Box Development Notes](./docs/OobDevelopmentNotes.md): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applicaitons.
 
 # Out-of-Box Releases
 As Avnet adds features and bug fixes to the OOB application we push out releases.  Each release:
 
-1. Is built from a GitHub [Repo Tag](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/tags)
-2. Have been tested
-3. Include release notes detailing changes since the last release
-4. Are delivered as a binary image
-5. Include the corresponding microSD card images 
-6. Documents known issues with the release, and if available, details on working around the issue
+1. Has a unique version string
+2. Is built from a GitHub [Repo Tag](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/tags)
+3. Have been tested
+4. Include release notes detailing changes since the last release
+5. Are delivered as a binary image
+6. Include the corresponding microSD card images 
+7. Documents known issues with the release, and if available, details on working around the issue
 
 [Link to Avnet RASynBoard OOB Releases](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/releases)
 
