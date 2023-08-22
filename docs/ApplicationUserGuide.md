@@ -16,9 +16,9 @@ When the ndp120 detects a ML feature in the data it interrupts the RA6 MCU and p
 ## Data Collection for Developing/Testing New ML Models
 Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse will generate the *.syspkg files that can be used on the RASynBoard with the OOB application.
 
-    Note: RASynBoard Edge Impulse support is scheduled to be released in late October 2023
+**Note: RASynBoard Edge Impulse support is scheduled to be released in late October 2023**
 
-    Note: Edge Impulse will release a custom RASynBoard application to interface with the Edge Impulse Studio to develop/test/deploy/test on device in conjunction with the late October 2023 release
+**Note: Edge Impulse will release a custom RASynBoard application to interface with the Edge Impulse Studio to develop/test/deploy/test on device in conjunction with the late October 2023 release**
 
 The OOB application also implements multiple ways to collect data from the on-board sensors
 1. Audio data can be recorded to the microSD card
@@ -39,9 +39,9 @@ Once the images have been moved to SPI Flash, the application will run from SPI 
 
 ![](./assets/writeToFlash.jpg "")
 
-    Note: Use caution when separating and re-attaching the core board from/to the I/O board as the interconnect pins have a fine pitch and are easy to damage.
+**Note: Use caution when separating and re-attaching the core board from/to the I/O board as the interconnect pins have a fine pitch and are easy to damage.**
 
-    Note: To boot using the config.ini and *.synpkg files on the microSD card re-connect the two boards and insert the microSD card containing the config.ini and *.synpkg files.
+**Note: To boot using the config.ini and *.synpkg files on the microSD card re-connect the two boards and insert the microSD card containing the config.ini and *.synpkg files.**
 
 ## MicroSD Card
 The microSD card located on the underside of the I/O board is used for making configuration changes that define how the OOB application operates.  Additionally, sensor data can be recorded to the microSD card and used for ML model training and testing.
@@ -67,11 +67,11 @@ When using the I/O board with a microSD card, the user can access the file syste
 1. The development PC must be connected to the RASynBoard core board (the smaller board) with a USB-C cable to access the microSD card filesystem. 
 2. The OOB application must be running to access the microSD filesystem
 
-    Note: The PMSC Mass Storage Driver is automatically disabled when the OOB application is recording audio, or 6-axis IMU data to the microSD card.  When the recording period ends, the PMSC Mass Storage Driver is automatically enabled and the external drive will enumerate on the development PC.
+**Note: The PMSC Mass Storage Driver is automatically disabled when the OOB application is recording audio, or 6-axis IMU data to the microSD card.  When the recording period ends, the PMSC Mass Storage Driver is automatically enabled and the external drive will enumerate on the development PC.**
 
-    Note: When booting with a blank microSD card, the recording features are automatically disabled.  Copy all the required files to the microSD card and restart the application.  The required microSD card files are included in the GitHub releases (microSD-Files-\<version\>.zip) or from the GitHub repo in the /ndp120/synpkg_files/* directory.  Simply copy all the files to the root directory of the microSD card.
+**Note: When booting with a blank microSD card, the recording features are automatically disabled.  Copy all the required files to the microSD card and restart the application.  The required microSD card files are included in the GitHub releases (microSD-Files-\<version\>.zip) or from the GitHub repo in the /ndp120/synpkg_files/* directory.  Simply copy all the files to the root directory of the microSD card.**
 
-    Note: The on-board E2-Light debugger interface is only available from the USB-C connector on the I/O board.  It's okay to use both USB-C interfaces at the same time.  One to access the microSD card (core board connector) and one to use the built in E2-Light interface (I/O board connector)
+**Note: The on-board E2-Light debugger interface is only available from the USB-C connector on the I/O board.  It's okay to use both USB-C interfaces at the same time.  One to access the microSD card (core board connector) and one to use the built in E2-Light interface (I/O board connector)**
 
 ## Cloud Connectivity
 The OOB application currently supports connecting to the Avnet IoTConnect Cloud Solution implemented on AWS.  Future releases will support AWS IoT Core devices and Azure IoT devices.  See the ```[Cloud Connectivity]``` section below for details.
@@ -116,7 +116,8 @@ The application can be configured to output debug messages to either the UART ex
 - ```Port=1``` Outputs debug to the PMOD connector signals
 - ```Port=2``` Outputs debug to the UART associated with the core board USB-C connector
     - This selection allows developers to access debug when the core board is running without the I/O board
-    - **Note** the application must bring this UART connection on-line when the application starts.  Because of this delay, most of the startup debug will not be displayed on the UART.
+
+**Note the application must bring this UART connection on-line when the application starts.  Because of this delay, most of the startup debug will not be displayed on the UART.**
 
 ![](./assets/debugConfig.jpg "")
 
@@ -130,11 +131,11 @@ The application can record audio or IMU data.
 ## 6-Axis IMU Data Stream Features
 The OOB application can capture 6-Axis IMU data either to a *.csv file on the microSD card, and/or stream data out the debug UART.  
 
-    Note: in order to capture 6-Axis IMU data the active ```[Function_x]``` block must contain ```Button_shift=imu``` within the block.  This is true for any active ```[Function_x]``` block even if the block defines audio detection files.
+**Note: in order to capture 6-Axis IMU data the active ```[Function_x]``` block must contain ```Button_shift=imu``` within the block.  This is true for any active ```[Function_x]``` block even if the block defines audio detection files.**
 
 ![](./assets/imuButtonShift.jpg "")
 
-    Note: There is currenty a bug if you try to use the circular motion ```[Function_3]``` block to capture 6-Axis IMU data.  If you need to capture 6-Axis IMU data please use the ```[Function_1]``` block.  (AAGBT-82)
+**Note: There is currenty a bug if you try to use the circular motion ```[Function_3]``` block to capture 6-Axis IMU data.  If you need to capture 6-Axis IMU data please use the ```[Function_1]``` block.  (AAGBT-82)**
 
 1. ```[IMU data stream]-->Write_to_file=x``` 
 
@@ -157,13 +158,13 @@ The OOB application supports low-power mode.  When in the low-power state, the R
 
 - ```[Low Power Mode]-->Power_Mode=1```: When in ```Power_Mode=1``` the application will enter low-power state on power-up and will come out of low-power state when any inference detection occurs.  As soon as the new inference detection logic is completed, the application will automatically re-enter the low-power state.
 
-    Note: The data recording feature is disabled when ```[Low Power Mode]-->Power_Mode=1```
+**Note: The data recording feature is disabled when ```[Low Power Mode]-->Power_Mode=1```**
 
 ![](./assets/lowPowerConfig.jpg "")
 
 ## BLE Mode
 
-The application can broadcast inference results over BLE that can be displayed on a user interface.  Avnet has a python application that can be used to display the BLE messages.  [Demo GUI Repo](https://github.com/Avnet/Rasynboard_ew23_demo_GUI_qt) (This repo is currently private, we're working on making it public)
+The application can broadcast inference results over BLE that can be displayed on a user interface.  Avnet has a python application that can be used to display the BLE messages.  [Demo GUI Repo](https://github.com/Avnet/Rasynboard_ew23_demo_GUI_qt) (This repo is currently private, we're working on making it public (AAGBT-83))
 
 ```[BLE Mode]-->BLE_Enabled=x```
 
@@ -193,7 +194,7 @@ The application currently only supports IoTConnect on AWS, however we have featu
 
 - ```[Cloud Connectivity]-->Target_Cloud=0```: No cloud connectivity.  
 
-    Note: If ```Target_Cloud=0``` the application will not attempt establish a WiFi connection.
+**Note: If ```Target_Cloud=0``` the application will not attempt establish a WiFi connection.**
 
 - ```[Cloud Connectivity]-->Target_Cloud=1```: Connect to the Avnet IoTConnect cloud solution on AWS.  See the ```[IotConnect]``` configuration items below to define required details to connect to IoTConnect.  
 - ```[Cloud Connectivity]-->Target_Cloud=2```: Connect to AWS (Not currently implemented)  
