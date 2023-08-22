@@ -41,7 +41,7 @@ Once the images have been moved to SPI Flash, the application will run from SPI 
 
 **Note: Use caution when separating and re-attaching the core board from/to the I/O board as the interconnect pins have a fine pitch and are easy to damage.**
 
-**Note: To boot using the config.ini and *.synpkg files on the microSD card re-connect the two boards and insert the microSD card containing the config.ini and *.synpkg files.**
+**Note: To boot using the config.ini and \*.synpkg files on the microSD card re-connect the two boards and insert the microSD card containing the config.ini and \*.synpkg files.**
 
 ## MicroSD Card
 The microSD card located on the underside of the I/O board is used for making configuration changes that define how the OOB application operates.  Additionally, sensor data can be recorded to the microSD card and used for ML model training and testing.
