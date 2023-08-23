@@ -735,8 +735,8 @@ void printConfg(void)
 
         printf("\n  WiFi Configuration\n");
         printf("    Access Point (SSID)  : %s\n", wifi_ap_name);
-        printf("    Access Point password: %s\n\n", wifi_pw);
-        printf("    Country Code         : %s\n", wifi_cc);
+        printf("    Access Point password: %s\n", wifi_pw);
+        printf("    Country Code         : %s\n\n", wifi_cc);
     }
 }
 

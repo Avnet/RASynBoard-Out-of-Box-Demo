@@ -11,7 +11,7 @@
 #include "iotc_thread_entry.h"
 
 #define IoTC_ENV    "poc"
-#define MAX_RETRIES 5
+#define MAX_RETRIES 2
 #define OUTPUT_MQTT_DEBUG
 
 #define MY_CHAR_ARRAY_SIZE 64
@@ -283,12 +283,25 @@ void setup_network(void){
 
     size_t nwipReturnStringLen = 0;
     static int failCnt = 0;
+    static int level2FailCnt = 0;
     char atcmd[256]={'\0'};
 
     iotc_print("IoTConnect-state: SETUP_NETWORK\n");
 
     // Check to see if we're stuck trying to connect to the network
-    if(MAX_RETRIES == failCnt){
+    if(MAX_RETRIES <= failCnt){
+
+        // Check to see if we've tried to call rm_wifi_da16600_init already while trying to recover the
+        // network.  If not, give it a try before giving up.
+        if( 1 > level2FailCnt++){
+
+            // Lets try one last thing before we give up on the network connection
+            rm_wifi_da16600_init();
+            currentState = INIT_DA16600;
+            failCnt = 0;
+            return;
+        }
+
         printf("ERROR: Did not connect to the network, verify your network credentials\n");
         currentState = FAILURE_STATE;
         return;
@@ -447,7 +460,7 @@ void run_discovery(void)
     if (root == NULL) {
             const char *error_ptr = cJSON_GetErrorPtr();
             if (error_ptr != NULL) {
-                printf("ERROR: JSON Parse error before: %s\n", error_ptr);
+                printf("ERROR: JSON parse error\n");
             }
 
             cJSON_Delete(root);

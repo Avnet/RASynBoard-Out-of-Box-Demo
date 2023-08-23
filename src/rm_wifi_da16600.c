@@ -30,11 +30,17 @@ static void rm_wifi_da16600_hwrst(void)
 fsp_err_t rm_wifi_da16600_init(void)
 {
     fsp_err_t            err = FSP_SUCCESS;
+    static bool atcmd_init_called = false;
 
-    err =  rm_atcmd_init();
-    if( FSP_SUCCESS != err )
-    {
-        return err;
+    // Don't call rm_atcmd_init() more than once
+    if(!atcmd_init_called){
+
+        atcmd_init_called = true;
+        err =  rm_atcmd_init();
+        if( FSP_SUCCESS != err )
+        {
+            return err;
+        }
     }
 
     /* Hardware reset DA16600 WiFi module */
