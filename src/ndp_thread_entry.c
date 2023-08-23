@@ -10,9 +10,9 @@
 #include "ndp_flash.h"
 #include "ndp_irq_service.h"
 #include "syntiant_platform.h"
-#include "ble_uart.h"
+#include "rm_atcmd.h"
 #include "usb_pcdc_vcom.h"
-
+#include "iotc_thread_entry.h"
 
 typedef struct blink_msg
 {
@@ -49,6 +49,8 @@ static char *labels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS]
             [SYNTIANT_NDP120_MAX_CLASSES];
 static char numlabels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS];
 static char label_data[NDP120_MCU_LABELS_MAX_LEN] = "";
+
+static void send_ble_update(char* ,int ,char*, int);
 
 void ndp_info_display(void)
 {
@@ -99,6 +101,40 @@ void ndp_info_display(void)
     }
 }
 
+// Helper function to create
+void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
+{
+#define MAX_TELEMETRY_LEN 256
+
+    static int msgCnt = 0;
+    char telemetryMsg[MAX_TELEMETRY_LEN] = {'\0'};
+    telemetryQueueMsg_t newMsg;
+    char* telemetryPtr;
+    int telemetryMsgLen;
+
+    // Create the JSON
+    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"InterenceResultIndex\": %d, \"InferenceResultString\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);
+
+    // Allocate memory on the heap for the JSON string.
+    // We allocate the memory here, then free the memory
+    // when the message is pulled from the queue
+    telemetryMsgLen = strlen(telemetryMsg);
+    telemetryPtr = pvPortMalloc(telemetryMsgLen);
+
+    // Verify we have memory for the message
+    if(NULL == telemetryPtr){
+        return;
+    }
+
+    // Copy the incomming telemetry to the heap memory
+    strncpy(telemetryPtr, telemetryMsg, telemetryMsgLen+1);
+    
+    // Populate the queue data structure, and enqueue the message 
+    newMsg.msgSize = telemetryMsgLen;
+    newMsg.msgPtr = telemetryPtr;
+    xQueueSend(g_telemetry_queue, (void *)&newMsg, 0U);
+    return;
+}
 
 /* NDP Thread entry function */
 /* pvParameters contains TaskHandle_t */
@@ -109,6 +145,7 @@ void ndp_thread_entry(void *pvParameters)
     EventBits_t   evbits;
     uint32_t q_event, notifications;
 	blink_msg_t  last_stat, current_stat;
+	char buf[32];
 
     FSP_PARAMETER_NOT_USED (pvParameters);
     R_BSP_PinAccessEnable(); /* Enable access to the PFS registers. */
@@ -119,6 +156,10 @@ void ndp_thread_entry(void *pvParameters)
     R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
     /* will create a task if using USB CDC */
     console_init();
+
+    // Free the initialization Semaphore
+    xSemaphoreGive(g_xInitialSemaphore);
+
     spi_init();
 
     printf("FreeRTOS ndp_thread running\n");
@@ -133,7 +174,6 @@ void ndp_thread_entry(void *pvParameters)
     ndp_irq_init();
     init_fatfs();
     button_init();
-    ble_uart_init();
 
     /* Delay 100 ms */
     R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
@@ -206,14 +246,16 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_string[V_WAKEUP], strlen(ble_at_string[V_WAKEUP]));
+					send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
+					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 1:
 				    /* Voice: Up; light Cyan Led */
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_string[V_UP], strlen(ble_at_string[V_UP]));
+					send_ble_update(ble_at_string[V_UP],1000,buf, sizeof(buf));
+                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 2:
 				    /* Voice: Down; light Magenta Led */
@@ -225,7 +267,8 @@ void ndp_thread_entry(void *pvParameters)
 						/* first receive 'Down'  keyword */
 						q_event = led_event_color[ndp_class_idx];
 						xQueueSend(g_led_queue, (void *)&q_event, 0U );
-						ble_send(ble_at_string[V_DOWN], strlen(ble_at_string[V_DOWN]));
+						send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+	                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					}
 					else
 					{
@@ -238,8 +281,8 @@ void ndp_thread_entry(void *pvParameters)
 							q_event =  LED_BLINK_DOUBLE_BLUE;
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
 							/* Send 'idle' and 'advstop' to bluetooth */
-							ble_send(ble_at_string[V_IDLE], strlen(ble_at_string[V_IDLE]));
-							ble_send(ble_at_string[V_STOP], strlen(ble_at_string[V_STOP]));
+							send_ble_update(ble_at_string[V_IDLE],1000,buf, sizeof(buf));
+							send_ble_update(ble_at_string[V_STOP],1000,buf, sizeof(buf));
 							/* clear led state */
 							current_stat.led = LED_EVENT_NONE;
 						}
@@ -248,7 +291,7 @@ void ndp_thread_entry(void *pvParameters)
 							/* invalid time */
 							q_event = led_event_color[ndp_class_idx];
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							ble_send(ble_at_string[V_DOWN], strlen(ble_at_string[V_DOWN]));
+							send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
 						}
 					}
 					break;
@@ -257,14 +300,16 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_string[V_BACK], strlen(ble_at_string[V_BACK]));
+					send_ble_update(ble_at_string[V_BACK],1000,buf, sizeof(buf));
+                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 4:
 				    /* Voice: Next; light Green Led */
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color[ndp_class_idx];
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					ble_send(ble_at_string[V_NEXT], strlen(ble_at_string[V_NEXT]));
+					send_ble_update(ble_at_string[V_NEXT],1000,buf, sizeof(buf));
+                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				default :
 					break;
@@ -306,6 +351,14 @@ void ndp_thread_entry(void *pvParameters)
 			}
 		}
         vTaskDelay (5);
+    }
+}
+
+static void send_ble_update(char* ble_string ,int timeout ,char* buf, int buf_size){
+
+    // Only send the BLE message if the mode is enabled
+    if(BLE_ENABLE == get_ble_mode()){
+        rm_atcmd_send(ble_string ,timeout, buf, buf_size);
     }
 }
 
