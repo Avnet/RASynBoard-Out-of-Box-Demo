@@ -9,7 +9,7 @@
     <option key="#DeviceCommand#" value="R7FA6M4AF"/>
     <option key="#RTOS#" value="rtos.awsfreertos"/>
     <option key="#pinconfiguration#" value="R7FA6M4AF3CFM.pincfg"/>
-    <option key="#FSPVersion#" value="4.1.0"/>
+    <option key="#FSPVersion#" value="4.5.0"/>
     <option key="#SELECTED_TOOLCHAIN#" value="gcc-arm-embedded"/>
     <option key="#ToolchainVersion#" value="10.3.1.20210824"/>
   </generalSettings>
@@ -40,6 +40,7 @@
       <property id="config.bsp.fsp.tz.stbramsar" value="config.bsp.fsp.tz.stbramsar.both"/>
       <property id="config.bsp.fsp.tz.bussara" value="config.bsp.fsp.tz.bussara.both"/>
       <property id="config.bsp.fsp.tz.bussarb" value="config.bsp.fsp.tz.bussarb.both"/>
+      <property id="config.bsp.fsp.tz.uninitialized_ns_application_fallback" value="config.bsp.fsp.tz.uninitialized_ns_application_fallback.enabled"/>
       <property id="config.bsp.fsp.cache_line_size" value="config.bsp.fsp.cache_line_size.32"/>
       <property id="config.bsp.fsp.OFS0.iwdt_start_mode" value="config.bsp.fsp.OFS0.iwdt_start_mode.disabled"/>
       <property id="config.bsp.fsp.OFS0.iwdt_timeout" value="config.bsp.fsp.OFS0.iwdt_timeout.2048"/>
@@ -73,8 +74,12 @@
       <property id="config.bsp.fsp.mcu.sci_spi.max_bitrate" value="25000000"/>
       <property id="config.bsp.fsp.mcu.spi.max_bitrate" value="50000000"/>
       <property id="config.bsp.fsp.mcu.iic_master.rate.rate_fastplus" value="1"/>
+      <property id="config.bsp.fsp.mcu.iic_master.fastplus_channels" value="0x1"/>
+      <property id="config.bsp.fsp.mcu.iic_slave.rate.rate_fastplus" value="1"/>
+      <property id="config.bsp.fsp.mcu.iic_slave.fastplus_channels" value="0x1"/>
       <property id="config.bsp.fsp.mcu.sci_uart.cstpen_channels" value="0x03F9"/>
       <property id="config.bsp.fsp.mcu.gpt.pin_count_source_channels" value="0xFFFF"/>
+      <property id="config.bsp.fsp.mcu.adc_dmac.samples_per_channel" value="32767"/>
     </config>
     <config id="config.bsp.ra">
       <property id="config.bsp.common.main" value="0x400"/>
@@ -136,89 +141,93 @@
     <node id="board.clock.octaspiclk.display" option="board.clock.octaspiclk.display.value"/>
   </raClockConfiguration>
   <raComponentSelection>
-    <component apiversion="" class="Common" condition="" group="all" subgroup="fsp_common" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="Common" condition="" group="all" subgroup="fsp_common" variant="" vendor="Renesas" version="4.5.0">
       <description>Board Support Package Common Files</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_ioport" variant="" vendor="Renesas" version="4.1.0">
-      <description>I/O Port</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="RTOS" condition="" group="FreeRTOS" subgroup="all" variant="" vendor="AWS" version="10.4.6+fsp.4.1.0">
-      <description>FreeRTOS</description>
-      <originalPack>Amazon.FreeRTOS-Kernel.10.4.6+fsp.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="CMSIS" condition="" group="CMSIS5" subgroup="CoreM" variant="" vendor="Arm" version="5.9.0+renesas.0.fsp.4.1.0">
-      <description>Arm CMSIS Version 5 - Core (M)</description>
-      <originalPack>Arm.CMSIS5.5.9.0+renesas.0.fsp.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_freertos_port" variant="" vendor="Renesas" version="4.1.0">
-      <description>FreeRTOS Port</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="BSP" condition="" group="Board" subgroup="custom" variant="" vendor="Renesas" version="4.1.0">
-      <description>Custom Board Support Files</description>
-      <originalPack>Renesas.RA_board_custom.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="BSP" condition="" group="ra6m4" subgroup="device" variant="R7FA6M4AF3CFM" vendor="Renesas" version="4.1.0">
-      <description>Board support package for R7FA6M4AF3CFM</description>
-      <originalPack>Renesas.RA_mcu_ra6m4.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="BSP" condition="" group="ra6m4" subgroup="device" variant="" vendor="Renesas" version="4.1.0">
-      <description>Board support package for RA6M4</description>
-      <originalPack>Renesas.RA_mcu_ra6m4.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="BSP" condition="" group="ra6m4" subgroup="fsp" variant="" vendor="Renesas" version="4.1.0">
-      <description>Board support package for RA6M4 - FSP Data</description>
-      <originalPack>Renesas.RA_mcu_ra6m4.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_sci_uart" variant="" vendor="Renesas" version="4.1.0">
-      <description>SCI UART</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_icu" variant="" vendor="Renesas" version="4.1.0">
-      <description>External Interrupt</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_iic_master" variant="" vendor="Renesas" version="4.1.0">
-      <description>I2C Master Interface</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_spi" variant="" vendor="Renesas" version="4.1.0">
-      <description>Serial Peripheral Interface</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_lpm" variant="" vendor="Renesas" version="4.1.0">
-      <description>Low Power Modes</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="Heaps" condition="" group="FreeRTOS" subgroup="heap_4" variant="" vendor="AWS" version="10.4.6+fsp.4.1.0">
-      <description>FreeRTOS - Memory Management - Heap 4</description>
-      <originalPack>Amazon.FreeRTOS-Kernel.10.4.6+fsp.4.1.0.pack</originalPack>
-    </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_dmac" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_dmac" variant="" vendor="Renesas" version="4.5.0">
       <description>Direct Memory Access Controller</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_basic" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_icu" variant="" vendor="Renesas" version="4.5.0">
+      <description>External Interrupt</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_iic_master" variant="" vendor="Renesas" version="4.5.0">
+      <description>I2C Master Interface</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_ioport" variant="" vendor="Renesas" version="4.5.0">
+      <description>I/O Port</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_lpm" variant="" vendor="Renesas" version="4.5.0">
+      <description>Low Power Modes</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_sci_uart" variant="" vendor="Renesas" version="4.5.0">
+      <description>SCI UART</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_spi" variant="" vendor="Renesas" version="4.5.0">
+      <description>Serial Peripheral Interface</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_basic" variant="" vendor="Renesas" version="4.5.0">
       <description>USB Basic</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_pcdc" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_pcdc" variant="" vendor="Renesas" version="4.5.0">
       <description>USB Peripheral Communications Device Class</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_pmsc" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_pmsc" variant="" vendor="Renesas" version="4.5.0">
       <description>USB Peripheral Mass Storage Class</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_composite" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_usb_composite" variant="" vendor="Renesas" version="4.5.0">
       <description>USB Composite</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
     </component>
-    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_block_media_user" variant="" vendor="Renesas" version="4.1.0">
+    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_freertos_port" variant="" vendor="Renesas" version="4.5.0">
+      <description>FreeRTOS Port</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_block_media_user" variant="" vendor="Renesas" version="4.5.0">
       <description>Block Media User Implementation</description>
-      <originalPack>Renesas.RA.4.1.0.pack</originalPack>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_wifi_api" variant="" vendor="Renesas" version="4.5.0">
+      <description>WiFi Common</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="BSP" condition="" group="ra6m4" subgroup="device" variant="R7FA6M4AF3CFM" vendor="Renesas" version="4.5.0">
+      <description>Board support package for R7FA6M4AF3CFM</description>
+      <originalPack>Renesas.RA_mcu_ra6m4.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="BSP" condition="" group="ra6m4" subgroup="device" variant="" vendor="Renesas" version="4.5.0">
+      <description>Board support package for RA6M4</description>
+      <originalPack>Renesas.RA_mcu_ra6m4.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="BSP" condition="" group="ra6m4" subgroup="fsp" variant="" vendor="Renesas" version="4.5.0">
+      <description>Board support package for RA6M4 - FSP Data</description>
+      <originalPack>Renesas.RA_mcu_ra6m4.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="CMSIS" condition="" group="CMSIS5" subgroup="CoreM" variant="" vendor="Arm" version="5.9.0+renesas.0.fsp.4.5.0">
+      <description>Arm CMSIS Version 5 - Core (M)</description>
+      <originalPack>Arm.CMSIS5.5.9.0+renesas.0.fsp.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="BSP" condition="" group="Board" subgroup="custom" variant="" vendor="Renesas" version="4.5.0">
+      <description>Custom Board Support Files</description>
+      <originalPack>Renesas.RA_board_custom.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="RTOS" condition="" group="FreeRTOS" subgroup="all" variant="" vendor="AWS" version="10.4.6+fsp.4.5.0">
+      <description>FreeRTOS</description>
+      <originalPack>Amazon.FreeRTOS-Kernel.10.4.6+fsp.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="Heaps" condition="" group="FreeRTOS" subgroup="heap_4" variant="" vendor="AWS" version="10.4.6+fsp.4.5.0">
+      <description>FreeRTOS - Memory Management - Heap 4</description>
+      <originalPack>Amazon.FreeRTOS-Kernel.10.4.6+fsp.4.5.0.pack</originalPack>
     </component>
   </raComponentSelection>
   <raElcConfiguration/>
@@ -336,7 +345,7 @@
       <property id="module.driver.uart.rs485.de_polarity" value="module.driver.uart.rs485.de_polarity.high"/>
       <property id="module.driver.uart.rs485.de_port_number" value="module.driver.uart.rs485.de_port_number.PORT_DISABLE"/>
       <property id="module.driver.uart.rs485.de_pin_number" value="module.driver.uart.rs485.de_pin_number.PIN_DISABLE"/>
-      <property id="module.driver.uart.callback" value="ble_uart_callback"/>
+      <property id="module.driver.uart.callback" value="rm_atcmd_uart_callback"/>
       <property id="module.driver.uart.rxi_ipl" value="board.icu.common.irq.priority3"/>
       <property id="module.driver.uart.txi_ipl" value="board.icu.common.irq.priority3"/>
       <property id="module.driver.uart.tei_ipl" value="board.icu.common.irq.priority3"/>
@@ -351,6 +360,12 @@
       <property id="module.driver.lpm.snooze_end_sources" value=""/>
       <property id="module.driver.lpm.snooze_dtc" value="module.driver.lpm.snooze_dtc.lpm_snooze_dtc_disable"/>
       <property id="module.driver.lpm.snooze_cancel_source" value="enum.mcu.lpm.snooze_cancel_source.none"/>
+      <property id="module.driver.lpm.ram_power_enable" value=""/>
+      <property id="module.driver.lpm.tcm_power_enable" value="enum.mcu.lpm.tcm_power_enable.disable"/>
+      <property id="module.driver.lpm.standby_ram_power_enable" value="enum.mcu.lpm.standby_ram_power_enable.disable"/>
+      <property id="module.driver.lpm.oscillator_ldo_state.pll1" value="enum.mcu.lpm.oscillator_ldo_state.pll1.disable"/>
+      <property id="module.driver.lpm.oscillator_ldo_state.pll2" value="enum.mcu.lpm.oscillator_ldo_state.pll2.disable"/>
+      <property id="module.driver.lpm.oscillator_ldo_state.hoco" value="enum.mcu.lpm.oscillator_ldo_state.hoco.disable"/>
       <property id="module.driver.lpm.io_port_deep_standby_exit" value="module.driver.lpm.io_port_deep_standby_exit.no_change"/>
       <property id="module.driver.lpm.power_supply_deep_standby" value="module.driver.lpm.power_supply_deep_standby.deepcut0"/>
       <property id="module.driver.lpm.deep_standby_cancel_sources" value=""/>
@@ -455,6 +470,20 @@
       <property id="rtos.awsfreertos.object.mutex.type" value="rtos.awsfreertos.object.mutex.type.mutex"/>
       <property id="rtos.awsfreertos.object.mutex.allocation" value="rtos.awsfreertos.object.mutex.allocation.static"/>
     </object>
+    <object id="rtos.awsfreertos.object.binary_semaphore.1130766729">
+      <property id="rtos.awsfreertos.object.binary_semaphore.symbol" value="g_xInitialSemaphore"/>
+      <property id="rtos.awsfreertos.object.binary_semaphore.allocation" value="rtos.awsfreertos.object.binary_semaphore.allocation.static"/>
+    </object>
+    <object id="rtos.awsfreertos.object.flags.731648225">
+      <property id="rtos.awsfreertos.object.flags.symbol" value="g_https_extended_msg_event_group"/>
+      <property id="rtos.awsfreertos.object.flags.allocation" value="rtos.awsfreertos.object.flags.allocation.static"/>
+    </object>
+    <object id="rtos.awsfreertos.object.queue.1405447123">
+      <property id="rtos.awsfreertos.object.queue.symbol" value="g_telemetry_queue"/>
+      <property id="rtos.awsfreertos.object.queue.item_size" value="8"/>
+      <property id="rtos.awsfreertos.object.queue.queue_length" value="128"/>
+      <property id="rtos.awsfreertos.object.queue.allocation" value="rtos.awsfreertos.object.queue.allocation.static"/>
+    </object>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.rm_freertos_port.0"/>
@@ -487,7 +516,7 @@
     <context id="rtos.awsfreertos.thread.365325154">
       <property id="_symbol" value="ndp_thread"/>
       <property id="rtos.awsfreertos.thread.name" value="NDP Thread"/>
-      <property id="rtos.awsfreertos.thread.stack" value="32768"/>
+      <property id="rtos.awsfreertos.thread.stack" value="40960"/>
       <property id="rtos.awsfreertos.thread.priority" value="4"/>
       <property id="rtos.awsfreertos.thread.context" value="NULL"/>
       <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
@@ -508,6 +537,15 @@
       <property id="_symbol" value="ndp_record_thread"/>
       <property id="rtos.awsfreertos.thread.name" value="Record Thread"/>
       <property id="rtos.awsfreertos.thread.stack" value="8192"/>
+      <property id="rtos.awsfreertos.thread.priority" value="1"/>
+      <property id="rtos.awsfreertos.thread.context" value="NULL"/>
+      <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
+      <property id="rtos.awsfreertos.thread.secure_context" value="rtos.awsfreertos.thread.secure_context.enable"/>
+    </context>
+    <context id="rtos.awsfreertos.thread.666699125">
+      <property id="_symbol" value="iotc_thread"/>
+      <property id="rtos.awsfreertos.thread.name" value="IoTC Thread"/>
+      <property id="rtos.awsfreertos.thread.stack" value="32768"/>
       <property id="rtos.awsfreertos.thread.priority" value="1"/>
       <property id="rtos.awsfreertos.thread.context" value="NULL"/>
       <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
@@ -568,7 +606,7 @@
       <property id="config.awsfreertos.thread.configcpu_clock_hz" value="SystemCoreClock"/>
       <property id="config.awsfreertos.thread.configtick_rate_hz" value="1000"/>
       <property id="config.awsfreertos.thread.configmax_priorities" value="5"/>
-      <property id="config.awsfreertos.thread.configminimal_stack_size" value="128"/>
+      <property id="config.awsfreertos.thread.configminimal_stack_size" value="1024"/>
       <property id="config.awsfreertos.thread.configmax_task_name_len" value="16"/>
       <property id="config.awsfreertos.thread.configuse_trace_facility" value="config.awsfreertos.thread.configuse_trace_facility.disabled"/>
       <property id="config.awsfreertos.thread.configuse_stats_formatting_functions" value="config.awsfreertos.thread.configuse_stats_formatting_functions.disabled"/>
@@ -623,6 +661,11 @@
     </config>
     <config id="config.driver.dmac">
       <property id="config.driver.dmac.param_checking_enable" value="config.driver.dmac.param_checking_enable.bsp"/>
+    </config>
+    <config id="config.aws.wifi.common">
+      <property id="config.aws.wifi.common.max_ssid_len" value="32"/>
+      <property id="config.aws.wifi.common.max_bssid_len" value="6"/>
+      <property id="config.aws.wifi.common.max_passphrase_len" value="32"/>
     </config>
     <config id="config.driver.iic_master">
       <property id="config.driver.iic_master.param_checking_enable" value="config.driver.iic_master.param_checking_enable.bsp"/>
@@ -743,9 +786,6 @@
       <configSetting altId="p410.irq0.irq05" configurationId="p410"/>
       <configSetting altId="p410.gpio_irq.gpio_irq_enabled" configurationId="p410.gpio_irq"/>
       <configSetting altId="p410.gpio_mode.gpio_mode_irq" configurationId="p410.gpio_mode"/>
-      <configSetting altId="p411.sci3.ctsrts" configurationId="p411"/>
-      <configSetting altId="p411.gpio_mode.gpio_mode_peripheral" configurationId="p411.gpio_mode"/>
-      <configSetting altId="sci3.ctsrts.p411" configurationId="sci3.ctsrts"/>
       <configSetting altId="sci3.mode.custom.free" configurationId="sci3.mode"/>
       <configSetting altId="sci3.rxd.p408" configurationId="sci3.rxd"/>
       <configSetting altId="sci3.txd.p409" configurationId="sci3.txd"/>

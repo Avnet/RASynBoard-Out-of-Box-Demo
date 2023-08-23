@@ -15,6 +15,9 @@
 #include "spi_drv.h"
 #include "version_string.h"
 
+void printConfg(void);
+
+
 /* Parse config.ini to save the settings */
 int mode_circular_motion = CIRCULAR_MOTION_DISABLE;
 char mcu_file_name[32] = { MCU_FILE_NAME };
@@ -33,12 +36,27 @@ int  led_event_color[] = { \
 static FATFS fatfs_obj;
 static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
+static int sdcard_slot_status =  SDCARD_IN_SLOT;
 static int print_console_type = CONSOLE_UART;
 int recording_period = 10;
 int low_power_mode = DOWN_DOWN_LP_MODE;
 int imu_write_to_file = IMU_FUNC_ENABLE;
 int imu_print_to_terminal = IMU_FUNC_DISABLE;
 int ble_mode = BLE_DISABLE;
+int target_cloud = CLOUD_NONE;
+
+char mode_description[64] = {0};
+int mode;
+
+// WiFi configuration items
+char wifi_ap_name[32] = {'\0'};
+char wifi_pw[32] = {'\0'};
+char wifi_cc[3] = {'\0'};
+
+// IoTConnect configuration items
+char iotc_uid[32] = {'\0'};
+char iotc_env[32] = {'\0'};
+char iotc_cpid[33] = {'\0'};
 
 void init_fatfs(void)
 {
@@ -430,8 +448,6 @@ static uint32_t read_config_file( void )
     char color[16] = {0};
     char key[6] = {0};
     char section[24] = {0};
-    char tip[64] = {0};
-    int mode;
 
     // mount
     res = f_mount(&fatfs_obj, "", 1);
@@ -439,6 +455,9 @@ static uint32_t read_config_file( void )
         printf("f_mount fail %d\r\n",res);
         return res;
     }
+
+    /* Get total sectors */
+    fatfs_total_sectors = (fatfs_obj.n_fatent - 2) * fatfs_obj.csize;
 
     /* checks the existence of a file */
     res = f_stat (inifile, &fno);
@@ -451,7 +470,7 @@ static uint32_t read_config_file( void )
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
 	sprintf(section, "Function_%d", mode);
 
-	ini_gets(section, "Description", NULL, tip, sizeof(tip), inifile);
+	ini_gets(section, "Description", NULL, mode_description, sizeof(mode_description), inifile);
 
 	ini_gets(section, "MCU", MCU_FILE_NAME, \
 						mcu_file_name, sizeof(mcu_file_name), inifile);
@@ -501,36 +520,37 @@ static uint32_t read_config_file( void )
 										IMU_FUNC_DISABLE, inifile);
 	ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
 
+	// WiFi configuration
+    ini_gets("WIFI", "Access_Point", "WiFi AP Name Undefined", \
+                        wifi_ap_name, sizeof(wifi_ap_name), inifile);
 
-    // Output application information to user
-    printf("\nApplication Version: %s\n", VERSION_STRING);
-    printf("Release Date       : %s\n\n", RELEASE_DATE);
-    printf("Features enabled in config.ini file:\n");
+    ini_gets("WIFI", "Access_Point_Password", "WiFi PasswordUndefined", \
+                        wifi_pw, sizeof(wifi_pw), inifile);
 
-    printf("\n  Operation mode=%d selected: %s\r\n", mode, tip);
+    ini_gets("WIFI", "Country_Code", "US", \
+                        wifi_cc, sizeof(wifi_cc), inifile);
 
-    // Output recording feature driven by Low Power Mode Selection
-    if(low_power_mode == DOWN_DOWN_LP_MODE){
 
-        printf("  The Recording feature is enabled!\n");
-        printf("    Press user button < 400ms to record %d seconds of %s data\n", recording_period, button_switch);
-        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
-    }
-    else {
+    // IoTConnect configuration
+    ini_gets("IoTConnect", "CPID", "Undefined", \
+                        iotc_cpid, sizeof(iotc_cpid), inifile);
 
-        printf("  Note: The recording feature is disabled due to low power mode being set to 1!\n");
-        printf("    To enable the recording feature, edit config.ini on the microSD\n");
-        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
-    }
+    ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
+                        iotc_uid, sizeof(iotc_uid), inifile);
+
+    ini_gets("IoTConnect", "Environment", "Undefined", \
+                        iotc_env, sizeof(iotc_env), inifile);
+
+    target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
+
+    // Output the current configuration for the user
+    printConfg();
 
     // unmount
     res = f_mount(NULL, "", 0);
     if(res != FR_OK){
         printf("f_mount umount fail %d\r\n",res);
     }
-
-    /* Get total sectors */
-    fatfs_total_sectors = (fatfs_obj.n_fatent - 2) * fatfs_obj.csize;
 
     return res;
 }
@@ -542,18 +562,21 @@ uint32_t get_synpkg_config_info( void )
 
 	sdcard = (sdmmc_exist_check() == 1) ?  true : false;
 	if (sdcard){
-		boot_mode = BOOT_MODE_SD;
+		sdcard_slot_status =  SDCARD_IN_SLOT;
 	}else{
-		boot_mode = BOOT_MODE_EMMC;
+		sdcard_slot_status =  SDCARD_NOT_IN_SLOT;
+		boot_mode = BOOT_MODE_FLASH;
 		print_console_type = CONSOLE_USB_CDC;
 		return 0;
 	}
 
 	res = read_config_file();
 	if(res != FR_OK){
-		printf("read config.txt failed %d\n", res);
+		printf("Cannot find config.txt in sdcard, try to boot from Flash\n");
+		boot_mode = BOOT_MODE_FLASH;
 		return res;
 	}
+	boot_mode = BOOT_MODE_SD;
 
 	printf("NDP120 images identified . . . \n");
 	printf("    MCU : %s\n", mcu_file_name);
@@ -566,6 +589,11 @@ uint32_t get_synpkg_config_info( void )
 uint32_t get_sdcard_total_sectors( void )
 {
     return fatfs_total_sectors;
+}
+
+uint32_t get_sdcard_slot_status( void )
+{
+	return sdcard_slot_status;
 }
 
 uint32_t get_synpkg_boot_mode( void )
@@ -647,7 +675,117 @@ int is_file_exist_in_sdcard( char *filename )
     return status;
 }
 
+void printConfg(void)
+{
+
+    // Output application information to user
+    printf("\n\nApplication Version: %s\n", VERSION_STRING);
+    printf("Release Date       : %s\n\n", RELEASE_DATE);
+    printf("Features enabled in config.ini file:\n");
+
+
+    printf("\n  Operation mode=%d selected: %s\r\n", mode, mode_description);
+
+    // Output recording feature driven by Low Power Mode Selection
+    if(low_power_mode == DOWN_DOWN_LP_MODE){
+
+        printf("  The Recording feature is enabled!\n");
+        printf("    Press user button < 400ms to record %d seconds of %s data\n", recording_period, button_switch);
+        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
+
+        if(0 == strcmp(button_switch, "imu")){
+            if(IMU_FUNC_ENABLE == imu_print_to_terminal){
+                printf("    IMU data will be streamed to the debug UART\n");
+            }
+            if(IMU_FUNC_ENABLE == imu_write_to_file){
+                printf("    IMU data will be captured to the microSD card\n");
+            }
+
+            if((IMU_FUNC_DISABLE == imu_print_to_terminal) && (IMU_FUNC_DISABLE == imu_write_to_file)){
+                printf("    WARNING: The application is configured to capture IMU data, but the configuration does indicate where to capture the IMU data!\n");
+                printf("             Please edit the config.ini file, section [IMU data stream]\n");
+            }
+        }
+    }
+    else {
+
+        printf("  Note: The recording feature is disabled due to low power mode being set to 1!\n");
+        printf("    To enable the recording feature, edit config.ini on the microSD\n");
+        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
+    }
+
+    // Output BLE mode
+    printf("\n  BLE Mode: %s\n", ble_mode ? "Enabled": "Disabled");
+
+    // Output Cloud configuration
+    printf("\n\n  Cloud connectivity: ");
+    if(CLOUD_NONE == target_cloud){
+        printf("Disabled\n");
+    }
+    else{
+
+
+        switch(target_cloud){
+            case CLOUD_IOTCONNECT:
+                printf("Avnet's IoTConnect\n");
+                printf("    Device Unique ID: %s\n", iotc_uid);
+                printf("    Environment     : %s\n", iotc_env);
+                printf("    CPID            : %.*s********************%.*s\n", 6, iotc_cpid, 6, &iotc_cpid[26]);
+                break;
+            case CLOUD_AWS:
+                printf("AWS <currently not supported>\n");
+                break;
+            case CLOUD_AZURE:
+                printf("Azure <currently not supported>\n");
+                break;
+            default:
+                break;
+        }
+
+        printf("\n  WiFi Configuration\n");
+        printf("    Access Point (SSID)  : %s\n", wifi_ap_name);
+        printf("    Access Point password: %s\n", wifi_pw);
+        printf("    Country Code         : %s\n\n", wifi_cc);
+    }
+}
+
 int get_ble_mode( void )
 {
     return ble_mode;
 }
+
+char* get_wifi_ap( void )
+{
+    return wifi_ap_name;
+}
+
+char* get_wifi_pw( void )
+{
+    return wifi_pw;
+}
+
+char* get_wifi_cc( void ){
+    return wifi_cc;
+}
+
+char* get_iotc_uid( void )
+{
+    return iotc_uid;
+}
+
+char* get_iotc_env( void )
+{
+    return iotc_env;
+}
+
+char* get_iotc_cpid( void )
+{
+    return iotc_cpid;
+}
+
+int get_target_cloud( void )
+{
+    return target_cloud;
+}
+
+

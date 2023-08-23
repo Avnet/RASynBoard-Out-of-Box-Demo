@@ -15,9 +15,14 @@
 #define MODEL_FILE_NAME         "ei_model.synpkg"
 
 enum FW_LOAD_TYPE {
-	BOOT_MODE_EMMC = 0,
+	BOOT_MODE_FLASH = 0,
 	BOOT_MODE_SD,
 	BOOT_MODE_NONE,
+};
+
+enum SDCARD_EXIST_TYPE {
+    SDCARD_IN_SLOT = 1,
+    SDCARD_NOT_IN_SLOT,
 };
 
 enum DBG_PRINT_CONSOLE_TYPE {
@@ -47,6 +52,13 @@ enum BLE_MODE_TYPE {
     BLE_ENABLE = 1,
 };
 
+enum TARGET_CLOUD_TYPE {
+    CLOUD_NONE = 0,
+    CLOUD_IOTCONNECT = 1,
+    CLOUD_AWS = 2,
+    CLOUD_AZURE = 3,
+};
+
 #define   LED_EVENT_NUM        10
 
 extern int mode_circular_motion;
@@ -68,6 +80,7 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
 uint32_t get_sdcard_total_sectors( void );
+uint32_t get_sdcard_slot_status( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
@@ -75,6 +88,13 @@ int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
 int is_file_exist_in_sdcard( char *filename );
 int get_ble_mode( void );
+char* get_wifi_ap( void );
+char* get_wifi_pw( void );
+char* get_wifi_cc( void );
+char* get_iotc_uid( void );
+char* get_iotc_env( void );
+char* get_iotc_cpid( void );
+int get_target_cloud( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
