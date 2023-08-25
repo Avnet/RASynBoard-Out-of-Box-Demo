@@ -150,10 +150,7 @@ void ndp_thread_entry(void *pvParameters)
     FSP_PARAMETER_NOT_USED (pvParameters);
     R_BSP_PinAccessEnable(); /* Enable access to the PFS registers. */
     R_BSP_PinWrite(LED_USER, BSP_IO_LEVEL_HIGH); /* Turn off User Led */
-    /* WIFI reset */
-    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
-    R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
-    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
+
     /* will create a task if using USB CDC */
     console_init();
 
