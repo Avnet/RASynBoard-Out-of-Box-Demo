@@ -70,6 +70,19 @@ void iotc_thread_entry(void *pvParameters)
     /* Wait for console thread initialization to complete */
     xSemaphoreTake( g_xInitialSemaphore, portMAX_DELAY );
 
+    // Make sure that the da16600 is disabled.  We'll enable it if we determine that it will be
+    // used in the current configuration
+    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
+
+    // Only initialize the da16600 if wer're going to use it.  Otherwise we keep
+    // the device in reset to conserve power consumption
+    if((BLE_ENABLE == get_ble_mode()) || (CLOUD_NONE != get_target_cloud())){
+
+        // Initialize the AT module UART and start the atcmd thread.  We do this here
+        // so that the ndp_thread can send BLE commands even if we're not connecting the
+        // device to the cloud.
+        rm_wifi_da16600_init();
+    }
 
     // Check to see if we're configured to connect to Avnet's IoT Connect Cloud Solution
     // If not, then kill this task
@@ -98,12 +111,6 @@ void iotc_thread_entry(void *pvParameters)
         vTaskDelete(NULL);
     }
     memset(buf, '\0', ATBUF_SIZE);
-
-    // Initialize the AT module UART and start the atcmd thread.  We do this here
-    // so that the nep_thread can send BLE commands even if we're not connecting the
-    // device to the cloud.
-    rm_wifi_da16600_init();
-
 
     // Set the initial state
     currentState = INIT_DA16600;
