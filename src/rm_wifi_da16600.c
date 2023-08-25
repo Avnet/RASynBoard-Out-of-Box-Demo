@@ -32,7 +32,8 @@ fsp_err_t rm_wifi_da16600_init(void)
     fsp_err_t            err = FSP_SUCCESS;
     static bool atcmd_init_called = false;
 
-    // Don't call rm_atcmd_init() more than once
+    // Don't call rm_atcmd_init() more than once as this call
+    // creates the atcmd thread and we only need one of these threads
     if(!atcmd_init_called){
 
         atcmd_init_called = true;

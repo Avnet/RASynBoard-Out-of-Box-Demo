@@ -42,7 +42,7 @@ int recording_period = 10;
 int low_power_mode = DOWN_DOWN_LP_MODE;
 int imu_write_to_file = IMU_FUNC_ENABLE;
 int imu_print_to_terminal = IMU_FUNC_DISABLE;
-int ble_mode = BLE_DISABLE;
+int ble_mode = BLE_ENABLE;
 int target_cloud = CLOUD_NONE;
 
 char mode_description[64] = {0};
