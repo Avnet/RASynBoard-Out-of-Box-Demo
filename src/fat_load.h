@@ -9,10 +9,16 @@
 #define FAT_LOAD_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
 #define MODEL_FILE_NAME         "ei_model.synpkg"
+
+// Define default certificate filenames
+#define AWS_ROOT_CERT_FILE_NAME     "AmazonRootCA1.pem"
+#define DEVICE_CERT_FILE_NAME       "cert_DEVICE_NAME.crt"
+#define DEVICE_PUBLIC_KEY_FILENAME  "pk_DEVICE_NAME.pem"
 
 enum FW_LOAD_TYPE {
 	BOOT_MODE_FLASH = 0,
@@ -59,6 +65,20 @@ enum TARGET_CLOUD_TYPE {
     CLOUD_AZURE = 3,
 };
 
+enum AWS_CERT_LOAD_FROM_TYPE {
+    LOAD_CERTS_FROM_HEADER = 0,        // Developer manually copies certificate contents to src/certs.h file
+    LOAD_CERTS_FROM_FILES = 1,         // Load certificates from the microSD card
+    LOAD_CERTS_USE_DA16600_CERTS = 2,  // Certs are already loaded in DA16600, don't write any certs from the application
+};
+
+// Note these enumerations can not be changed as they are used to construct the DA16600 message when we send
+// each certificate to the DA16600.
+enum CERT_ID_TYPE {
+    ROOT_CA = 0,
+    DEVICE_CERT = 1,
+    DEVICE_PUBLIC_KEY = 2,
+};
+
 #define   LED_EVENT_NUM        10
 
 extern int mode_circular_motion;
@@ -95,6 +115,9 @@ char* get_iotc_uid( void );
 char* get_iotc_env( void );
 char* get_iotc_cpid( void );
 int get_target_cloud( void );
+int get_load_certificate_from( void );
+char* get_certificate_file_name( int );
+bool get_certificate_data( char*, int, char*);
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
