@@ -494,16 +494,19 @@ void run_discovery(void)
         return;
     }
 
-    // Wait here for the https response to trigger the event bit, we 
-    // set a 5 second timeout incase we never get a response
-    evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 5000);
+    // Wait here for the https response to trigger the event bit, we
+    // set a 10 second timeout in case we never get a response
+    evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 10000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
         if(MAX_RETRIES == delayCnt++){
-            printf("WARNING: Timeout waiting for https response from IoTConnect, trying again . . . \n");
             currentState = SETUP_NETWORK;
             return;
         }
+
+        // If we timed out but did not iit the max retries, just return.  The state machine will run this state again.
+        printf("WARNING: Timeout waiting for https response from IoTConnect, trying again . . . \n");
+        return;
     }
 
     // Pull the JSON from httpsBuffer
@@ -551,13 +554,12 @@ void run_discovery(void)
     char *baseURL = bu->valuestring;
     cJSON_Delete(root);
 
-    iotc_print("BASE URL: %s\n\r",baseURL);
-
+    //iotc_print("BASE URL: %s\n\r",baseURL);
 
     // Use the base URL and the device ID (UID) to construct the Identity URL
     sprintf(identityURL, "%s%s%s", baseURL,"/uid/", get_iotc_uid());
 
-    iotc_print("IDENTITY URL: %s\n\r",identityURL);
+    //iotc_print("IDENTITY URL: %s\n\r",identityURL);
 
     // We got through each step without errors, clear the error count
     // and set the next state;
@@ -698,9 +700,9 @@ void get_identity(void)
     strncpy(pubTopicString, rpt->valuestring, MY_CHAR_ARRAY_SIZE-1);
     strncpy(subTopicString, c2d->valuestring, MY_CHAR_ARRAY_SIZE-1);
 
-    iotc_print("Host: %s\n\r",hostnameString);
-    iotc_print("PUBT: %s\n\r",pubTopicString);
-    iotc_print("SUBT: %s\n\r",subTopicString);
+    iotc_print("  Host: %s\n",hostnameString);
+    iotc_print("  PUBT: %s\n",pubTopicString);
+    iotc_print("  SUBT: %s\n",subTopicString);
 
     // Free the memory consumed by cJSON
     cJSON_Delete(root);
