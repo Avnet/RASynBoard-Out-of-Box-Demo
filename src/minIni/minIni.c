@@ -664,7 +664,7 @@ static int close_rename(INI_FILETYPE *rfp, INI_FILETYPE *wfp, const TCHAR *filen
   #if defined ini_remove || defined INI_REMOVE
     (void)ini_remove(filename);
   #endif
-  (void)ini_rename(buffer, filename);
+  //(void)ini_rename(buffer, filename);
   return 1;
 }
 
