@@ -207,8 +207,6 @@ fsp_err_t loadAWS_certificates(int certId)
     switch(get_load_certificate_from()){
         case LOAD_CERTS_FROM_HEADER:
 
-            iotc_print("Loading certs from header file\n");
-
             // Find the correct certificate define based on the passed in cert ID
             switch(certId){
                 case ROOT_CA:
@@ -253,12 +251,9 @@ fsp_err_t loadAWS_certificates(int certId)
             // If we're using the certs previously loaded into the DA16600, then 
             // we're done.
                         
-            iotc_print("Using certs already loaded on DA16600\n");
             break;
 
         case LOAD_CERTS_FROM_FILES:
-
-            iotc_print("Loading certs from microSD files\n");
 
             // Get the data from the specified file into the local array
             if(!get_certificate_data(get_certificate_file_name(certId), certId, certData)){

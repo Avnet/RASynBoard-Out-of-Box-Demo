@@ -595,7 +595,7 @@ uint32_t get_synpkg_config_info( void )
 	}
 	boot_mode = BOOT_MODE_SD;
 
-	printf("NDP120 images identified . . . \n");
+	printf("  NDP120 images identified . . . \n");
 	printf("    MCU : %s\n", mcu_file_name);
 	printf("    DSP : %s\n", dsp_file_name);
 	printf("    DNN : %s\n", model_file_name);
@@ -708,7 +708,7 @@ void printConfg(void)
 
         printf("  The Recording feature is enabled!\n");
         printf("    Press user button < 400ms to record %d seconds of %s data\n", recording_period, button_switch);
-        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
+        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n");
 
         if(0 == strcmp(button_switch, "imu")){
             if(IMU_FUNC_ENABLE == imu_print_to_terminal){
@@ -795,7 +795,7 @@ bool get_certificate_data(char* fileName, int certificate_id, char returnCertDat
 
     // Generate the filename used to operate on the filesystem
     snprintf(certFileName, sizeof(certFileName), "0:/%s", fileName);
-    printf("Certificate file name: %s\n", certFileName);
+    //printf("Certificate file name: %s\n", certFileName);
 
     // mount the microSD card
     res = f_mount(&fatfs_obj, "", 1);
