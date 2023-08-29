@@ -58,6 +58,12 @@ char iotc_uid[32] = {'\0'};
 char iotc_env[32] = {'\0'};
 char iotc_cpid[33] = {'\0'};
 
+// AWS certificate configuration items
+char aws_rootCA_file_name[64] = { AWS_ROOT_CERT_FILE_NAME };
+char aws_device_cert_file_name[64] = { DEVICE_CERT_FILE_NAME };
+char aws_device_private_key_file_name[64] = { DEVICE_PUBLIC_KEY_FILENAME };
+int cert_location = LOAD_CERTS_FROM_HEADER;
+
 void init_fatfs(void)
 {
     MX_FATFS_Init();
@@ -543,6 +549,17 @@ static uint32_t read_config_file( void )
 
     target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
+    cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_FROM_HEADER, inifile);
+
+    ini_gets("Certs", "Root_CA_Filename", "Undefined", \
+                        aws_rootCA_file_name, sizeof(aws_rootCA_file_name), inifile);
+
+    ini_gets("Certs", "Device_Cert_Filename", "Undefined", \
+            aws_device_cert_file_name, sizeof(aws_device_cert_file_name), inifile);
+
+    ini_gets("Certs", "Device_Private_Key_Filename", "Undefined", \
+            aws_device_private_key_file_name, sizeof(aws_device_private_key_file_name), inifile);
+
     // Output the current configuration for the user
     printConfg();
 
@@ -711,14 +728,14 @@ void printConfg(void)
 
         printf("  Note: The recording feature is disabled due to low power mode being set to 1!\n");
         printf("    To enable the recording feature, edit config.ini on the microSD\n");
-        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
+        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n");
     }
 
     // Output BLE mode
     printf("\n  BLE Mode: %s\n", ble_mode ? "Enabled": "Disabled");
 
     // Output Cloud configuration
-    printf("\n\n  Cloud connectivity: ");
+    printf("\n  Cloud connectivity: ");
     if(CLOUD_NONE == target_cloud){
         printf("Disabled\n");
     }
@@ -742,11 +759,107 @@ void printConfg(void)
                 break;
         }
 
+        printf("\n  Using Cloud Certificates ");
+        switch(get_load_certificate_from()){
+            case LOAD_CERTS_FROM_HEADER:
+                printf("from certs.h header file\n");
+                break;
+
+            case LOAD_CERTS_USE_DA16600_CERTS:
+                printf("previously already loaded on DA16600\n");
+                break;
+
+            case LOAD_CERTS_FROM_FILES:
+                printf("from files on microSD card\n");
+                printf("      Root CA          : %s\n", get_certificate_file_name(ROOT_CA));
+                printf("      Device Cert      : %s\n", get_certificate_file_name(DEVICE_CERT));
+                printf("      Device Public Key: %s\n", get_certificate_file_name(DEVICE_PUBLIC_KEY));
+                break;
+        }
+
         printf("\n  WiFi Configuration\n");
         printf("    Access Point (SSID)  : %s\n", wifi_ap_name);
         printf("    Access Point password: %s\n", wifi_pw);
         printf("    Country Code         : %s\n\n", wifi_cc);
     }
+}
+
+bool get_certificate_data(char* fileName, int certificate_id, char returnCertData[])
+{
+
+    FRESULT res;
+    FILINFO fno;
+    FIL fil;
+    char certFileName[64] = { '\0'};
+    char lineData[128] = {'\0'};
+
+    // Generate the filename used to operate on the filesystem
+    snprintf(certFileName, sizeof(certFileName), "0:/%s", fileName);
+    printf("Certificate file name: %s\n", certFileName);
+
+    // mount the microSD card
+    res = f_mount(&fatfs_obj, "", 1);
+    if(res != FR_OK){
+        printf("f_mount fail %d\r\n",res);
+        return false;
+    }
+
+    // Verify that the file exists on the microSD card
+    res = f_stat (certFileName, &fno);
+    if(res == FR_NO_FILE){
+        f_unmount("");
+        printf("File NOT found!!\n");
+        return false;
+    }
+
+    // Open the file
+    res = f_open(&fil, certFileName, FA_READ);
+    if(res != FR_OK){
+        printf("f_open fail %d\r\n",res);
+        return false;
+    }
+
+    // Define in index into the return array.  We'll move this index
+    // as we add data to the return array to keep track of where to write
+    // new data.
+    int returnCertDataIndex = 0;
+
+    // Generate the string used when we send the certificate to the DA16600.
+    // C0, == RootCA cert
+    // C1, == Device cert
+    // C2, == Device Public Key
+    snprintf(returnCertData, 16, "C%d,", certificate_id);
+    returnCertDataIndex += strlen(returnCertData);
+
+    // Read the certificate file into the passed in array.
+    do{
+
+        // Read the next line in the file
+        f_gets (lineData, sizeof(lineData), &fil);
+
+        // Copy the new line of data to the return array
+        strcpy(&returnCertData[returnCertDataIndex], lineData);
+
+        // Increment the index to the end of the data
+        returnCertDataIndex += strlen(lineData);
+
+        // If we just read the last line of the certificate/public key file, then exit the loop
+    } while (0 != strncmp(lineData, "-----END ", 9));
+
+    // Close the file
+    res =  f_close(&fil);
+    if(res != FR_OK){
+        printf("f_close fail %d\r\n",res);
+    }
+
+    // Unmount the microSD card
+    res = f_mount(NULL, "", 0);
+    if(res != FR_OK){
+        printf("f_mount umount fail %d\r\n",res);
+    }
+
+    return true;
+
 }
 
 int get_ble_mode( void )
@@ -788,4 +901,24 @@ int get_target_cloud( void )
     return target_cloud;
 }
 
+int get_load_certificate_from( void )
+{
+    return cert_location;
+}
+
+char* get_certificate_file_name(int certID){
+
+    switch (certID) {
+        case ROOT_CA:
+            return aws_rootCA_file_name;
+
+        case DEVICE_CERT:
+            return aws_device_cert_file_name;
+
+        case DEVICE_PUBLIC_KEY:
+            return aws_device_private_key_file_name;
+        default:
+            return NULL;
+    }
+}
 

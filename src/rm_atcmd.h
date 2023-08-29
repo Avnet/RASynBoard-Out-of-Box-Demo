@@ -36,7 +36,7 @@ extern char httpsBuffer[HTTPS_BUFFER_SIZE];
 extern int temperature;
 extern int pressure;
 
-fsp_err_t loadAWS_certificates(const char *cert);
+fsp_err_t loadAWS_certificates(int);
 
 fsp_err_t discovery();
 fsp_err_t identity(char* identityURL);

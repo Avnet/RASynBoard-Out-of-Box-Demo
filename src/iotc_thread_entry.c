@@ -177,10 +177,6 @@ void init_da16600(void){
         return;
     }
 
-    // Restore DA16600 to Factory Mode (NVRAM clean)
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("ATF",1000,buf,sizeof(buf));
-
     if( FSP_SUCCESS != rm_wifi_da16600_check_at(10)){
         printf("ERROR: DA16600 WiFi module not ready, trying again . . . \r\n");
         failCnt++;
@@ -200,28 +196,98 @@ void init_da16600(void){
     currentState = LOAD_CERTS;
 }
 
-fsp_err_t loadAWS_certificates(const char *cert)
+
+fsp_err_t loadAWS_certificates(int certId)
 {
     fsp_err_t err;
 
-    err = rm_data_send((uint8_t*) "\x1b", (uint32_t) strlen("\x1b"));
-    if ( FSP_SUCCESS != err )
-        return err;
+    const char* cert = NULL;
+    char certData[2048] = {'\0'};
 
-    // These delays are required to allow the certificate to be stored correctly
-    vTaskDelay(500);
+    switch(get_load_certificate_from()){
+        case LOAD_CERTS_FROM_HEADER:
 
-    err = rm_data_send((uint8_t*) cert, (uint32_t) strlen(cert));
-    if ( FSP_SUCCESS != err )
-        return err;
+            iotc_print("Loading certs from header file\n");
 
-    vTaskDelay(500);
+            // Find the correct certificate define based on the passed in cert ID
+            switch(certId){
+                case ROOT_CA:
+                    cert = cert_aws_ca1;
+                    break;
+                case DEVICE_CERT:
+                    cert = awsDevice_cert;
+                    break;
+                case DEVICE_PUBLIC_KEY:
+                    cert = awsDevicePrivateKey_cert;
+                    break;
+            }
 
-    err = rm_data_send((uint8_t*) "\x03",(uint32_t) strlen("\x03"));
-    if ( FSP_SUCCESS != err )
-        return err;
+            // Make sure we found the certificate data
+            if(NULL == cert){
+                return -1;
+            }
 
-    vTaskDelay(500);
+            err = rm_data_send((uint8_t*) "\x1b", (uint32_t) strlen("\x1b"));
+            if ( FSP_SUCCESS != err )
+                return err;
+
+            // These delays are required to allow the certificate to be stored correctly
+            vTaskDelay(500);
+
+            err = rm_data_send((uint8_t*) cert, (uint32_t) strlen(cert));
+            if ( FSP_SUCCESS != err )
+                return err;
+
+            vTaskDelay(500);
+
+            err = rm_data_send((uint8_t*) "\x03",(uint32_t) strlen("\x03"));
+            if ( FSP_SUCCESS != err )
+                return err;
+
+            vTaskDelay(500);
+
+            break;
+
+        case LOAD_CERTS_USE_DA16600_CERTS:
+            
+            // If we're using the certs previously loaded into the DA16600, then 
+            // we're done.
+                        
+            iotc_print("Using certs already loaded on DA16600\n");
+            break;
+
+        case LOAD_CERTS_FROM_FILES:
+
+            iotc_print("Loading certs from microSD files\n");
+
+            // Get the data from the specified file into the local array
+            if(!get_certificate_data(get_certificate_file_name(certId), certId, certData)){
+
+                printf("ERROR: Not able to read certificate file %s\n", get_certificate_file_name(certId));
+                printf("Verify that the missing cert file in on the microSD card\n");
+            }
+
+            err = rm_data_send((uint8_t*) "\x1b", (uint32_t) strlen("\x1b"));
+            if ( FSP_SUCCESS != err )
+                return err;
+
+            // These delays are required to allow the certificate to be stored correctly
+            vTaskDelay(500);
+
+            // Send the certificate data
+            err = rm_data_send((uint8_t*)certData, strlen(certData));
+            if ( FSP_SUCCESS != err )
+                return err;
+
+            vTaskDelay(500);
+
+            err = rm_data_send((uint8_t*) "\x03",(uint32_t) strlen("\x03"));
+            if ( FSP_SUCCESS != err )
+                return err;
+
+            vTaskDelay(500);
+    }
+
 
     // iotc_print("Certificate Loaded %s\n",cert);
 
@@ -232,15 +298,21 @@ void load_certs(){
 
     static int failCnt = 0;
 
-    // Check to see if we're stuck trying to delete the certificates on the DA16600
-    if(MAX_RETRIES == failCnt){
-        printf("ERROR: Not able to load AWS certificates from DA16600\n");
-        currentState = FAILURE_STATE;
+    iotc_print("IoTConnect-state: LOAD_CERTIFICATES\n");
+
+    // If we're using the certificates on the DA16600, just move to the next state
+    if(LOAD_CERTS_USE_DA16600_CERTS == get_load_certificate_from()){
+        iotc_print("INFO: Assuming certificates are already loaded to the DA16600 memory!\n");
+        currentState = SETUP_NETWORK;
         return;
     }
 
-
-    iotc_print("IoTConnect-state: LOAD_CERTIFICATES\n");
+    // Check to see if we're stuck trying to delete the certificates on the DA16600
+    if(MAX_RETRIES == failCnt){
+        printf("ERROR: Not able to load AWS certificates to the DA16600\n");
+        currentState = FAILURE_STATE;
+        return;
+    }
 
     // Delete all TLS certificates stored in the DA16600
     if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWDCRT",10000)){
@@ -250,19 +322,19 @@ void load_certs(){
     }
 
     // Load the AWS Root CA certificate
-    if(FSP_SUCCESS != loadAWS_certificates(cert_aws_ca1)){
+    if(FSP_SUCCESS != loadAWS_certificates(ROOT_CA)){
         failCnt++;
         return;
     }
 
     // Load the Device Certificate
-    if(FSP_SUCCESS != loadAWS_certificates(awsDevice_cert)){
+    if(FSP_SUCCESS != loadAWS_certificates(DEVICE_CERT)){
         failCnt++;
         return;
     }
 
     // Load the Device Private Key
-    if(FSP_SUCCESS != loadAWS_certificates(awsDevicePrivateKey_cert)){
+    if(FSP_SUCCESS != loadAWS_certificates(DEVICE_PUBLIC_KEY)){
         failCnt++;
         return;
     }
