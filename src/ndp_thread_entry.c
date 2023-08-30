@@ -113,7 +113,7 @@ void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
     int telemetryMsgLen;
 
     // Create the JSON
-    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"InterenceResultIndex\": %d, \"InferenceResultString\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);
+    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d, \"inferenceStr\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);
 
     // Allocate memory on the heap for the JSON string.
     // We allocate the memory here, then free the memory
