@@ -9,10 +9,11 @@ The Out-of-Box (OOB) application's goal is to "Provide a working example applica
 Please follow the links below to learn more about the Avnet RasynBoard Out-of-Box application
 
 - [Getting Started](./docs/RASyBoardGettingStarted.md): All the details you need to clone, build, load and debug the application on your RASynBoard development kit
+- [Using RASynBoard Releases](./docs/UsingRASynbBoardReleases.md): Details on loading one of the OOB releases onto your RASynBoard if you don't want to build the application yourself
 - [Application User Guide](./docs/ApplicationUserGuide.md): Details on all the application features and configuration options
 - [Edge Impulse Data Forwarder instructions](./docs/EdgeImpulseDataForwarder.md): Details on using the Edge Impulse Data Forwarder CLI tool to stream 6-Axis IMU data directly into your Edge Impulse ML project
 - [Edge Impulse Uploader instructions](./docs/EdgeImpulseUploader.md): Details on using the Edge Impulse Uploader CLI tool to upload audio (\*.wav) or 6-Axis IMU data (\*.csv) data files directly into your Edge Impulse ML project
-- [Avnet IoTConnect Configuration Details](./docs/IoTConnect.md)
+- [Avnet IoTConnect Configuration](./docs/IoTConnect.md):  Details to connect your RASynBoard to Avnet's IoTConnect on AWS cloud solution
 - [Out-of-Box Development Notes](./docs/OobDevelopmentNotes.md): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applicaitons.
 
 # Out-of-Box Releases
