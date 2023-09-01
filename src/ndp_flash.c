@@ -9,7 +9,6 @@
 #include <string.h>
 #include "syntiant_platform.h"
 #include "ndp_flash.h"
-#include "fat_load.h"
 #include <string.h>
 
 #define SYNTIANT_NDP_ERROR_NONE  0
@@ -383,32 +382,20 @@ static int ndp_flash_program_firmware(uint32_t address, char * file_name)
     return ret;
 }
 
-/**
- * mode: 4 bytes
- * buttonswitch: length: 4 bytes, data_string: length
-*/
-#define FLASH_MAX_ADDRESS       0x100000
-#define FLASH_INFO_ADDRESS    (FLASH_MAX_ADDRESS-FLASH_SPLIT_SIZE)  
-static int ndp_flash_program_infos(int mode_val, char *button_val, 
-        uint32_t button_val_len)
+int ndp_flash_program_infos(void)
 {
-	int ret = -1;
-    uint8_t burn_data[FLASH_SPLIT_SIZE];
-	uint32_t burn_addr = FLASH_INFO_ADDRESS;
-    uint32_t burn_len = 0;
+	config_data_in_flash_t info = {0};
 
-	printf("FLASH programming mode_circular_motion: %s, button_swith: %s \n", \
-			(mode_val?"disable":"enable"),  button_val);
+	info.PINcode = PINCODE_VALUE;
+	info.ndp_mode_motion = mode_circular_motion;
+	memcpy(&info.cfg, &config_items, sizeof(struct config_ini_items));
 
-    *(uint32_t*)&burn_data[burn_len] = mode_val;
-    burn_len += sizeof(uint32_t);
-    *(uint32_t*)&burn_data[burn_len] = strlen(button_val);
-    burn_len += sizeof(uint32_t);
-    strncpy((char*)&burn_data[burn_len], button_val, button_val_len);
-    burn_len += strlen(button_val);
+	//ndp_flash_4kblock_erase(FLASH_INFO_ADDR);
+	ndp_flash_write_block(FLASH_INFO_ADDR, &info, sizeof(info));
 
-	ret = ndp_flash_write_block(burn_addr, burn_data, burn_len);
-    return ret;
+	printf("Store the configurations to Flash: %d bytes\n", sizeof(info));
+
+	return 0;
 }
 
 int ndp_flash_program_all_fw(void)
@@ -435,28 +422,18 @@ int ndp_flash_program_all_fw(void)
 	printf("remove %s \n", flash_file_name);
 	remove_file(flash_file_name);
 
-    ret = ndp_flash_program_infos(mode_circular_motion, button_switch, strlen(button_switch));
+	ret = ndp_flash_program_infos();
 
     return ret;
 }
 
-int ndp_flash_read_infos(int *mode_val, char *button_val)
+int ndp_flash_read_infos(config_data_in_flash_t *pdata)
 {
-    int ret = 0;
-    uint8_t read_data[FLASH_SPLIT_SIZE];
-    uint32_t read_offset = 0;
-    uint32_t button_val_len = 0;
+	int ret = 0;
+	ndp_flash_read_block(FLASH_INFO_ADDR, pdata, sizeof(config_data_in_flash_t));
+	if (PINCODE_VALUE != pdata->PINcode)
+		ret = 1;
 
-    ret = ndp_flash_read_block(FLASH_INFO_ADDRESS, read_data, FLASH_SPLIT_SIZE);
-    if (ret) return ret;
-
-    *mode_val = *(uint32_t*)&read_data[read_offset];
-    read_offset += sizeof(uint32_t);
-
-    button_val_len = *(uint32_t*)&read_data[read_offset];
-    read_offset += sizeof(uint32_t);
-    strncpy(button_val, (char*)&read_data[read_offset], button_val_len);
-
-    return ret;
+	return ret;
 }
 

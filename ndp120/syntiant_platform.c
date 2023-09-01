@@ -339,7 +339,7 @@ static int do_clock_config(struct syntiant_ndp120_tiny_device_s *ndp,
     clock_options[1] = use_xtal;
     s = syntiant_ndp120_tiny_clock_cfg(ndp, clock_options, &mb_resp);
     if (!s) {
-        SYNTIANT_TRACE("   clock config got mb_resp: 0x%x\n", mb_resp);
+        SYNTIANT_TRACE("    clock config got mb_resp: 0x%x\n", mb_resp);
     }
 
     return s;
@@ -518,7 +518,7 @@ static int do_fat_load_synpkg(struct syntiant_ndp120_tiny_device_s *ndp,
 
     uint32_t package_len;
 
-    SYNTIANT_TRACE("   Loading %s\n", file_name);
+    SYNTIANT_TRACE("    Loading %s\n", file_name);
 
     /* reset parser state */
     s = syntiant_ndp120_tiny_load(ndp, NULL, 0);
@@ -574,7 +574,7 @@ static int do_auto_load_synpkg(struct syntiant_ndp120_tiny_device_s *ndp)
 	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
 	{
 		// Prefer loading from SDcard
-		SYNTIANT_TRACE("   Loading NDP120 images from SD card . . .\n");
+		SYNTIANT_TRACE("    Loading NDP120 images from SD card . . .\n");
 
 		/* load mcu file */
 		s = do_fat_load_synpkg(ndp, mcu_file_name);
@@ -743,7 +743,7 @@ static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp)
 
 #endif
 
-    SYNTIANT_TRACE("   Finished loading NDP120 binaries\n");
+    SYNTIANT_TRACE("    Finished loading NDP120 binaries\n");
 
 #ifdef NDP_DEBUG_INFO
     ndp120_print_load_info(ndp);
@@ -821,9 +821,9 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
     uint32_t scale_factor_per_nn[SYNTIANT_NDP120_MAX_CLASSES];
     char *label_string;
     
-    SYNTIANT_TRACE("\nSyntiant image information:\n");
-    SYNTIANT_TRACE("   ilib version : %s\n", SYNTIANT_NDP_ILIB_VERSION);
-    SYNTIANT_TRACE("   NDP120 SDK version : %s\n", SYNTIANT_NDP_SDK_VERSION);
+    SYNTIANT_TRACE("\n  Syntiant image information:\n");
+    SYNTIANT_TRACE("    ilib version : %s\n", SYNTIANT_NDP_ILIB_VERSION);
+    SYNTIANT_TRACE("    NDP120 SDK version : %s\n", SYNTIANT_NDP_SDK_VERSION);
 
     if (!ndp120->initialized) {
         return SYNTIANT_NDP_ERROR_UNINIT;
@@ -888,14 +888,14 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
     uint32_t *pbi_version;
 
     pbi_version = (uint32_t *)&pbiver[0];
-    SYNTIANT_TRACE("   DSP Firmware Version: %s\n", info.dsp_fw_version);
-    SYNTIANT_TRACE("   Package Version: %s\n", info.pkg_version);
-    SYNTIANT_TRACE("   pbi version: ");
+    SYNTIANT_TRACE("    DSP Firmware Version: %s\n", info.dsp_fw_version);
+    SYNTIANT_TRACE("    Package Version: %s\n", info.pkg_version);
+    SYNTIANT_TRACE("    pbi version: ");
     SYNTIANT_TRACE("%d.",*pbi_version++);
     SYNTIANT_TRACE("%d.",*pbi_version++);
     SYNTIANT_TRACE("%d-",*pbi_version++);
     SYNTIANT_TRACE("%d\n",*pbi_version);
-    SYNTIANT_TRACE("\nModel Details:\n");
+    SYNTIANT_TRACE("\n  Model Details:\n");
     SYNTIANT_TRACE("   Number of labels in model: %d\n", num_labels);
     SYNTIANT_TRACE("   Labels:\n");
     for (i = 0; i < num_labels; i++) {
@@ -1505,7 +1505,7 @@ int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal)
     struct syntiant_ndp120_tiny_device_s *ndpp = NULL;
     int on = SYNTIANT_NDP120_INTERRUPT_DEFAULT;
 
-    SYNTIANT_TRACE("\nNDP120 init start...\n");
+    SYNTIANT_TRACE("\n  NDP120 init start...\n");
     memset(ndp120, 0, sizeof(struct ndp_core2_platform_tiny_s));
 
     s = syntiant_tiny_io_init(&ndp120->ndp_handle, DEFAULT_SPI_RATE);
@@ -1535,17 +1535,17 @@ int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal)
 		
     s = syntiant_ndp120_tiny_init(ndpp, &iif, SYNTIANT_NDP_INIT_MODE_RESET);
     if(s) {
-        SYNTIANT_TRACE("    ndp_init failed s: %d\n", s);
+        SYNTIANT_TRACE("     ndp_init failed s: %d\n", s);
         return s;
     }
 
 #ifdef NDP_BU_TEST
     s = do_butest();
     if(s) {
-        SYNTIANT_TRACE("    do butest failed s: %d\n", s);
+        SYNTIANT_TRACE("     do butest failed s: %d\n", s);
         return s;
     }
-    SYNTIANT_TRACE("   bu test passed!\n");
+    SYNTIANT_TRACE("    bu test passed!\n");
 #endif
 
     /* load mcu/dsp/nn binary */
@@ -1578,9 +1578,9 @@ int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal)
         SYNTIANT_TRACE("    Get sample sizes failed: %d\n", s);
         return s;
     }
-    SYNTIANT_TRACE("   model sample_size: %d\n", ndp120->sample_size);
+    SYNTIANT_TRACE("    model sample_size: %d\n", ndp120->sample_size);
 
     /* ndp120 initialization done */
-    SYNTIANT_TRACE("NDP120 init done...\n\n");
+    SYNTIANT_TRACE("  NDP120 init done...\n\n");
     return s;
 }

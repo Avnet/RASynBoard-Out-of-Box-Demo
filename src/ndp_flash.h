@@ -6,6 +6,8 @@
 #ifndef _NDP_FLASH_H_
 #define _NDP_FLASH_H_
 
+#include "fat_load.h"
+
 /* mspi ssb */
 #define MSPI_FLASH_SSB         0
 #define MSPI_IMU_SSB             1
@@ -59,13 +61,22 @@
 #define FLASH_PAGE_32KB_SIZE			0x8000
 #define FLASH_PAGE_64KB_SIZE			0x10000
 
-#define FLASH_FW_INFO_ADDR            0x1FD00
+#define FLASH_INFO_ADDR                 0x1FE000
+#define PINCODE_VALUE                   0xA6C4
 
 enum SPI_FLASH_TRANSFER_TYPE {
 	SPI_FLASH_WRITE  = 1,
 	SPI_FLASH_READ  = 2,
 	SPI_FLASH_TYPE_NONE  = 3,
 };
+
+typedef struct config_data_in_flash {
+	unsigned short PINcode;
+	/* store items for ndp */
+	int ndp_mode_motion;
+	/* store items from config.ini */
+	struct config_ini_items cfg;
+}config_data_in_flash_t;
 
 int ndp_flash_init(void);
 uint16_t ndp_flash_get_deviceid(void);
@@ -85,6 +96,6 @@ int ndp_flash_write_block(uint32_t address, uint8_t *buff, uint32_t length);
 
 void ndp_flash_print_data(uint32_t address, uint32_t count);
 int ndp_flash_program_all_fw(void);
-int ndp_flash_read_infos(int *mode_val, char *button_val);
+int ndp_flash_read_infos(config_data_in_flash_t *pdata);
 
 #endif

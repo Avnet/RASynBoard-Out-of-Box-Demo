@@ -9,10 +9,18 @@
 #define FAT_LOAD_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
 #define MODEL_FILE_NAME         "ei_model.synpkg"
+
+// Define default certificate filenames
+#define AWS_ROOT_CERT_FILE_NAME     "AmazonRootCA1.pem"
+#define DEVICE_CERT_FILE_NAME       "cert_DEVICE_NAME.crt"
+#define DEVICE_PUBLIC_KEY_FILENAME  "pk_DEVICE_NAME.pem"
+
+#define LED_EVENT_NUM           10
 
 enum FW_LOAD_TYPE {
 	BOOT_MODE_FLASH = 0,
@@ -59,14 +67,48 @@ enum TARGET_CLOUD_TYPE {
     CLOUD_AZURE = 3,
 };
 
-#define   LED_EVENT_NUM        10
+enum AWS_CERT_LOAD_FROM_TYPE {
+    LOAD_CERTS_FROM_HEADER = 0,        // Developer manually copies certificate contents to src/certs.h file
+    LOAD_CERTS_FROM_FILES = 1,         // Load certificates from the microSD card
+    LOAD_CERTS_USE_DA16600_CERTS = 2,  // Certs are already loaded in DA16600, don't write any certs from the application
+};
 
+// Note these enumerations can not be changed as they are used to construct the DA16600 message when we send
+// each certificate to the DA16600.
+enum CERT_ID_TYPE {
+    ROOT_CA = 0,
+    DEVICE_CERT = 1,
+    DEVICE_PUBLIC_KEY = 2,
+};
+
+
+struct config_ini_items {
+	/* save the settings from config.ini */
+	char button_switch[8];		/** [Function_x]-->Button_shift **/
+	int led_event_color[LED_EVENT_NUM];	/** [Led]-->IDXn **/
+
+	int recording_period;		/** [Recording Period]-->Recording_Period **/
+	int imu_write_to_file;		/** [IMU data stream]-->Write_to_file **/
+	int imu_print_to_terminal;	/** [IMU data stream]-->Print_to_terminal **/
+
+	int low_power_mode;			/** [Low Power Mode]-->Power_Mode **/
+	int ble_mode;				/** [BLE Mode]-->BLE_Enabled **/
+
+	int target_cloud;			/** [Cloud Connectivity]-->Target_Cloud **/
+	char wifi_ap_name[64];		/** [WIFI]-->Access_Point **/
+	char wifi_passwd[64];		/** [WIFI]-->Access_Point_Password **/
+	char wifi_cc[4];			/** [WIFI]-->Country_Code **/
+
+	char iotc_uid[4];			/** [IoTConnect]-->Device_Unique_ID **/
+	char iotc_cpid[64];			/** [IoTConnect]-->CPID **/
+	char iotc_env[64];			/** [IoTConnect]-->Environment **/
+};
+
+extern struct config_ini_items config_items;
 extern int mode_circular_motion;
 extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];
-extern int  led_event_color[LED_EVENT_NUM];
-extern char button_switch[32];
 
 void init_fatfs(void);
 int binary_loading(char * file_name);
@@ -95,6 +137,9 @@ char* get_iotc_uid( void );
 char* get_iotc_env( void );
 char* get_iotc_cpid( void );
 int get_target_cloud( void );
+int get_load_certificate_from( void );
+char* get_certificate_file_name( int );
+bool get_certificate_data( char*, int, char*);
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
