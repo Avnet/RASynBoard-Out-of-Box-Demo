@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 // Set RELEASE_BUILD to 1 for official releases, 0 for engineeering builds
-#define RELEASE_BUILD 0
+#define RELEASE_BUILD 1
 
 #ifndef VERSION_STRING_H_
 #define VERSION_STRING_H_
@@ -16,7 +16,7 @@
 #define MAJOR_VERSION "1"
 
 // Increment Minor Version when new features are added
-#define MINOR_VERSION "2"
+#define MINOR_VERSION "3"
 
 #if RELEASE_BUILD
 
