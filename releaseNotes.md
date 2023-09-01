@@ -1,7 +1,31 @@
+## Version: 1.3.0
+Release type: **Feature Release**
+
+Date: Sept 1, 2023
+
+### New Features
+- AABGT-43: Added logic to connect to Avnet's IoTConnect and send inference event details as telemetry
+- AABGT-44: Added functionality to store Wi-Wi SSID and password in config.ini file
+- AAGBT-75: Added [documentation](./docs/ApplicationUserGuide.md) on all the OOB application configuration items and features
+- AAGBT-80: Added [IoTConnect documentation](./docs/IoTConnect.md)
+- AAGBT-85: Added functionality to store the contents of the config.ini file to SPI flash when the user presses the user button for > 3 seconds.  Additionally when the device boots without the microSD card present, the configuration is read from SPI Flash.
+- AABGT-86: Added functionality to read AWS certificates from the microSD card
+- AAGBT-90: Added [documentation](./docs/UsingRASynbBoardReleases.md) on how to load one of the OOB releases without the Renesas e^2 studio
+
+### Bug Fixes
+- AABGT-84: Corrected an issue where BLE inference data was not sent when running the core board in stand alone mode.  Corrected by AABGT-85.
+- AABGT-72: Corrected an issue where the application would not expose the microSD card when the card was inserted into the I/O board and the card had no files on the filesystem
+
+### Known Issues
+
+- AABGT-79: When connected to the Avnet IoTConnect cloud solution and the device enters, then exist low-power mode, the IoTConnect state machine has to start from the beginning sequence.  
+
 # Release Notes for the Avnet Out-of-Box Application
 
 ## Version: 1.2.0
-Release type: Feature Release
+Release type: **Feature Release**
+
+Date: July 18, 2023
 
 ### New Features
 - AABGT-60: Added USB PMSC feature to expose the RASynBoard's microSD card to the development PC when connected to the RASynBoard USB-C connector on the core board.  This allows the developer to modify the config.ini file without removing the microSD card from the RASynBoard.  Additionally audio (*.wav) and imu (*.csv) recording files can be copied from the microSD card without removing the microSD card from the RASynBoard.
@@ -31,7 +55,7 @@ Release type: Feature Release
   - The application will enter low-power mode after the first inference result is detected
   
 ## Version: 1.0.0
-Release type: Feature Release
+Release type: **Feature Release**
 
 Initial release
 
