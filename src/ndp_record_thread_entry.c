@@ -33,9 +33,9 @@ enum short_press_button_to_record {
 static int get_button_mapping_event(void)
 {
 	int ret = REC_NONE;
-	if (memcmp (button_switch, "audio", 5) == 0 )
+	if (memcmp (config_items.button_switch, "audio", 5) == 0 )
 		ret = REC_AUDIO;
-	if (memcmp (button_switch, "imu", 3) == 0 )
+	if (memcmp (config_items.button_switch, "imu", 3) == 0 )
 		ret = REC_IMU;
 
     return ret;

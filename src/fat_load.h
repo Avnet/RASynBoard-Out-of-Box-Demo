@@ -20,6 +20,8 @@
 #define DEVICE_CERT_FILE_NAME       "cert_DEVICE_NAME.crt"
 #define DEVICE_PUBLIC_KEY_FILENAME  "pk_DEVICE_NAME.pem"
 
+#define LED_EVENT_NUM           10
+
 enum FW_LOAD_TYPE {
 	BOOT_MODE_FLASH = 0,
 	BOOT_MODE_SD,
@@ -79,14 +81,34 @@ enum CERT_ID_TYPE {
     DEVICE_PUBLIC_KEY = 2,
 };
 
-#define   LED_EVENT_NUM        10
 
+struct config_ini_items {
+	/* save the settings from config.ini */
+	char button_switch[8];		/** [Function_x]-->Button_shift **/
+	int led_event_color[LED_EVENT_NUM];	/** [Led]-->IDXn **/
+
+	int recording_period;		/** [Recording Period]-->Recording_Period **/
+	int imu_write_to_file;		/** [IMU data stream]-->Write_to_file **/
+	int imu_print_to_terminal;	/** [IMU data stream]-->Print_to_terminal **/
+
+	int low_power_mode;			/** [Low Power Mode]-->Power_Mode **/
+	int ble_mode;				/** [BLE Mode]-->BLE_Enabled **/
+
+	int target_cloud;			/** [Cloud Connectivity]-->Target_Cloud **/
+	char wifi_ap_name[64];		/** [WIFI]-->Access_Point **/
+	char wifi_passwd[64];		/** [WIFI]-->Access_Point_Password **/
+	char wifi_cc[4];			/** [WIFI]-->Country_Code **/
+
+	char iotc_uid[4];			/** [IoTConnect]-->Device_Unique_ID **/
+	char iotc_cpid[64];			/** [IoTConnect]-->CPID **/
+	char iotc_env[64];			/** [IoTConnect]-->Environment **/
+};
+
+extern struct config_ini_items config_items;
 extern int mode_circular_motion;
 extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];
-extern int  led_event_color[LED_EVENT_NUM];
-extern char button_switch[32];
 
 void init_fatfs(void);
 int binary_loading(char * file_name);

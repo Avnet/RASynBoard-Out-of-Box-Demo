@@ -14,6 +14,8 @@
 #include "usb_pcdc_vcom.h"
 #include "iotc_thread_entry.h"
 
+#define led_event_color(x)	(config_items.led_event_color[x])
+
 typedef struct blink_msg
 {
     int led;
@@ -51,6 +53,7 @@ static char numlabels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS];
 static char label_data[NDP120_MCU_LABELS_MAX_LEN] = "";
 
 static void send_ble_update(char* ,int ,char*, int);
+extern void printConfg(void);
 
 void ndp_info_display(void)
 {
@@ -192,17 +195,15 @@ void ndp_thread_entry(void *pvParameters)
                        SYNTIANT_NDP_FEATURE_PDM, ret);
     }
 
-    if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
+	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
         // read back info from FLASH
-        int mode_val = 0;
-        char button_val[32] = {0};
-        ret = ndp_flash_read_infos(&mode_val, button_val);
-        if (!ret) {
-            mode_circular_motion = mode_val;
-            strcpy(button_switch, button_val);
-            printf("read back from FLASH got mode_circular_motion: %s, button_switch: %s\n",
-                    (mode_circular_motion?"disable":"enable"), button_switch);
-        }
+		config_data_in_flash_t flash_data = {0};
+		if (0 == ndp_flash_read_infos(&flash_data)){
+			mode_circular_motion = flash_data.ndp_mode_motion;
+			memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
+		}
+        // Output the current configuration for the user
+        printConfg();
     }
 
     ndp_info_display();
@@ -241,7 +242,7 @@ void ndp_thread_entry(void *pvParameters)
 				case 0:
 				    /* Voice: OK-Syntiant; light Amber Led */
 					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color[ndp_class_idx];
+					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
 					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
@@ -249,7 +250,7 @@ void ndp_thread_entry(void *pvParameters)
 				case 1:
 				    /* Voice: Up; light Cyan Led */
 					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color[ndp_class_idx];
+					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_UP],1000,buf, sizeof(buf));
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
@@ -262,7 +263,7 @@ void ndp_thread_entry(void *pvParameters)
 					if (last_stat.led != LED_COLOR_MAGENTA)
 					{
 						/* first receive 'Down'  keyword */
-						q_event = led_event_color[ndp_class_idx];
+						q_event = led_event_color(ndp_class_idx);
 						xQueueSend(g_led_queue, (void *)&q_event, 0U );
 						send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
 	                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
@@ -286,7 +287,7 @@ void ndp_thread_entry(void *pvParameters)
 						else
 						{
 							/* invalid time */
-							q_event = led_event_color[ndp_class_idx];
+							q_event = led_event_color(ndp_class_idx);
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
 							send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
 						}
@@ -295,7 +296,7 @@ void ndp_thread_entry(void *pvParameters)
 				case 3:
 				    /* Voice: Back; light Red Led */
 					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color[ndp_class_idx];
+					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_BACK],1000,buf, sizeof(buf));
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
@@ -303,7 +304,7 @@ void ndp_thread_entry(void *pvParameters)
 				case 4:
 				    /* Voice: Next; light Green Led */
 					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color[ndp_class_idx];
+					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_NEXT],1000,buf, sizeof(buf));
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);

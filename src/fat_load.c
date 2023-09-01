@@ -17,20 +17,36 @@
 
 void printConfg(void);
 
-
 /* Parse config.ini to save the settings */
 int mode_circular_motion = CIRCULAR_MOTION_DISABLE;
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
-char button_switch[32] = {"audio"};
-int  led_event_color[] = { \
-                    LED_COLOR_YELLOW,  \
-                    LED_COLOR_CYAN, \
-                    LED_COLOR_MAGENTA, \
-                    LED_COLOR_RED, \
-                    LED_COLOR_GREEN, \
-                    LED_EVENT_NONE };
+
+struct config_ini_items config_items ={  /* default settings */
+		.button_switch = {"audio"},
+		.led_event_color = {  \
+				LED_COLOR_YELLOW,  \
+				LED_COLOR_CYAN, \
+				LED_COLOR_MAGENTA, \
+				LED_COLOR_RED, \
+				LED_COLOR_GREEN, \
+				LED_EVENT_NONE },
+
+		.recording_period = 10,
+		.imu_write_to_file = IMU_FUNC_ENABLE,
+		.imu_print_to_terminal = IMU_FUNC_DISABLE,
+		.low_power_mode = DOWN_DOWN_LP_MODE,
+		.ble_mode = BLE_ENABLE,
+
+		.target_cloud = CLOUD_NONE,
+		.wifi_ap_name = {0},
+		.wifi_passwd = {0},
+		.wifi_cc = {0},
+		.iotc_uid = {0},
+		.iotc_cpid = {0},
+		.iotc_env = {0},
+};
 
 /* Local global variables */
 static FATFS fatfs_obj;
@@ -38,25 +54,9 @@ static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int sdcard_slot_status =  SDCARD_IN_SLOT;
 static int print_console_type = CONSOLE_UART;
-int recording_period = 10;
-int low_power_mode = DOWN_DOWN_LP_MODE;
-int imu_write_to_file = IMU_FUNC_ENABLE;
-int imu_print_to_terminal = IMU_FUNC_DISABLE;
-int ble_mode = BLE_ENABLE;
-int target_cloud = CLOUD_NONE;
 
 char mode_description[64] = {0};
 int mode;
-
-// WiFi configuration items
-char wifi_ap_name[32] = {'\0'};
-char wifi_pw[32] = {'\0'};
-char wifi_cc[3] = {'\0'};
-
-// IoTConnect configuration items
-char iotc_uid[32] = {'\0'};
-char iotc_env[32] = {'\0'};
-char iotc_cpid[33] = {'\0'};
 
 // AWS certificate configuration items
 char aws_rootCA_file_name[64] = { AWS_ROOT_CERT_FILE_NAME };
@@ -485,7 +485,7 @@ static uint32_t read_config_file( void )
 	ini_gets(section, "DNN", MODEL_FILE_NAME, \
 						model_file_name, sizeof(model_file_name), inifile);
 	ini_gets(section, "Button_shift", "audio", \
-						button_switch, sizeof(button_switch), inifile);
+						config_items.button_switch, sizeof(config_items.button_switch), inifile);
 
 	/* Get led color according according to voice command */
 	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
@@ -495,59 +495,59 @@ static uint32_t read_config_file( void )
 
 		if( strncmp(color, "red", 3) == 0)
 		{
-			led_event_color[idx] = LED_COLOR_RED;
+			config_items.led_event_color[idx] = LED_COLOR_RED;
 		} else if( strncmp(color, "green", 5) == 0)
 		{
-			led_event_color[idx] = LED_COLOR_GREEN;
+			config_items.led_event_color[idx] = LED_COLOR_GREEN;
 		} else if( strncmp(color, "blue", 4) == 0)
 		{
-			led_event_color[idx] = LED_COLOR_BLUE;
+			config_items.led_event_color[idx] = LED_COLOR_BLUE;
 		} else if( strncmp(color, "cyan", 4) == 0)
 		{
-			led_event_color[idx] = LED_COLOR_CYAN;
+			config_items.led_event_color[idx] = LED_COLOR_CYAN;
 		} else if( strncmp(color, "magenta", 6) == 0)
 		{
-		    led_event_color[idx] = LED_COLOR_MAGENTA;
+		    config_items.led_event_color[idx] = LED_COLOR_MAGENTA;
 		} else if( strncmp(color, "yellow", 6) == 0)
 		{
-			led_event_color[idx] = LED_COLOR_YELLOW;
+			config_items.led_event_color[idx] = LED_COLOR_YELLOW;
 		} else
 		{
-			led_event_color[idx] = LED_EVENT_NONE;
+			config_items.led_event_color[idx] = LED_EVENT_NONE;
 		}
 	}
 
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
-	recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
-	low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
-	imu_write_to_file = ini_getl("IMU data stream", "Write_to_file", \
+	config_items.recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
+	config_items.low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
+	config_items.imu_write_to_file = ini_getl("IMU data stream", "Write_to_file", \
 										IMU_FUNC_ENABLE, inifile);
-	imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
+	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
 										IMU_FUNC_DISABLE, inifile);
-	ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
+	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
 
 	// WiFi configuration
     ini_gets("WIFI", "Access_Point", "WiFi AP Name Undefined", \
-                        wifi_ap_name, sizeof(wifi_ap_name), inifile);
+                        config_items.wifi_ap_name, sizeof(config_items.wifi_ap_name), inifile);
 
     ini_gets("WIFI", "Access_Point_Password", "WiFi PasswordUndefined", \
-                        wifi_pw, sizeof(wifi_pw), inifile);
+                        config_items.wifi_passwd, sizeof(config_items.wifi_passwd), inifile);
 
     ini_gets("WIFI", "Country_Code", "US", \
-                        wifi_cc, sizeof(wifi_cc), inifile);
+                        config_items.wifi_cc, sizeof(config_items.wifi_cc), inifile);
 
 
     // IoTConnect configuration
     ini_gets("IoTConnect", "CPID", "Undefined", \
-                        iotc_cpid, sizeof(iotc_cpid), inifile);
+                        config_items.iotc_cpid, sizeof(config_items.iotc_cpid), inifile);
 
     ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
-                        iotc_uid, sizeof(iotc_uid), inifile);
+                        config_items.iotc_uid, sizeof(config_items.iotc_uid), inifile);
 
     ini_gets("IoTConnect", "Environment", "Undefined", \
-                        iotc_env, sizeof(iotc_env), inifile);
+                        config_items.iotc_env, sizeof(config_items.iotc_env), inifile);
 
-    target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
+    config_items.target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
     cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_FROM_HEADER, inifile);
 
@@ -559,9 +559,6 @@ static uint32_t read_config_file( void )
 
     ini_gets("Certs", "Device_Private_Key_Filename", "Undefined", \
             aws_device_private_key_file_name, sizeof(aws_device_private_key_file_name), inifile);
-
-    // Output the current configuration for the user
-    printConfg();
 
     // unmount
     res = f_mount(NULL, "", 0);
@@ -575,30 +572,41 @@ static uint32_t read_config_file( void )
 uint32_t get_synpkg_config_info( void )
 {
 	uint32_t res = 0;
-	bool sdcard;
+	bool sdcard, flag = false;
 
 	sdcard = (sdmmc_exist_check() == 1) ?  true : false;
 	if (sdcard){
 		sdcard_slot_status =  SDCARD_IN_SLOT;
 	}else{
 		sdcard_slot_status =  SDCARD_NOT_IN_SLOT;
-		boot_mode = BOOT_MODE_FLASH;
-		print_console_type = CONSOLE_USB_CDC;
-		return 0;
 	}
 
-	res = read_config_file();
-	if(res != FR_OK){
-		printf("Cannot find config.txt in sdcard, try to boot from Flash\n");
-		boot_mode = BOOT_MODE_FLASH;
-		return res;
+	if (SDCARD_IN_SLOT == sdcard_slot_status){
+		/* attempt to read config.ini from sdcard */
+		res = read_config_file();
+		if(res != FR_OK){
+			printf("Cannot find config.txt in sdcard, try to boot from Flash\n");
+			flag = true; /* Indicates that the SD card is empty */
+		} else {
+			boot_mode = BOOT_MODE_SD;
+		}
 	}
-	boot_mode = BOOT_MODE_SD;
 
-	printf("  NDP120 images identified . . . \n");
-	printf("    MCU : %s\n", mcu_file_name);
-	printf("    DSP : %s\n", dsp_file_name);
-	printf("    DNN : %s\n", model_file_name);
+	if ((SDCARD_NOT_IN_SLOT == sdcard_slot_status) || (flag)){
+		/* must start NDP120 to initialize its SPI bus first and then read configs from Flash */
+		boot_mode = BOOT_MODE_FLASH;
+		print_console_type = flag ? CONSOLE_UART : CONSOLE_USB_CDC;
+	}
+
+	if (BOOT_MODE_SD == boot_mode){
+		// Output the current configuration for the user
+		printConfg();
+
+		printf("NDP120 images identified . . . \n");
+		printf("    MCU : %s\n", mcu_file_name);
+		printf("    DSP : %s\n", dsp_file_name);
+		printf("    DNN : %s\n", model_file_name);
+	}
 
 	return res;
 }
@@ -620,11 +628,7 @@ uint32_t get_synpkg_boot_mode( void )
 
 int get_print_console_type( void )
 {
-#ifdef   FORCE_PRINT_TO_UART
-    return CONSOLE_UART;
-#else
     return print_console_type;
-#endif
 }
 
 /* Identify circular_motion mode based on the DNN file in the SD card
@@ -645,23 +649,23 @@ int motion_to_disable(void)
 // Returns number of seconds to record data (audio or IMU data)
 int get_recording_period( void )
 {
-    return recording_period;
+    return config_items.recording_period;
 }
 
 // Returns the low power mode
 int get_low_power_mode( void )
 {
-    return low_power_mode;
+    return config_items.low_power_mode;
 }
 
 int is_imu_data_to_file( void )
 {
-    return imu_write_to_file;
+    return config_items.imu_write_to_file;
 }
 
 int is_imu_data_to_terminal( void )
 {
-    return imu_print_to_terminal;
+    return config_items.imu_print_to_terminal;
 }
 
 int is_file_exist_in_sdcard( char *filename )
@@ -704,21 +708,21 @@ void printConfg(void)
     printf("\n  Operation mode=%d selected: %s\r\n", mode, mode_description);
 
     // Output recording feature driven by Low Power Mode Selection
-    if(low_power_mode == DOWN_DOWN_LP_MODE){
+    if(config_items.low_power_mode == DOWN_DOWN_LP_MODE){
 
         printf("  The Recording feature is enabled!\n");
-        printf("    Press user button < 400ms to record %d seconds of %s data\n", recording_period, button_switch);
-        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n");
+        printf("    Press user button < 400ms to record %d seconds of %s data\n", config_items.recording_period, config_items.button_switch);
+        printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
 
-        if(0 == strcmp(button_switch, "imu")){
-            if(IMU_FUNC_ENABLE == imu_print_to_terminal){
+        if(0 == strcmp(config_items.button_switch, "imu")){
+            if(IMU_FUNC_ENABLE == config_items.imu_print_to_terminal){
                 printf("    IMU data will be streamed to the debug UART\n");
             }
-            if(IMU_FUNC_ENABLE == imu_write_to_file){
+            if(IMU_FUNC_ENABLE == config_items.imu_write_to_file){
                 printf("    IMU data will be captured to the microSD card\n");
             }
 
-            if((IMU_FUNC_DISABLE == imu_print_to_terminal) && (IMU_FUNC_DISABLE == imu_write_to_file)){
+            if((IMU_FUNC_DISABLE == config_items.imu_print_to_terminal) && (IMU_FUNC_DISABLE == config_items.imu_write_to_file)){
                 printf("    WARNING: The application is configured to capture IMU data, but the configuration does indicate where to capture the IMU data!\n");
                 printf("             Please edit the config.ini file, section [IMU data stream]\n");
             }
@@ -728,26 +732,25 @@ void printConfg(void)
 
         printf("  Note: The recording feature is disabled due to low power mode being set to 1!\n");
         printf("    To enable the recording feature, edit config.ini on the microSD\n");
-        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n");
+        printf("    card and set \"[Low Power Mode] -> Power_Mode=0\"\n\n");
     }
 
     // Output BLE mode
-    printf("\n  BLE Mode: %s\n", ble_mode ? "Enabled": "Disabled");
+    printf("\n  BLE Mode: %s\n", (config_items.ble_mode) ? "Enabled": "Disabled");
 
     // Output Cloud configuration
-    printf("\n  Cloud connectivity: ");
-    if(CLOUD_NONE == target_cloud){
+    printf("\n\n  Cloud connectivity: ");
+    if(CLOUD_NONE == config_items.target_cloud){
         printf("Disabled\n");
     }
     else{
-
-
-        switch(target_cloud){
+        switch(config_items.target_cloud){
             case CLOUD_IOTCONNECT:
                 printf("Avnet's IoTConnect\n");
-                printf("    Device Unique ID: %s\n", iotc_uid);
-                printf("    Environment     : %s\n", iotc_env);
-                printf("    CPID            : %.*s********************%.*s\n", 6, iotc_cpid, 6, &iotc_cpid[26]);
+                printf("    Device Unique ID: %s\n", config_items.iotc_uid);
+                printf("    Environment     : %s\n", config_items.iotc_env);
+                printf("    CPID            : %.*s********************%.*s\n", \
+						6, config_items.iotc_cpid, 6, &(config_items.iotc_cpid[26]));
                 break;
             case CLOUD_AWS:
                 printf("AWS <currently not supported>\n");
@@ -778,9 +781,9 @@ void printConfg(void)
         }
 
         printf("\n  WiFi Configuration\n");
-        printf("    Access Point (SSID)  : %s\n", wifi_ap_name);
-        printf("    Access Point password: %s\n", wifi_pw);
-        printf("    Country Code         : %s\n\n", wifi_cc);
+        printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
+        printf("    Access Point password: %s\n", config_items.wifi_passwd);
+        printf("    Country Code         : %s\n\n", config_items.wifi_cc);
     }
 }
 
@@ -864,41 +867,41 @@ bool get_certificate_data(char* fileName, int certificate_id, char returnCertDat
 
 int get_ble_mode( void )
 {
-    return ble_mode;
+    return config_items.ble_mode;
 }
 
 char* get_wifi_ap( void )
 {
-    return wifi_ap_name;
+    return config_items.wifi_ap_name;
 }
 
 char* get_wifi_pw( void )
 {
-    return wifi_pw;
+    return config_items.wifi_passwd;
 }
 
 char* get_wifi_cc( void ){
-    return wifi_cc;
+    return config_items.wifi_cc;
 }
 
 char* get_iotc_uid( void )
 {
-    return iotc_uid;
+    return config_items.iotc_uid;
 }
 
 char* get_iotc_env( void )
 {
-    return iotc_env;
+    return config_items.iotc_env;
 }
 
 char* get_iotc_cpid( void )
 {
-    return iotc_cpid;
+    return config_items.iotc_cpid;
 }
 
 int get_target_cloud( void )
 {
-    return target_cloud;
+    return config_items.target_cloud;
 }
 
 int get_load_certificate_from( void )
