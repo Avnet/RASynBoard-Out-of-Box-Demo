@@ -549,7 +549,7 @@ static uint32_t read_config_file( void )
 
     config_items.target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
-    cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_FROM_HEADER, inifile);
+    config_items.cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_FROM_HEADER, inifile);
 
     ini_gets("Certs", "Root_CA_Filename", "Undefined", \
                         aws_rootCA_file_name, sizeof(aws_rootCA_file_name), inifile);
@@ -906,7 +906,7 @@ int get_target_cloud( void )
 
 int get_load_certificate_from( void )
 {
-    return cert_location;
+    return config_items.cert_location;
 }
 
 char* get_certificate_file_name(int certID){

@@ -94,12 +94,14 @@ struct config_ini_items {
 	int low_power_mode;			/** [Low Power Mode]-->Power_Mode **/
 	int ble_mode;				/** [BLE Mode]-->BLE_Enabled **/
 
+	int cert_location;          /** [CERTS]-->Cert_Location **/
+
 	int target_cloud;			/** [Cloud Connectivity]-->Target_Cloud **/
 	char wifi_ap_name[64];		/** [WIFI]-->Access_Point **/
 	char wifi_passwd[64];		/** [WIFI]-->Access_Point_Password **/
 	char wifi_cc[4];			/** [WIFI]-->Country_Code **/
 
-	char iotc_uid[4];			/** [IoTConnect]-->Device_Unique_ID **/
+	char iotc_uid[64];			/** [IoTConnect]-->Device_Unique_ID **/
 	char iotc_cpid[64];			/** [IoTConnect]-->CPID **/
 	char iotc_env[64];			/** [IoTConnect]-->Environment **/
 };
