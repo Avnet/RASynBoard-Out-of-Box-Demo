@@ -3,6 +3,7 @@
 
 #include "hal_data.h"
 #include "spi_drv.h"
+#include "fat_load.h"
 
 #include <syntiant_ilib/syntiant_ndp120_tiny.h>
 #include "syntiant_driver.h"
@@ -144,9 +145,15 @@ int syntiant_flash_spi_read(uint32_t addr, uint8_t *read_buff, int read_len)
     return 0;
 }
 
-void syntiant_ndp_delay_ms(int ms_time)
+int syntiant_file_host_len(char *file_name)
 {
-    R_BSP_SoftwareDelay((uint32_t)ms_time, BSP_DELAY_UNITS_MILLISECONDS);
+    return get_synpkg_size(file_name);
+}
+
+int syntiant_file_host_read(char *file_name, uint32_t offset, 
+        uint8_t *read_buffer, int read_size)
+{
+    return read_synpkg_block(file_name, offset, read_buffer, read_size);
 }
 
 void syntiant_ndp_delay_us(int us_time)

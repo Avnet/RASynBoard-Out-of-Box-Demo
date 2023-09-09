@@ -46,50 +46,27 @@ static int is_record_motion(void)
     return (get_button_mapping_event() == REC_IMU);
 }
 
-/* assuming little endian, and structure with no padding */
-struct wav_header_s {
-    char riff[4];
-    uint32_t file_size;
-    char wave[4];
-    char fmt[4];
-    uint32_t fmt_size;
-    uint16_t type;
-    uint16_t channels;
-    uint32_t sample_rate;
-    uint32_t bytes_per_second;
-    uint16_t bytes_per_frame;
-    uint16_t bits_per_sample;
-    char data[4];
-    uint32_t data_size;
-};
-
-static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, int channels, int total_len)
+char* extract_process_percent(uint32_t extracted_len, uint32_t wanted_len, 
+        uint32_t sample_size)
 {
-    wav_hdr->riff[0] = 'R';
-    wav_hdr->riff[1] = 'I';
-    wav_hdr->riff[2] = 'F';
-    wav_hdr->riff[3] = 'F';
-    wav_hdr->file_size = 36 + total_len;
-    wav_hdr->wave[0] = 'W';
-    wav_hdr->wave[1] = 'A';
-    wav_hdr->wave[2] = 'V';
-    wav_hdr->wave[3] = 'E';
-    wav_hdr->fmt[0] = 'f';
-    wav_hdr->fmt[1] = 'm';
-    wav_hdr->fmt[2] = 't';
-    wav_hdr->fmt[3] = ' ';
-    wav_hdr->fmt_size = 16;
-    wav_hdr->type = 1;
-    wav_hdr->channels = channels;
-    wav_hdr->sample_rate = 16000;
-    wav_hdr->bytes_per_second = 16000 * 1 * sample_bytes;
-    wav_hdr->bytes_per_frame = 1 * sample_bytes;
-    wav_hdr->bits_per_sample = sample_bytes * 8;
-    wav_hdr->data[0] = 'd';
-    wav_hdr->data[1] = 'a';
-    wav_hdr->data[2] = 't';
-    wav_hdr->data[3] = 'a';
-    wav_hdr->data_size = total_len;
+    uint32_t quarter_len = wanted_len>>2;
+    uint32_t half_len = wanted_len>>1;
+    uint32_t most_quarter_len = quarter_len*3;
+
+    if (((extracted_len - most_quarter_len) >= 0) && 
+            ((extracted_len - most_quarter_len) < sample_size)) {
+        return "...75%";
+    }
+    else if (((extracted_len - half_len) >= 0) && 
+            ((extracted_len - half_len) < sample_size)) {
+        return "...50%";
+    }
+    else if (((extracted_len - quarter_len) >= 0) && 
+            ((extracted_len - quarter_len) < sample_size)) {
+        return "...25%";
+    }
+    else
+        return NULL;
 }
 
 /******************************************
@@ -98,15 +75,9 @@ static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, in
 static int imu_record_operation(int isstart)
 {
     int s = 0;
-    int ints;
 
     if (isstart) {
-        ints = 0;
-        s = ndp_core2_platform_tiny_interrupts(&ints);
-        if (s) {
-            printf("set interrupts to %d failed: %d\n", ints, s);
-            return s;
-        }
+        ndp_irq_disable();
 
         /* enable sensor */
         s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
@@ -122,12 +93,7 @@ static int imu_record_operation(int isstart)
             return s;
         }
 
-        ints = 0x100;
-        s = ndp_core2_platform_tiny_interrupts(&ints);
-        if (s) {
-            printf("set interrupts to %d failed: %d\n", ints, s);
-            return s;
-        }
+        ndp_irq_enable();
     }
 
     return s;
@@ -136,6 +102,7 @@ static int imu_record_operation(int isstart)
 struct cb_sensor_arg_s {
     char file_name[64];
     uint32_t sets_count;
+    uint32_t wanted_sets;
 };
 
 #define SENSOR_SAMPLE_SIZE  (6)
@@ -144,6 +111,7 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     struct cb_sensor_arg_s *cb_sensor_arg = (struct cb_sensor_arg_s*)sensor_arg;
     int i, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
+    char *percent_ptr = NULL;
 
 	if (is_imu_data_to_terminal()) {
 		// show data on the serial console
@@ -157,7 +125,12 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 	if (is_imu_data_to_file()) {
 		// save data to sdcard
 		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+
 		write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
+        
+        percent_ptr = extract_process_percent(cb_sensor_arg->sets_count, cb_sensor_arg->wanted_sets, 1);
+        if (percent_ptr) printf("%s", percent_ptr);
+
 		xSemaphoreGive(g_ndp_mutex);
 	}
 
@@ -185,19 +158,14 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
     while (extract_sets > sensor_arg->sets_count) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
                 IMU_SENSOR_INDEX, icm42670_extraction_cb, sensor_arg);
-        if ((s) && (s != SYNTIANT_NDP_ERROR_DATA_REREAD)) {
+        if ((s) && (s != NDP_CORE2_ERROR_DATA_REREAD)) {
             printf("sensor extract data failed: %d\n", s);
             break;
         }
     }
 
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 0, 0);
-    if (s) {
-        printf("audio record get metadata from ilib without notify failed: %d\n", s);
-        goto process_out;
-    }
+    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 0);
 
-process_out:
     if (data_ptr) vPortFree(data_ptr);
 
     return s;
@@ -206,46 +174,100 @@ process_out:
 /******************************************
  * Audio record
 ******************************************/
-static int audio_record_operation(int isstart, uint32_t *sample_size)
-{
-    int s = 0;
-    int ints;
+/* assuming little endian, and structure with no padding */
+struct wav_header_s {
+    char riff[4];
+    uint32_t file_size;
+    char wave[4];
+    char fmt[4];
+    uint32_t fmt_size;
+    uint16_t type;
+    uint16_t channels;
+    uint32_t sample_rate;
+    uint32_t bytes_per_second;
+    uint16_t bytes_per_frame;
+    uint16_t bits_per_sample;
+    char data[4];
+    uint32_t data_size;
+};
 
+static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, int channels, int extracted_len)
+{
+    wav_hdr->riff[0] = 'R';
+    wav_hdr->riff[1] = 'I';
+    wav_hdr->riff[2] = 'F';
+    wav_hdr->riff[3] = 'F';
+    wav_hdr->file_size = 36 + extracted_len;
+    wav_hdr->wave[0] = 'W';
+    wav_hdr->wave[1] = 'A';
+    wav_hdr->wave[2] = 'V';
+    wav_hdr->wave[3] = 'E';
+    wav_hdr->fmt[0] = 'f';
+    wav_hdr->fmt[1] = 'm';
+    wav_hdr->fmt[2] = 't';
+    wav_hdr->fmt[3] = ' ';
+    wav_hdr->fmt_size = 16;
+    wav_hdr->type = 1;
+    wav_hdr->channels = channels;
+    wav_hdr->sample_rate = 16000;
+    wav_hdr->bytes_per_second = 16000 * 1 * sample_bytes;
+    wav_hdr->bytes_per_frame = 1 * sample_bytes;
+    wav_hdr->bits_per_sample = sample_bytes * 8;
+    wav_hdr->data[0] = 'd';
+    wav_hdr->data[1] = 'a';
+    wav_hdr->data[2] = 't';
+    wav_hdr->data[3] = 'a';
+    wav_hdr->data_size = extracted_len;
+}
+
+static void audio_record_operation(int isstart)
+{
     if (isstart) {
-        ints = 0;
-        s = ndp_core2_platform_tiny_interrupts(&ints);
-        if (s) {
-            printf("set interrupts to %d failed: %d\n", ints, s);
-            return s;
-        }
+        ndp_irq_disable();
     }
     else {
-        ints = 0x100;
-        s = ndp_core2_platform_tiny_interrupts(&ints);
-        if (s) {
-            printf("set interrupts to %d failed: %d\n", ints, s);
-            return s;
-        }
+        ndp_irq_enable();
     }
-
-    return s;
 }
 
 struct cb_audio_arg_s {
     char file_name[64];
-    uint32_t total_len;
+    uint32_t sample_size;
+    uint32_t extracted_len;
+    uint32_t wanted_len;
 };
 
 void audio_extraction_cb (uint32_t extract_size, uint8_t *audio_data, 
                     void *audio_arg)
 {
     struct cb_audio_arg_s *cb_audio_arg = (struct cb_audio_arg_s*)audio_arg;
+    char *percent_ptr = NULL;
 
     if (extract_size > 0) {
-        xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-        write_wav_file(cb_audio_arg->file_name, audio_data, extract_size, 0);
-        cb_audio_arg->total_len += extract_size;
-        xSemaphoreGive(g_ndp_mutex);
+        uint32_t data_size;
+        int audio_type = ndp_core2_platform_tiny_src_type(audio_data, &data_size);
+
+        switch (audio_type) {
+            case NDP_CORE2_FLOW_SRC_TYPE_PCM0:
+                xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+
+                write_wav_file(cb_audio_arg->file_name, audio_data, data_size, 0);
+                cb_audio_arg->extracted_len += data_size;
+                
+                percent_ptr = extract_process_percent(cb_audio_arg->extracted_len, 
+                        cb_audio_arg->wanted_len, extract_size);
+                if (percent_ptr) printf("%s", percent_ptr);
+
+                xSemaphoreGive(g_ndp_mutex);
+            break;
+
+            case NDP_CORE2_FLOW_SRC_TYPE_PCM1:
+            case NDP_CORE2_FLOW_SRC_TYPE_FUNC:
+            default:
+            break;
+        }
+
+        cb_audio_arg->extracted_len += data_size;
     }
 }
 
@@ -260,34 +282,37 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
     data_ptr = pvPortMalloc(AUDIO_REC_BUFFER_SIZE);
     if (!data_ptr) return -1;
 
-    /* sample ready interrupt is enabled in MCU firmware */
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 1, 1);
-    if (s) {
-        printf("audio record get metadata from mcu with notify failed: %d\n", s);
-        goto process_out;
-    }
-
     create_wav_header(&wav_hdr, sample_bytes, 1, wanted_len);
     xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
     write_wav_file(audio_arg->file_name, (uint8_t *)&wav_hdr, sizeof(wav_hdr), 1);
     xSemaphoreGive(g_ndp_mutex);
 
     printf("To audio record %d bytes for %d seconds\n", wanted_len, get_recording_period());
-    while (wanted_len > audio_arg->total_len) {
+    fflush(stdin);
+    /* sample ready interrupt is enabled in MCU firmware */
+    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 
+            NDP_CORE2_GET_FROM_MCU);
+    if (s) {
+        printf("audio record get metadata from mcu with notify failed: %d\n", s);
+        goto process_out;
+    }
+
+    while (wanted_len > audio_arg->extracted_len) {
         s = ndp_core2_platform_tiny_notify_extract_data(data_ptr, 
                 sample_size, audio_extraction_cb, audio_arg);
-        if ((s) && (s != SYNTIANT_NDP_ERROR_DATA_REREAD)) {
+        if (s == NDP_CORE2_ERROR_DATA_REREAD) {
+            R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MILLISECONDS);
+            continue;
+        }
+
+        if (s) {
             printf("audio extract data failed: %d\n", s);
             break;
         }
     }
-    
-    /* sample ready interrupt is enabled in MCU firmware */
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 1, 0);
-    if (s) {
-        printf("audio record get metadata from mcu without notify failed: %d\n", s);
-        goto process_out;
-    }
+
+    /* disable extract ready interrupt */
+    s = ndp_core2_platform_tiny_config_interrupts(NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
 
 process_out:
     if (data_ptr) vPortFree(data_ptr);
@@ -301,9 +326,9 @@ void ndp_print_imu(void)
     uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
 
     /* set MSSB0/GPIO0 pin */
-    ndp_core2_platform_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
+    ndp_core2_platform_tiny_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
     /* reset MSSB1/GPIO1 pin */
-    ndp_core2_platform_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
+    ndp_core2_platform_tiny_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
 
     //ndp_core2_platform_tiny_mspi_config();
     ndp_core2_platform_tiny_mspi_write(1, 1, &reg, 0);
@@ -349,7 +374,6 @@ void ndp_record_thread_entry(void *pvParameters)
 	TickType_t time1 = 0, delta_time = 0;
 	bool rec_process = false;
     int record_count = 0;
-    uint32_t sample_size;
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 	/* Start recording after 6 seconds */
@@ -417,12 +441,11 @@ void ndp_record_thread_entry(void *pvParameters)
 
                 if (is_record_motion()) { //imu
                     s = imu_record_operation(1);
+                    if (s)  break;
                 }
                 else {
-                    s = audio_record_operation(1, &sample_size);
+                    audio_record_operation(1);
                 }
-                    
-                if (s) break;
             }
             else
             {
@@ -433,12 +456,15 @@ void ndp_record_thread_entry(void *pvParameters)
                     memset(&cb_sensor_arg, 0, sizeof(struct cb_sensor_arg_s));
                     strcpy(cb_sensor_arg.file_name, data_filename);
                     cb_sensor_arg.sets_count = 0;
+                    cb_sensor_arg.wanted_sets = wanted_sets;
 
                     s = imu_record_process(wanted_sets, &cb_sensor_arg);
-                    if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
-                        printf("imu_record done got %d data_sets", cb_sensor_arg.sets_count);	
+                    if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
+                        printf("...100%");
+                        fflush(stdin);
+                        printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count);	
 						if (is_imu_data_to_file()) {
-							printf("and saved to %s", cb_sensor_arg.file_name);
+							printf(" and saved to %s", cb_sensor_arg.file_name);
 						}
 						printf("\n");
                     }
@@ -447,6 +473,7 @@ void ndp_record_thread_entry(void *pvParameters)
                     }
 
                     s = imu_record_operation(0);
+                    if (s)  break;
                 }
                 else {
                     struct cb_audio_arg_s cb_audio_arg;
@@ -454,18 +481,20 @@ void ndp_record_thread_entry(void *pvParameters)
 
                     memset(&cb_audio_arg, 0, sizeof(struct cb_audio_arg_s));
                     strcpy(cb_audio_arg.file_name, data_filename);
-                    cb_audio_arg.total_len = 0;
+                    cb_audio_arg.extracted_len = 0;
+                    cb_audio_arg.wanted_len = wanted_len;
 
                     s = audio_record_process(wanted_len, &cb_audio_arg);
-                    if ((!s) || (s == SYNTIANT_NDP_ERROR_DATA_REREAD)) {
-                        printf("audio_record done saved %d bytes to %s\n", 
-                                cb_audio_arg.total_len, cb_audio_arg.file_name);
+                    if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
+                        printf("...100%");
+                        fflush(stdin);
+                        printf("\naudio_record done saved %d bytes to %s\n", 
+                                cb_audio_arg.extracted_len, cb_audio_arg.file_name);
                     }
                     else {
                         printf("audio_record failed: %d\n", s);
                     }
-
-                    s = audio_record_operation(0, NULL);
+                    audio_record_operation(0);
                 }
 				// Turn off the recording LED
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);

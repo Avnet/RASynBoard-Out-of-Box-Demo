@@ -30,7 +30,31 @@
 										NULL, 0, DUMMY_0_BYTES, NULL, 0, SPI_FLASH_WRITE)
 #define ndp_flash_get_ready()		ndp_flash_get_status(1)&0x01
 
-extern void syntiant_ndp_delay_ms(int ms_time);
+extern void syntiant_ndp_delay_us(int ms_time);
+
+char* flash_process_percent(uint32_t processed_len, uint32_t planed_len, 
+        uint32_t process_size)
+{
+    uint32_t quarter_len = planed_len>>2;
+    uint32_t half_len = planed_len>>1;
+    uint32_t most_quarter_len = quarter_len*3;
+
+    if (((processed_len - most_quarter_len) >= 0) && 
+            ((processed_len - most_quarter_len) < process_size)) {
+        return "...75%";
+    }
+    else if (((processed_len - half_len) >= 0) && 
+            ((processed_len - half_len) < process_size)) {
+        return "...50%";
+    }
+    else if (((processed_len - quarter_len) >= 0) && 
+            ((processed_len - quarter_len) < process_size)) {
+        return "...25%";
+    }
+    else
+        return NULL;
+}
+
 
 int ndp_flash_init(void)
 {
@@ -40,7 +64,7 @@ int ndp_flash_init(void)
         printf("**** mspi init failed: %d\n", ret);
     }
 	/* set HOLD pin */
-	ret = ndp_core2_platform_gpio_config(FLASH_PIN_HOLD, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
+	ret = ndp_core2_platform_tiny_gpio_config(FLASH_PIN_HOLD, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
 	if (ret) {
         printf("**** set gpio failed: %d\n", ret);
     }
@@ -149,7 +173,7 @@ int ndp_flash_page_erase(uint32_t address)
 	ret = ndp_flash_spi_transfer(FLASH_PAGE_ERASE, paddr, sizeof(paddr), \
 						DUMMY_0_BYTES, NULL, 0, SPI_FLASH_WRITE);
 	while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -167,7 +191,7 @@ int ndp_flash_4kblock_erase(uint32_t address)
 	ret = ndp_flash_spi_transfer(FLASH_4KB_BLOCK_ERASE, paddr, sizeof(paddr), \
 						DUMMY_0_BYTES, NULL, 0, SPI_FLASH_WRITE);
     while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -185,7 +209,7 @@ int ndp_flash_32kblock_erase(uint32_t address)
 	ret = ndp_flash_spi_transfer(FLASH_32KB_BLOCK_ERASE, paddr, sizeof(paddr), \
 						DUMMY_0_BYTES, NULL, 0, SPI_FLASH_WRITE);
     while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -203,7 +227,7 @@ int ndp_flash_64kblock_erase(uint32_t address)
 	ret = ndp_flash_spi_transfer(FLASH_64KB_BLOCK_ERASE, paddr, sizeof(paddr), \
 						DUMMY_0_BYTES, NULL, 0, SPI_FLASH_WRITE);
 	while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -216,7 +240,7 @@ int ndp_flash_chip_erase(void)
 	ret = ndp_flash_spi_transfer(FLASH_CHIP_ERASE, NULL, 0, \
 						DUMMY_0_BYTES, NULL, 0, SPI_FLASH_WRITE);
 	while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -237,7 +261,7 @@ int ndp_flash_read_page(uint32_t address, uint8_t *buff, uint32_t length)
 	ret = ndp_flash_spi_transfer(FLASH_READ_ARRAY, paddr, sizeof(paddr), \
 						DUMMY_0_BYTES, pdata, length, SPI_FLASH_READ);
 	while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -258,7 +282,7 @@ int ndp_flash_fast_read_page(uint32_t address, uint8_t *buff, uint32_t length)
 	ret = ndp_flash_spi_transfer(FLASH_FAST_READ_ARRAY, paddr, sizeof(paddr), \
 						DUMMY_1_BYTES, pdata, length, SPI_FLASH_READ);
 	while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	return ret;
 }
@@ -305,7 +329,7 @@ int ndp_flash_write_page(uint32_t address, uint8_t *buff, uint32_t length)
 	ret = ndp_flash_spi_transfer(FLASH_PAGE_PROGRAM, paddr, sizeof(paddr), \
 						DUMMY_0_BYTES, pdata, length, SPI_FLASH_WRITE);
 	while(ndp_flash_get_ready()){
-		syntiant_ndp_delay_ms(10);
+		syntiant_ndp_delay_us(10000);
 	}
 	ndp_flash_write_disable();
 	return ret;
@@ -361,6 +385,7 @@ static int ndp_flash_program_firmware(uint32_t address, char * file_name)
     uint32_t split_len;
     uint32_t package_len;
 	uint32_t burn_addr = address;
+    char *process_ptr = NULL;
 
     package_len = get_synpkg_size(file_name);
 	printf("FLASH programming %s %ld Bytes \n",file_name, package_len);
@@ -378,7 +403,13 @@ static int ndp_flash_program_firmware(uint32_t address, char * file_name)
 
         split_index += split_len;
 		burn_addr += split_len;
+
+        process_ptr = flash_process_percent(split_index, package_len, split_len);
+        if (process_ptr) printf("%s", process_ptr);
     }
+
+    printf("...100%");
+    printf("\n");
     return ret;
 }
 

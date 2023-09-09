@@ -28,7 +28,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v100 **
+ 	** SDK: v103 **
 */
 
 #ifndef SYNTIANT_NDP120_TINY_H
@@ -38,17 +38,15 @@
 extern "C" {
 #endif
 
+
+#include <stdint.h>
+
+#include "syntiant_common.h"
+
 /**
  * @file syntiant_ndp120_tiny.h
  * @brief Interface to Syntiant NDP120 minimal chip interface library
  */
-
-#if 0
-/**
- * @brief maximum transfer size on the device
- */
-#define SYNTIANT_MAX_BLOCK_SIZE     (2048)
-#endif
 
 /**
  * @brief package load state flags
@@ -158,6 +156,16 @@ enum syntiant_ndp120_tiny_input_config_mode_e {
 };
 
 /**
+ * @brief pdm params
+ */
+enum syntiant_ndp120_tiny_dsp_data_flow_e {
+    SYNTIANT_NDP120_DSP_DATA_FLOW_SRC_PARAM0 = 0,
+    SYNTIANT_NDP120_DSP_DATA_FLOW_SRC_PARAM1,
+    SYNTIANT_NDP120_DSP_DATA_FLOW_SRC_PARAM2,
+    SYNTIANT_NDP120_DSP_DATA_FLOW_SRC_PARAM3
+};
+
+/**
  * @brief vad mic control
  */
 enum syntiant_ndp120_tiny_vad_mic_control_e {
@@ -181,6 +189,42 @@ struct syntiant_ndp120_tiny_info {
     unsigned int total_nn;                  /**< Total deployed NNs */
     unsigned int *scale_factor;             /**< Scale factor of each NN*/
     unsigned int *sensor_info;              /**< sensor info for 4 sensors */
+};
+
+struct syntiant_ndp120_tiny_t5838_status_s {
+    uint32_t aad_event_time;
+    uint32_t process_mode;
+    uint32_t num_frames_below_10fe_spl;
+    uint32_t prev_registers_36_35; /* [15:8] = 0x36, [7:0] = 0x35*/
+    uint32_t curr_registers_36_35; /* [15:8] = 0x36, [7:0] = 0x35*/
+    uint32_t current_state;
+    /* bit 0: 0 = mode change: 0 = vad; 1 = always on */
+    uint32_t vad_control;
+    int ack_received;
+};
+
+enum {
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_FLL_0P9V_32768_15P36MHZ = 0,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_FLL_0P9V_32768_16P896MHZ = 1,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_0P9V_32768_10P752MHZ = 2,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_0P9V_32768_15P36MHZ = 3,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_0P9V_32768_21P504MHZ = 4,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_0P9V_4P096MHZ_15P36MHZ = 5,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_0P9V_4P096MHZ_21P504MHZ = 6,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1V_32768_49P152MHZ = 7,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1V_32768_55P296MHZ = 8,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1V_4P096MHZ_49P152MHZ = 9,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1P1V_32768_55P296MHZ = 10,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1P1V_32768_76P8MHZ = 11,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1P1V_32768_98P304MHZ = 12,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1P1V_512000_98P304MHZ = 13,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1P1V_4P096MHZ_76P8MHZ = 14,
+   SYNTIANT_NDP120_TINY_CLOCK_MODE_PLL_1P1V_4P096MHZ_98P304MHZ = 15
+};
+
+enum {
+    SYNTIANT_NDP120_TINY_CLK_OTHER = 0,
+    SYNTIANT_NDP120_TINY_CLK_XTAL = 1
 };
 
 enum {
@@ -332,6 +376,7 @@ struct ndp120_serial_s {
 #define NDP120_FUNC_DATA_FLOW_RULE_MAX 32
 #define NDP120_NN_DATA_FLOW_RULE_MAX 32
 #define NDP120_MCU_DATA_FLOW_RULE_MAX 8
+#define NDP120_SENSOR_DATA_FLOW_RULE_MAX 4
 
 #define NDP120_MATCH_MISC_EVENT_SHIFT 16
 #define NDP120_SENSOR_DATA_READY_EVENT 7
@@ -355,6 +400,8 @@ struct syntiant_ndp120_flow_setup {
     /**< flow rule array for NN source */
     struct syntiant_ndp120_flow_rule src_mcu[NDP120_MCU_DATA_FLOW_RULE_MAX];
     /**< flow rule array for MCU firmware source */
+    struct syntiant_ndp120_flow_rule src_sensor[NDP120_SENSOR_DATA_FLOW_RULE_MAX];
+    /**< flow rule array for sensor source */
 };
 
 struct syntiant_ndp120_dsp_dev_data {
@@ -393,6 +440,67 @@ enum {
     SYNTIANT_NDP120_GET_FROM_MCU
 };
 
+enum {
+    SYNTIANT_NDP120_CONFIG_VALUE_GAIN_DCREMOVALMODE_OFF = 0,
+    SYNTIANT_NDP120_CONFIG_VALUE_GAIN_DCREMOVALMODE_STATIC = 1,
+    SYNTIANT_NDP120_CONFIG_VALUE_GAIN_DCREMOVALMODE_ON = 2,
+    SYNTIANT_NDP120_CONFIG_VALUE_GAIN_AGCSHIFTDIR_LEFT = 0,
+    SYNTIANT_NDP120_CONFIG_VALUE_GAIN_AGCSHIFTDIR_RIGHT = 1
+};
+
+#define NDP120_NUM_CHANNELS (2)
+
+#define SYNTIANT_NDP120_SENSITIVITY 0x1UL
+#define SYNTIANT_NDP120_GAIN        0x2UL
+#define SYNTIANT_NDP120_DECIMATION  0x4UL
+#define SYNTIANT_NDP120_ID          0x8UL
+#define SYNTIANT_NDP120_HPF         0x10UL
+
+struct aud_channel {
+    uint8_t  decimation_inshift;
+    uint8_t  decimation_outshift;
+    uint8_t  dcremovalmode;
+    uint8_t  numdelay;
+    uint8_t  agcshiftdir;
+    uint8_t  agcshiftcnt;
+    uint8_t  zcgainchange;
+    uint8_t  pad;
+    uint32_t agcfinegrainmul;
+    uint32_t dcstaticremoval;
+    uint32_t a1;
+    uint32_t a2;
+    uint32_t b0;
+    uint32_t b1;
+    uint32_t b2;
+};
+
+struct syntiant_ndp120_config_mic_s {
+    uint8_t set;
+    uint8_t aud_id;
+    uint8_t mic_id;
+    int8_t  sensitivity;
+    struct aud_channel aud;
+};
+
+#define SYNTIANT_SC2_CONFIG_PDM     0x1UL
+
+/* @brief config object for setting/getting configured device parameters
+ * @field A bit field specifying the set option for configuration data
+ * @field A bit field specifying the get option for configuration data
+ */
+struct syntiant_ndp120_tiny_config_s {
+    uint32_t set; /**< Set bits for specific params */
+    uint32_t get; /**< Get bits for specific params */
+    union {
+        struct syntiant_ndp120_config_mic_s aud;
+    } u; /**< union of all the configurable params */
+};
+
+struct syntiant_ndp120_tiny_config_interrupts_s {
+    uint32_t interrupt;
+    uint32_t enable;
+};
+
 /**
  * @brief debug counters of both the firmwares
  */
@@ -429,11 +537,55 @@ enum {
 };
 
 /**
- * @brief DSP restart command. Before turning on PDM clock, issue DSP restart
- * to initialize all the configurations in DSP firmware data structures
+ * @brief extended MB command for SYNTIANT_NDP120_MB_MCU_CMD (host to device)
  */
 enum syntiant_ndp120_tiny_mb_cmds {
-    SYNTIANT_NDP120_DSP_RESTART   = 0x71
+    SYNTIANT_NDP120_MB_LOAD_DSP = 0x60,
+    SYNTIANT_NDP120_MB_LOAD_NN = 0x61,
+    SYNTIANT_NDP120_MAIN_CLK_CONFIG = 0x62,
+    SYNTIANT_NDP120_PDM_CLK_START = 0x63,
+    SYNTIANT_NDP120_PDM_CLK_STOP = 0x64,
+    SYNTIANT_NDP120_EXTRACT_START = 0x65,
+    SYNTIANT_NDP120_GET_INFO = 0x66,
+    SYNTIANT_NDP120_GET_NN_GRAPH = 0x67,
+    SYNTIANT_NDP120_GET_DEBUG_INFO = 0x68,
+    SYNTIANT_NDP120_GET_NN_FLOW = 0x69,
+    SYNTIANT_NDP120_GET_AUDIO_CHUNK_SIZE = 0x6a,
+    SYNTIANT_NDP120_INPUT_CONFIG = 0x6b,
+    SYNTIANT_NDP120_SET_SPI_DIRECT = 0x6c,
+    SYNTIANT_NDP120_SWITCH_FLOW_SET_ID = 0x6d,
+    SYNTIANT_NDP120_EXTRACT_STOP = 0x6e,
+    SYNTIANT_NDP120_GET_RECORDING_METADATA = 0x6f,
+    SYNTIANT_NDP120_SET_TANK_SIZE = 0x70,
+    SYNTIANT_NDP120_DSP_RESTART = 0x71,
+    SYNTIANT_NDP120_VAD_MIC_CONTROL = 0x72,
+    SYNTIANT_NDP120_SERIAL_TRANSFER = 0x73,
+    SYNTIANT_NDP120_CONFIG_PDM_PARAMS = 0x74,
+    SYNTIANT_NDP120_CONFIG_INTERRUPTS = 0x75,
+    SYNTIANT_NDP120_CONFIG_MCU_CLK_DIV = 0X76
+};
+
+enum {
+    SYNTIANT_NDP_ERROR_NONE = 0,    /**< operation successful */
+    SYNTIANT_NDP_ERROR_FAIL = 1,    /**< general failure */
+    SYNTIANT_NDP_ERROR_ARG = 2,     /**< invalid argument error */
+    SYNTIANT_NDP_ERROR_UNINIT = 3,  /**< device unintialized or no fw loaded */
+    SYNTIANT_NDP_ERROR_PACKAGE = 4, /**< package format error */
+    SYNTIANT_NDP_ERROR_UNSUP = 5,   /**< operation not supported */
+    SYNTIANT_NDP_ERROR_NOMEM = 6,   /**< out of memory */
+    SYNTIANT_NDP_ERROR_BUSY = 7,    /**< operation in progress */
+    SYNTIANT_NDP_ERROR_TIMEOUT = 8, /**< operation timeout */
+    SYNTIANT_NDP_ERROR_MORE = 9,    /**< more data is expected */
+    SYNTIANT_NDP_ERROR_CONFIG = 10, /**< config error */
+    SYNTIANT_NDP_ERROR_CRC = 11,    /**< CRC mismatch */
+    SYNTIANT_NDP_ERROR_INVALID_NETWORK = 12, /**< invalid network id */
+    SYNTIANT_NDP_ERROR_DATA_REREAD = 13, /**<data has already been read before */
+    SYNTIANT_NDP_ERROR_PACKAGE_PBI_TAG = 14, /**< package missing PBI tag */
+    SYNTIANT_NDP_ERROR_PACKAGE_PBI_VER = 15, /**< package bad PBI version */
+    SYNTIANT_NDP_ERROR_INVALID_LENGTH  = 16, /**< bad version length */
+    SYNTIANT_NDP_ERROR_DSP_HDR_CRC = 17, /**< DSP header mismatch  */
+    SYNTIANT_NDP_ERROR_SPI_READ_FAILURE = 18, /**< Spi Read Failure */
+    SYNTIANT_NDP_ERROR_LAST = SYNTIANT_NDP_ERROR_SPI_READ_FAILURE
 };
 
 /*
@@ -586,8 +738,10 @@ enum syntiant_ndp_interrupt_e {
     /**< input buffer water mark */
     SYNTIANT_NDP120_INTERRUPT_SPI_READ_FAILURE = 0x80,
     /**< spi read failure */
-    SYNTIANT_NDP120_INTERRUPT_ALL = 0xFF,
-    SYNTIANT_NDP120_INTERRUPT_DEFAULT = 0x100
+    SYNTIANT_NDP120_INTERRUPT_EXTRACT_READY = 0x100,
+    /**< extract ready */
+    SYNTIANT_NDP120_INTERRUPT_ALL = 0x1FF,
+    SYNTIANT_NDP120_INTERRUPT_DEFAULT = 0x200
     /**< enable the chip-specific default interrupts */
 };
 
@@ -689,14 +843,18 @@ struct syntiant_ndp120_tiny_device_s {
             uint32_t prod_ptr_addr;
             uint32_t buffer_size_bytes;
             uint32_t sample_size;
+            uint32_t aud_annotation_buf_start;
         } buffer_metadata;
-        uint32_t meta_bytes[4];
+        uint32_t meta_bytes[5];
     } u;
     uint32_t last_ptr;
+    uint32_t core_clock_freq;
     uint8_t boot_flag;
     uint8_t device_type;
     uint8_t device_id;
+    uint32_t aud_annotation_last_ptr;
 };
+
 
 #define ARRAY_LEN(v)    (sizeof(v)/sizeof(v[0]))
 
@@ -856,8 +1014,10 @@ enum syntiant_ndp_notification_e {
     /**< Other load done notification  */
     SYNTIANT_NDP120_NOTIFICATION_DSP_NO_VAD_MIC_ERROR = 0x8000,
     /**< DSP no vad mic error */
+    SYNTIANT_NDP120_NOTIFICATION_SPI_READ_FAILURE = 0x10000,
+    /**< SPI read failure reported */
     SYNTIANT_NDP120_NOTIFICATION_ALL_M
-    = ((SYNTIANT_NDP120_NOTIFICATION_DSP_NO_VAD_MIC_ERROR << 1) - 1)
+    = ((SYNTIANT_NDP120_NOTIFICATION_SPI_READ_FAILURE << 1) - 1)
 };
 
 /**
@@ -939,6 +1099,23 @@ struct syntiant_ndp120_tiny_config_gpio_s{
 };
 
 /**
+ * @brief flash saved parameters signature
+ */
+#define NDP120_FLASH_SAVED_PARAMS_SIGNATURE     0xAABBCCDDU
+
+/**
+ * @brief flash saved parameters structure
+ */
+
+struct syntiant_ndp120_flash_saved_param {
+    struct syntiant_ndp120_config_mic_s aud;
+};
+struct syntiant_ndp120_tiny_flash_saved_params {
+    uint32_t signature;
+    struct syntiant_ndp120_flash_saved_param params;
+};
+
+/**
  * @brief configure clock
  *
  * Start, Stop, or Resume the PDM clock execution.
@@ -948,7 +1125,7 @@ struct syntiant_ndp120_tiny_config_gpio_s{
  * @return a @c SYNTIANT_NDP_ERROR_* code
  */
 int syntiant_ndp120_tiny_clock_cfg(struct syntiant_ndp120_tiny_device_s *ndp,
-        int *clock_option, uint32_t *mb_resp);
+        int *clock_option);
 
 /**
  * @brief get info from the device
@@ -1133,9 +1310,6 @@ int syntiant_ndp120_tiny_poll(struct syntiant_ndp120_tiny_device_s *ndp,
  * Extract data from the dsp firmware buffers.
  *
  * @param ndp NDP state object
- * @param type indicates data types like audio(input/annotated), feature.
- * @param from indicates from where to extract like FROM_MATCH, FROM_NEWEST,
- *        FROM_OLDEST, FROM_UNREAD.
  * @param data represents the buffer and gets updated with data.
  * @param lenp indicates the length of data. The inherent assumption is
  *        that the user provided buffer is at least as large as one frame's data
@@ -1209,7 +1383,7 @@ int syntiant_ndp120_tiny_get_audio_chunk_size(
  */
 int syntiant_ndp120_tiny_get_recording_metadata(
     struct syntiant_ndp120_tiny_device_s *ndp, uint32_t *sample_size,
-    int get_from, uint32_t notify);
+    int get_from);
 
 /**
  * @brief NDP120 audio extract start enables the match_per_frame interrupt
@@ -1365,6 +1539,36 @@ int syntiant_ndp120_tiny_serial_transfer(
 int syntiant_ndp120_tiny_enable_disable_sensor(
     struct syntiant_ndp120_tiny_device_s *ndp, uint8_t sensor_id,
     int enable);
+
+/**
+ * @brief NDP120 syntiant_ndp120_tiny_config_clk_div
+ * @param ndp NDP state object
+ * @param mcu_clk_div: value for clk divisor
+ * sets the clk div value to max so that the core freq is still > 1MHz.
+ * even if the provided value by user is too large.
+ * @param set : 1 indicates set operation and 0 indicates get operation.
+ */
+int syntiant_ndp120_tiny_config_clk_div(
+    struct syntiant_ndp120_tiny_device_s *ndp, uint32_t *mcu_clk_div, int set);
+
+/**
+ * @brief Configure SC2 device
+ * @brief Configure SC2 pdm audio parameters
+ * @param ndp NDP state object
+ * @param config NDP configuration object for get/set operation
+ */
+int syntiant_ndp120_tiny_config_pdm_audio_params(
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    struct syntiant_ndp120_tiny_config_s *config);
+
+/**
+ * @brief Configure SC2 device
+ * @param ndp NDP state object
+ * @param interrupt specifies from syntiant_ndp_interrupt_e
+ * @param enable: 1 for enable, 0 for disable
+ */
+int syntiant_ndp120_tiny_config_interrupts(struct
+    syntiant_ndp120_tiny_device_s *ndp, uint32_t interrupt, uint32_t enable);
 
 #ifdef __cplusplus
 }
