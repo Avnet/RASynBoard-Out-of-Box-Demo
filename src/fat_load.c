@@ -39,6 +39,7 @@ struct config_ini_items config_items ={  /* default settings */
 		.low_power_mode = DOWN_DOWN_LP_MODE,
 		.ble_mode = BLE_ENABLE,
 
+	    .cert_location = LOAD_CERTS_USE_DA16600_CERTS,
 		.target_cloud = CLOUD_NONE,
 		.wifi_ap_name = {0},
 		.wifi_passwd = {0},
@@ -549,7 +550,7 @@ static uint32_t read_config_file( void )
 
     config_items.target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
-    config_items.cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_FROM_HEADER, inifile);
+    config_items.cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_USE_DA16600_CERTS, inifile);
 
     ini_gets("Certs", "Root_CA_Filename", "Undefined", \
                         aws_rootCA_file_name, sizeof(aws_rootCA_file_name), inifile);
