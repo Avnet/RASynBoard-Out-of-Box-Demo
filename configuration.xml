@@ -311,7 +311,7 @@
       <property id="module.driver.spi.mosi_idle_value_fixing" value="module.driver.spi.mosi_idle_value_fixing.disable"/>
       <property id="module.driver.spi.parity" value="module.driver.spi.parity_mode.disable"/>
       <property id="module.driver.spi.byte_swap" value="module.driver.spi.byte_swap.disable"/>
-      <property id="module.driver.spi.bitrate" value="4000000"/>
+      <property id="module.driver.spi.bitrate" value="20000000"/>
       <property id="module.driver.spi.spck_delay" value="module.driver.spi.spck_delay.one"/>
       <property id="module.driver.spi.ssl_negation_delay" value="module.driver.spi.ssl_negation_delay.one"/>
       <property id="module.driver.spi.next_access_delay" value="module.driver.spi.next_access_delay.one"/>

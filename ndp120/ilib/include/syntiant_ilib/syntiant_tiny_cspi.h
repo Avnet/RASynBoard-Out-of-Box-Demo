@@ -28,7 +28,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v103**
+ 	** SDK: v100 **
 */
 
 #ifndef __SYNTIANT_CSPI_
@@ -50,8 +50,7 @@ extern "C" {
  * @param end_packet end packet, i.e. let SSB return to high, or continue packet with SSB low
  * @return a @c SYNTIANT_NDP_ERROR_* code
  */
-int syntiant_cspi_write(struct syntiant_ndp120_tiny_device_s *ndp,
-    unsigned int ssb, unsigned int num_bytes, void* data, int end_packet);
+int syntiant_cspi_write(struct syntiant_ndp120_tiny_device_s *ndp, int ssb, int num_bytes, uint8_t* data, int end_packet);
 
 /**
  * @brief NDP120 Controller SPI read
@@ -65,8 +64,7 @@ int syntiant_cspi_write(struct syntiant_ndp120_tiny_device_s *ndp,
  * @param end_packet end packet, i.e. let SSB return to high, or continue packet with SSB low
  * * @return a @c SYNTIANT_NDP_ERROR_* code
  */
-int syntiant_cspi_read (struct syntiant_ndp120_tiny_device_s *ndp,
-    unsigned int ssb, unsigned int num_bytes, void* data, int end_packet);
+int syntiant_cspi_read (struct syntiant_ndp120_tiny_device_s *ndp, int ssb, int num_bytes, uint8_t* data, int end_packet);
 
 /**
  * @brief Initialize NDP120 Controller SPI
