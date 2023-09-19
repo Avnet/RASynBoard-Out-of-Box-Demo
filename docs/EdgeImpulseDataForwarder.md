@@ -77,7 +77,7 @@ Power_Mode=0
 ```
 Remove the microSD card and insert into the RAsynBoard. Connect a USB Serial adapter to the RASynBoard as shown below:
 
-![](../images/UartConnection.jpg "")
+![](./assets/images/images/UartConnection.jpg "")
 
 Power on the RASynBoard.
 
@@ -87,7 +87,7 @@ Create a free account with Edge Impulse and create a new project if one isn't al
 
 Press the user button to start printing IMU data to the serial port:
 
-![](../images/UserButton.jpg "")
+![](./assets/images/UserButton.jpg "")
 
 From a terminal window, run the following command:
 
@@ -143,14 +143,14 @@ If you only have one project in your Edge Impulse account, the tool will automat
 ```
 
 Navigate to the acquisition link that the tool provides. You should be presented with the following screen:
-![Edge Impulse Acquisition Screen](assets/acq_landing_screen.png "Edge Impulse Acquisition Screen")
+![Edge Impulse Acquisition Screen](./assets/images/acq_landing_screen.png "Edge Impulse Acquisition Screen")
 
 On the right side of the screen, there's a `Collect Data` pane. This is where you specify the label for the data being collected, along with the sample size. In this case, `circle` has been entered for the label and a sample size of 5000 ms will be collected.
-![Collect Data Pane](assets/acq_collect_data.png "Collect Data Pane")
+![Collect Data Pane](./assets/images/acq_collect_data.png "Collect Data Pane")
 
 Click the `Start sampling` button and press the user button on the RASynBoard. At this point, the forwarder will start sampling the sensors on the device.
 
 Once the sample period has completed, the data should be uploaded to Edge Impulse and you should see the samples appear:
-![Collected Samples](assets/acq_sampled_data.png "Collected Samples")
+![Collected Samples](./assets/images//acq_sampled_data.png "Collected Samples")
 
 More information on the data forwarder can be found at the following link: https://docs.edgeimpulse.com/docs/edge-impulse-cli/cli-data-forwarder

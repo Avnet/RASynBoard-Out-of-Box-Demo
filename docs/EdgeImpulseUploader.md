@@ -86,23 +86,23 @@ Create a free account with Edge Impulse and create a new project if one isn't al
 
 Press the user button to start printing IMU data to the serial port:
 
-![](../images/UserButton.jpg "")
+![](assets/images/UserButton.jpg "")
 
 Navigate back to the projects page and select your project. In the project, select the `Data Acqusition page. Startup the CSV Wizard by clicking CSV Wizard:
-![Edge Impulse Acquisition Screen](assets/acq_upload_button.png "Edge Impulse Acquisition Screen")
+![Edge Impulse Acquisition Screen](assets/images/acq_upload_button.png "Edge Impulse Acquisition Screen")
 
 Remove the microSD card from the RASynBoard and mount it on your computer. Click select file and select the IMU csv file:
-![Select File](assets/acq_select_file.png "Select File")
+![Select File](assets/images/acq_select_file.png "Select File")
 
 You should be presented with a preview of the uploaded data.
 
 Remove the microSD card from the RASynBoard and mount it on your computer. Click select file and select the IMU csv file:
-![Preview Data](assets/acq_preview.png "Preview Data")
+![Preview Data](assets/images/acq_preview.png "Preview Data")
 
 Click the next button.
 
 You'll be presented with a pane to specify the type of data. Ensure that the time series option is slected and the option stating each column contains a reading and fill row contains a sample:
-![Step 3](assets/acq_upload_step_3.png "Step 3")
+![Step 3](assets/images/acq_upload_step_3.png "Step 3")
 
 Click the next button.
 
@@ -115,7 +115,7 @@ accel,gyro
 ```
 
 For data frequency, enter 100Hz
-![Step 4](assets/acq_upload_step_4.png "Step 4")
+![Step 4](assets/images/acq_upload_step_4.png "Step 4")
 
 Finally, select finish wizard.
 
