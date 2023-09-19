@@ -37,7 +37,7 @@ Once the images have been moved to SPI Flash, the application will run from SPI 
 1. The microSD card is removed from the I/O board
 1. The I/O board is separated from the core board
 
-![](./assets/writeToFlash.jpg "")
+![](./assets/images/writeToFlash.jpg "")
 
 **Note: Use caution when separating and re-attaching the core board from/to the I/O board as the interconnect pins have a fine pitch and are easy to damage.**
 
@@ -81,7 +81,7 @@ The OOB features are configured by editing the config.ini file located on the mi
 
 The application will output the current configuration.
 
-![](./assets/configOutput.jpg "")
+![](./assets/images/configOutput.jpg "")
 
 ## ndp120 Configuration
 The ndp120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the \*.synpkg files.  These files are usually delivered together and should only be used together. New model files and ndp120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the ndp120 files in the root directory of the microSD card.
@@ -101,12 +101,12 @@ Each ```[Function_x]``` block defines a description, and the three required ndp1
 - ```DSP``` refers to the dsp firmware that runs on the ndp120.  This firmware does data pre-processing plus other functions.
 - ```DNN``` refers to the Nerual Network Parameters and ML model.  This firmware implements the ML model.
 
-![](./assets/ndpConfig.jpg "")
+![](./assets/images/ndpConfig.jpg "")
 
 ## LED control
 The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the ndp120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
 
-![](./assets/ledConfig.jpg "")
+![](./assets/images/ledConfig.jpg "")
 
 ## Debug Print
 The application can be configured to output debug messages to either the UART exposed on the PMOD connector (I/O Board), or the USB-C UART on the core board (the smaller board).  
@@ -119,21 +119,21 @@ The application can be configured to output debug messages to either the UART ex
 
 **Note the application must bring this UART connection on-line when the application starts.  Because of this delay, most of the startup debug will not be displayed on the UART.**
 
-![](./assets/debugConfig.jpg "")
+![](./assets/images/debugConfig.jpg "")
 
 ## Recording Period
 The application can record audio or IMU data.
 
 1.```[Recording Period]-->Recording_Period``` defines how long the application collects/records data in units of seconds.
  
-![](./assets/recordingPeriodConfig.jpg "")
+![](./assets/images/recordingPeriodConfig.jpg "")
 
 ## 6-Axis IMU Data Stream Features
 The OOB application can capture 6-Axis IMU data either to a \*.csv file on the microSD card, and/or stream data out the debug UART.  
 
 **Note: in order to capture 6-Axis IMU data the active ```[Function_x]``` block must contain ```Button_shift=imu``` within the block.  This is true for any active ```[Function_x]``` block even if the block defines audio detection files.**
 
-![](./assets/imuButtonShift.jpg "")
+![](./assets/images/imuButtonShift.jpg "")
 
 **Note: There is currenty a bug if you try to use the circular motion ```[Function_3]``` block to capture 6-Axis IMU data.  If you need to capture 6-Axis IMU data please use the ```[Function_1]``` block.  (AAGBT-82)**
 
@@ -147,7 +147,7 @@ The OOB application can capture 6-Axis IMU data either to a \*.csv file on the m
 - ```[IMU data stream]-->Print_to_terminal=1``` tells the application to stream IMU data to the debug UART for ```[Recording Period]-->Recording_Period``` seconds when the user button is pressed.  This data can be used in conjunction with the [Edge Impulse Data Forwarder](./EdgeImpulseDataForwarder.md) to stream 6-Axis IMU data directly to Edge Impulse.
 - ```[IMU data stream]-->Print_to_terminal=0``` disables this feature
 
-![](./assets/imuDataConfig.jpg "")
+![](./assets/images/imuDataConfig.jpg "")
 
 ## Low Power Mode
 The OOB application supports low-power mode.  When in the low-power state, the RA6 device is put into sleep mode, and the DA16600 WiFi/BLE device is held in reset.  The low power mode configuration section defines when the applicatoin enters and exits low power mode.
@@ -160,7 +160,7 @@ The OOB application supports low-power mode.  When in the low-power state, the R
 
 **Note: The data recording feature is disabled when ```[Low Power Mode]-->Power_Mode=1```**
 
-![](./assets/lowPowerConfig.jpg "")
+![](./assets/images/lowPowerConfig.jpg "")
 
 ## BLE Mode
 
@@ -171,7 +171,7 @@ The application can broadcast inference results over BLE that can be displayed o
 - ```[BLE Mode]-->BLE_Enabled=0```: Disable the BLE functionality (default)
 - ```[BLE Mode]-->BLE_Enabled=1```: Enable the BLE functionality
 
-![](./assets/bleConfig.jpg "")
+![](./assets/images/bleConfig.jpg "")
 
 ## Cloud Connectivity
 The OOB application implements logic to send telemetry to a cloud provider.  The first release connects to the Avnet IoTConnect Cloud solution built on AWS.  In the future, the application will also interface directly with AWS or Azure.  
@@ -185,7 +185,7 @@ There are multiple configuration items required to establish an MQTT connection.
 1. ```[WIFI]-->Access_Point=<Your AP SSID Here>```: Used to set your WiFi access point SSID
 1. ```[WIFI]-->Access_Point_Password=<Your AP Password Here>```: Used to set your WiFi Access Point password 
 
-![](./assets/wifiConfig.jpg "")
+![](./assets/images/wifiConfig.jpg "")
 
 ### Target Cloud Provider
 The application currently only supports IoTConnect on AWS, however we have feature enhancement tickets written to add AWS and Azure implementations.  The ```[Cloud Connectivity]-->Target_Cloud``` configuration item is used to define which service the device should connect to.  
@@ -200,7 +200,7 @@ The application currently only supports IoTConnect on AWS, however we have featu
 - ```[Cloud Connectivity]-->Target_Cloud=2```: Connect to AWS (Not currently implemented)  
 - ```[Cloud Connectivity]-->Target_Cloud=3```: Connect to Azure (Not currently implemented)  
 
-![](./assets/cloudConfiguratioin.jpg "")
+![](./assets/images/cloudConfiguratioin.jpg "")
 
 ### IoTConnect
 Please see the [IoTConnect](./IoTConnect.md) document for details on how to . . . 
@@ -212,5 +212,5 @@ Please see the [IoTConnect](./IoTConnect.md) document for details on how to . . 
 - ```[IoTConnect]-->Device_Unique_ID=<your device id here>```: Enter the Unique Device ID as defined in your IoTConnect account. - ```[IoTConnect]-->CPID=<your IoTConnect company ID here>```: Enter the 32 character company ID
 - ```[IoTConnect]-->Environment=<your IoTConnect environment varaible```: Enter the environment here i.e., poc, prod
 
-![](./assets/iotConnectConfig.jpg "")
+![](./assets/images/iotConnectConfig.jpg "")
 
