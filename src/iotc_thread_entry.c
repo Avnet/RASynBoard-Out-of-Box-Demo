@@ -9,6 +9,7 @@
 #include "queue.h"
 #include "certs.h"
 #include "iotc_thread_entry.h"
+#include "stdbool.h"
 
 #define IoTC_ENV    "poc"
 #define MAX_RETRIES 2
@@ -52,6 +53,7 @@ void failure_state(void);
 
 // Helper functions
 void extractJSON(char*);
+bool reestablish_mqtt_conn(void);
 
 #define DEBUG_IOTC_PRINT
 #ifdef  DEBUG_IOTC_PRINT
@@ -468,8 +470,6 @@ void setup_network(void){
 
 void run_discovery(void)
 {
-    static int failCnt = 0;
-    int delayCnt = 0;
     EventBits_t   evbits;
 
     static const char discoveryString[] = {"AT+NWHTCH=https://awsdiscovery.iotconnect.io/api/v2.1/dsdk/cpId/%s/env/%s,get"};
@@ -477,20 +477,12 @@ void run_discovery(void)
 
     iotc_print("IoTConnect-state: RUN_DISCOVERY\n");
 
-    // Check to see if we're stuck trying to receive the discovery data
-    if(MAX_RETRIES == failCnt){
-        printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
-        currentState = FAILURE_STATE;
-        return;
-    }
-
     // Build the discovery command using the configured IoTConnect CPID and env strings
     memset(httpsBuffer,'\0',sizeof(httpsBuffer));
     snprintf(jsonString, JSON_STRING_SIZE, discoveryString,  get_iotc_cpid(), get_iotc_env());
 
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send(jsonString, 5000, buf, sizeof(buf))){
-        failCnt++;
         return;
     }
 
@@ -499,13 +491,8 @@ void run_discovery(void)
     evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 10000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
-        if(MAX_RETRIES == delayCnt++){
-            currentState = SETUP_NETWORK;
-            return;
-        }
-
-        // If we timed out but did not iit the max retries, just return.  The state machine will run this state again.
-        printf("WARNING: Timeout waiting for https response from IoTConnect, trying again . . . \n");
+        // If we timed out but did not hit the max retries, just return.  The state machine will run this state again.
+        iotc_print("WARNING: Timeout waiting for https response from IoTConnect, trying again . . . \n");
         return;
     }
 
@@ -541,8 +528,6 @@ void run_discovery(void)
             }
 
             cJSON_Delete(root);
-            currentState = SETUP_NETWORK;
-            failCnt++;
             return;
         }
 
@@ -561,9 +546,7 @@ void run_discovery(void)
 
     //iotc_print("IDENTITY URL: %s\n\r",identityURL);
 
-    // We got through each step without errors, clear the error count
-    // and set the next state;
-    failCnt = 0;
+    // We got through each step without errors set the next state;
     currentState = GET_IDENTITY;
     return;
 }
@@ -574,7 +557,6 @@ void get_identity(void)
 #define FINAL_IDENTITY_SIZE 256
     char finalIdentityURL[FINAL_IDENTITY_SIZE] = {'\0'};
     char jsonString[JSON_STRING_SIZE] = {'\0'};
-    static int errCnt = 0;
     EventBits_t evbits;
 
     iotc_print("IoTConnect-state: GET_IDENTITY\n");
@@ -596,18 +578,8 @@ void get_identity(void)
     if (FSP_SUCCESS != rm_atcmd_send(finalIdentityURL, 5000,buf, sizeof(buf)))
     {
 
-        printf("ERROR: Failed to pull Identity from IoTConnect, trying again . . .\n");
-
-        // If we fail here for more than MAX_RETRIES times, something is
-        // wrong and we likely won't be able to connect.  Enter the failure
-        // state.
-        if(MAX_RETRIES == ++errCnt){
-            currentState = FAILURE_STATE;
-            return;
-        }
-
-        printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
-        currentState = SETUP_NETWORK;
+        iotc_print("ERROR: Failed to pull Identity from IoTConnect, trying again . . .\n");
+        return;
     }
 
 
@@ -616,14 +588,9 @@ void get_identity(void)
     evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 5000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
-        if(MAX_RETRIES == ++errCnt){
-            printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
-            currentState = FAILURE_STATE;
-            return;
-        }
-
-        printf("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
-        currentState = SETUP_NETWORK;
+        iotc_print("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
+        return;
+//        currentState = SETUP_NETWORK;
     }
 
     // Pull the JSON from httpsBuffer
@@ -678,12 +645,7 @@ void get_identity(void)
     // Verify we have a valid JSON document, if not the call returns NULL
     cJSON *root = cJSON_Parse(jsonString);
     if (root == NULL) {
-            const char *error_ptr = cJSON_GetErrorPtr();
-            if (error_ptr != NULL) {
-                printf("ERROR: Not able to detect JSON in https response message: %s\n", error_ptr);
-            }
             cJSON_Delete(root);
-            currentState = DISCOVERY;
             return;
         }
 
@@ -724,7 +686,6 @@ void setup_mqtt(void)
     // Disable the MQTT client while we setup the connection details
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=0", 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
@@ -733,7 +694,6 @@ void setup_mqtt(void)
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_iotc_uid());
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
@@ -743,8 +703,6 @@ void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQBR=%s,8883",hostnameString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-
-        currentState = DISCOVERY;
         return;
     }
 
@@ -754,7 +712,6 @@ void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQTS=1,%s",subTopicString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-       currentState = DISCOVERY;
         return;
     }
 
@@ -764,21 +721,18 @@ void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQTP=%s",pubTopicString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
     // Enable the MQTT over TLS function
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLS=1", 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
     // All the MQTT configuration items have been sent, enable the MQTT client!
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=1", 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
@@ -792,14 +746,13 @@ void setup_mqtt(void)
 
         // If we have to wait too long for the MQTT connect, exit to try again.
         if(MAX_TIMEOUTS == ++timeoutCnt){
-            currentState = DISCOVERY;
             return;
         }
-        vTaskDelay(2000);
+
+        vTaskDelay(4000);
     }
 
-    printf("INFO: MQTT Connection established to IoTConnect on AWS!\n");
-
+    iotc_print("INFO: MQTT Connection established to IoTConnect on AWS!\n");
     currentState = WAIT_FOR_TELEMETRY_DATA;
     return;
 }
@@ -822,11 +775,11 @@ void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
     // Verify we have a valid JSON document, if not the call returns NULL
     cJSON *userTelemetry = cJSON_Parse(newTelemetry);
     if (userTelemetry == NULL) {
-                printf("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
+                iotc_print("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
                 cJSON_Delete(userTelemetry);
                 return;
     }
-    printf("%s\n", newTelemetry);
+    iotc_print("%s\n", newTelemetry);
 
     // Get the current time to include in the telemetry message
     do
@@ -882,7 +835,7 @@ void wait_for_telemetry(void){
     char mqttPublishMessage[MQTT_MSG_SIZE] = {'\0'};
     char mqttJson[MQTT_JSON_SIZE] = {'\0'};
 
-    printf("Waiting for Telemery data!\n");
+    iotc_print("Waiting for Telemery data!\n");
 
     while(pdTRUE){
 
@@ -893,8 +846,9 @@ void wait_for_telemetry(void){
         memset(buf, '\0', ATBUF_SIZE);
         rm_atcmd_check_value("AT+NWMQCL",5000,buf,sizeof(buf));
         if(buf[0] != '1'){
-            currentState = SETUP_NETWORK;
-            return;
+            if(!reestablish_mqtt_conn()){
+                return;
+            }
         }
 
         // Construct the IoTConnect telemetry
@@ -916,6 +870,48 @@ void wait_for_telemetry(void){
         // Free the memory that held the incoming JSON.
         vPortFree((void*) newMsg.msgPtr);
     }
+}
+
+// We call this function if we had previously established the TLS MQTT connection, then we lost it.
+// Maybe we lost the wifi connection, maybe we put the device into a low power state.  Anyway, the DA16600 has
+// all the details it needs to reestablish the network and mqtt connection, we just need to let it do its thing.
+bool reestablish_mqtt_conn(void){
+
+    iotc_print("Reestablishing MQTT connection\n");
+    int timeoutCnt = 0;
+
+    // AT command initialize
+    memset(buf, '\0', ATBUF_SIZE);
+    rm_atcmd_send("ATZ",1000,buf,sizeof(buf));
+
+    // Command Echo
+    memset(buf, '\0', ATBUF_SIZE);
+    rm_atcmd_send("ATE",1000,buf,sizeof(buf));
+
+    // spin here until we have a valid MQTT connection
+    do{
+
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_check_value("AT+NWMQCL",2000,buf,sizeof(buf));
+
+//        iotc_print("Check for MQTT connection\n");
+        vTaskDelay(1000);
+
+        // If we checked for an mqtt connection 25 times, then kick
+        // the mqtt connection again.
+        if(25 < timeoutCnt++){
+
+//            iotc_print("Giving up, change to the SETUP_MQTT state to start the connection atain\n");
+            currentState = SETUP_MQTT;
+            return false;
+        }
+
+    }
+    while(buf[0] != '1');
+
+    iotc_print("MQTT connection ready!\n");
+    currentState = WAIT_FOR_TELEMETRY_DATA;
+    return true;
 }
 
 void failure_state(void){
