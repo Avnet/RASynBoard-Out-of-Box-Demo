@@ -2,9 +2,7 @@
 #include "led.h"
 #include <stdio.h>
 #include "fat_load.h"
-
-#define   wifi_sleep()			R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW)
-#define   wifi_wakup()			R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH)
+#include "rm_wifi_da16600.h"
 
 // Local globals
 static uint32_t sleep_time = pdMS_TO_TICKS(500UL);
