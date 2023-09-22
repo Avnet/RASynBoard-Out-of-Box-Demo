@@ -72,28 +72,6 @@ void iotc_thread_entry(void *pvParameters)
     /* Wait for console thread initialization to complete */
     xSemaphoreTake( g_xInitialSemaphore, portMAX_DELAY );
 
-    // Make sure that the da16600 is disabled.  We'll enable it if we determine that it will be
-    // used in the current configuration
-    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
-
-    // Only initialize the da16600 if wer're going to use it.  Otherwise we keep
-    // the device in reset to conserve power consumption
-    if((BLE_ENABLE == get_ble_mode()) || (CLOUD_NONE != get_target_cloud())){
-
-        // Initialize the AT module UART and start the atcmd thread.  We do this here
-        // so that the ndp_thread can send BLE commands even if we're not connecting the
-        // device to the cloud.
-        rm_wifi_da16600_init();
-    }
-
-    // Check to see if we're configured to connect to Avnet's IoT Connect Cloud Solution
-    // If not, then kill this task
-    if(CLOUD_IOTCONNECT != get_target_cloud()){
-        vTaskDelete(NULL);
-    }
-
-    iotc_print("IoT Connect on AWS (MQTT) Thread Running...\r\n");
-
     // The application is using the FreeRTOS heap4 heap management implementation.
     // Redefine the cJSON malloc and free calls to use the correct calls
     // to use heap4 memory.
@@ -112,7 +90,8 @@ void iotc_thread_entry(void *pvParameters)
         iotc_print("Could not allocate buf memory, exiting thread!\n");
         vTaskDelete(NULL);
     }
-    memset(buf, '\0', ATBUF_SIZE);
+
+    printf("IoT Connect on AWS (MQTT) Thread Running...\r\n");
 
     // Set the initial state
     currentState = INIT_DA16600;
@@ -160,12 +139,17 @@ void iotc_thread_entry(void *pvParameters)
     }
     vTaskDelete(NULL);
 }
-
 void init_da16600(void){
 
     static int failCnt = 0;
 
     iotc_print("IoTConnect-state: INIT_DA16600\n");
+
+    // Put the DA16600 into reset
+    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
+
+    // Initialize the AT module UART and start the atcmd thread.
+    rm_wifi_da16600_init();
 
     if(MAX_RETRIES == failCnt ){
         printf("ERROR: Could not initialize DA16600\n");
@@ -195,9 +179,51 @@ void init_da16600(void){
     memset(buf, '\0', ATBUF_SIZE);
     rm_atcmd_send("ATE",1000,buf,sizeof(buf));
 
-    currentState = LOAD_CERTS;
-}
 
+    // Only initialize the da16600 if we're going to use it.
+    if((BLE_ENABLE == get_ble_mode()) || (CLOUD_NONE != get_target_cloud())){
+
+        // Check to see if we're configured to connect to one of the supported Cloud Solutions.
+        // If not, then reset the DA16600 to factory defaults so any previous configurations are 
+        // removed from the device.
+        if(CLOUD_NONE == get_target_cloud()){
+
+            // Send the NVRAM clean command.  This resets the DA16600 to factory defaults.
+            // Any MQTT configuration or certificates will be removed from the device.
+            memset(buf, '\0', ATBUF_SIZE);
+            rm_atcmd_send("ATF", 5000,buf, sizeof(buf));
+
+            // Delay to allow the DA16600 to reset
+            vTaskDelay(2000);
+        }
+
+        if(BLE_ENABLE == get_ble_mode()){
+
+            memset(buf, '\0', ATBUF_SIZE);
+            rm_atcmd_send("AT+BLENAME=RASynBoard-make-me-configurable", 5000,buf, sizeof(buf));
+        }
+        else{
+            // Disable all BLE advertising
+            rm_atcmd_send("AT+ADVSTOP", 5000,buf, sizeof(buf));
+        }
+
+        if(CLOUD_NONE == get_target_cloud()){
+
+            printf("No cloud configuration found: Exiting cloud connectivity Thread\n");
+
+            // Free the buf memory
+            if (buf){
+                vPortFree(buf);
+            }
+
+            vTaskDelete(NULL);
+        }
+        else{
+                // Set the next state to load the certificates
+                currentState = LOAD_CERTS;
+        }
+    }
+}
 
 fsp_err_t loadAWS_certificates(int certId)
 {
