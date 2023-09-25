@@ -394,94 +394,98 @@ void setup_network(void){
     size_t nwipReturnStringLen = 0;
     static int failCnt = 0;
     static int level2FailCnt = 0;
+    int timeCheck = 0;
     char atcmd[256]={'\0'};
 
     iotc_print("IoTConnect-state: SETUP_NETWORK\n");
 
-    // Check to see if we're stuck trying to connect to the network
-    if(MAX_RETRIES <= failCnt){
+    if(USE_CONFIG_WIFI_SETTINGS == get_wifi_config()){
 
-        // Check to see if we've tried to call rm_wifi_da16600_init already while trying to recover the
-        // network.  If not, give it a try before giving up.
-        if( 1 > level2FailCnt++){
+        // Check to see if we're stuck trying to connect to the network
+        if(MAX_RETRIES <= failCnt){
 
-            // Lets try one last thing before we give up on the network connection
-            rm_wifi_da16600_init();
-            currentState = INIT_DA16600;
-            failCnt = 0;
+            // Check to see if we've tried to call rm_wifi_da16600_init already while trying to recover the
+            // network.  If not, give it a try before giving up.
+            if( 1 > level2FailCnt++){
+
+                // Lets try one last thing before we give up on the network connection
+                rm_wifi_da16600_init();
+                currentState = INIT_DA16600;
+                failCnt = 0;
+                return;
+            }
+
+            printf("ERROR: Did not connect to the network, verify your network credentials\n");
+            currentState = FAILURE_STATE;
             return;
         }
 
-        printf("ERROR: Did not connect to the network, verify your network credentials\n");
-        currentState = FAILURE_STATE;
-        return;
-    }
+        // Set WiFi mode to Station mode
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("AT+WFMODE=0",1000,buf,sizeof(buf));
 
-    // Set WiFi mode to Station mode
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+WFMODE=0",1000,buf,sizeof(buf));
+        // Read the wifi mode to verify it's set to station (0)
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("AT+WFMODE",1000,buf,sizeof(buf));
 
-    // Read the wifi mode to verify it's set to station (0)
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+WFMODE",1000,buf,sizeof(buf));
+        // Set the two letter Wi-Fi country code: https://www.iso.org/obp/ui/#search
+        memset(buf, '\0', ATBUF_SIZE);
+        snprintf(atcmd, sizeof(atcmd), "AT+WFCC=%s", get_wifi_cc());
+        rm_atcmd_send(atcmd,1000,buf,sizeof(buf));
 
-    // Set the two letter Wi-Fi country code: https://www.iso.org/obp/ui/#search
-    memset(buf, '\0', ATBUF_SIZE);
-    snprintf(atcmd, sizeof(atcmd), "AT+WFCC=%s", get_wifi_cc());
-    rm_atcmd_send(atcmd,1000,buf,sizeof(buf));
+        // Verify that the AP SSID is configured before trying to connect to the network
+        if(strcmp(get_wifi_ap(), "WiFi AP Name Undefined") == 0){
+            printf("ERROR: WiFi credentials are not defined.  Edit config.ini file to add WiFi credentials\n");
+            currentState = FAILURE_STATE;
+            return;
+        }
 
-    // Verify that the AP SSID is configured before trying to connect to the network
-    if(strcmp(get_wifi_ap(), "WiFi AP Name Undefined") == 0){
-        printf("ERROR: WiFi credentials are not defined.  Edit config.ini file to add WiFi credentials\n");
-        currentState = FAILURE_STATE;
-        return;
-    }
+        // Construct the "Connect to AP" command using
+        // * SSID from configuration
+        // * 4 == WPA+WPA2
+        // * 1 == Key Index
+        // * SSID password from configuration
+        snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
+        rm_atcmd_check_ok(atcmd, 10000);
 
-    // Construct the "Connect to AP" command using
-    // * SSID from configuration
-    // * 4 == WPA+WPA2
-    // * 1 == Key Index
-    // * SSID password from configuration
-    snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
-    rm_atcmd_check_ok(atcmd, 10000);
+        // Start the DHCP Client
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("AT+NWDHC=1",5000,buf,sizeof(buf));
 
-    // Start the DHCP Client
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+NWDHC=1",5000,buf,sizeof(buf));
+        // Get the WiFi configuration from the DA16600
+        memset(buf, '\0', ATBUF_SIZE);
+        if(FSP_SUCCESS != rm_atcmd_check_value("AT+WFSTAT",5000,buf,sizeof(buf))){
+            failCnt++;
+            return;
+        }
 
-    // Get the WiFi configuration from the DA16600
-    memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_check_value("AT+WFSTAT",5000,buf,sizeof(buf))){
-        failCnt++;
-        return;
-    }
+        memset(buf, '\0', ATBUF_SIZE);
+        if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,sizeof(buf))){
+            // 0,192.168.0.143,255.255.255.0,192.168.0.1",
+            failCnt++;
+            return;
+        }
 
-    memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,sizeof(buf))){
-        // 0,192.168.0.143,255.255.255.0,192.168.0.1",
-        failCnt++;
-        return;
-    }
+        // Calculate the length of a return string where no address' are defined
+        // We'll use this to determine if we have an IP address
+        nwipReturnStringLen = strlen("0,0.0.0.0,0.0.0.0,0.0.0.0");
 
-    // Calculate the length of a return string where no address' are defined
-    // We'll use this to determine if we have an IP address
-    nwipReturnStringLen = strlen("0,0.0.0.0,0.0.0.0,0.0.0.0");
+        // Check the size of the string returned, if we did not get an ip address and
+        // gateway address, output a message and try again
+        if(strlen(buf) <= nwipReturnStringLen ){
 
-    // Check the size of the string returned, if we did not get an ip address and
-    // gateway address, output a message and try again
-    if(strlen(buf) <= nwipReturnStringLen ){
+            printf("\nERROR: DA16600 did not connect to a Wi-Fi Access Point, verify your Access Point Credentials, trying again . . . \n");
+            failCnt++;
+            return;
+        }
 
-        printf("\nERROR: DA16600 did not connect to a Wi-Fi Access Point, verify your Access Point Credentials, trying again . . . \n");
-        failCnt++;
-        return;
-    }
+        // Start the SNTP client
+        if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWSNTP=1,pool.ntp.org,60",2000)){
+            failCnt++;
+            return;
+        }
 
-    // Start the SNTP client
-    if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWSNTP=1,pool.ntp.org,60",2000)){
-        failCnt++;
-        return;
-    }
-
+    } // End !USE_RENESAS_TOOL_FOR_CONFIG
     // Make sure we get a valid time from the time server before moving on . . .
     do {
         // Get the current GMT time from the time server
@@ -492,6 +496,13 @@ void setup_network(void){
         }
 
         vTaskDelay(1000);
+
+        if(USE_RENESAS_TOOL_FOR_CONFIG == get_wifi_config() && 10 < timeCheck++ ){
+
+            printf("\n\nWaiting for a connection to the internet, verify your Wi-Fi network is setup\n");
+            printf("using the Renesas Wi-Fi Provisioning Tool from your device's App store\n");
+            timeCheck = 0;
+        }
 
       // Loop until the time returned is not the default 1/1/1970
     } while (0 == strncmp(buf, "1970-01-01",strlen("1970-01-01")));

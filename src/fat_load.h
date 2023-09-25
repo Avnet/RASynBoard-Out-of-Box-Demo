@@ -83,6 +83,10 @@ enum CERT_ID_TYPE {
     DEVICE_PUBLIC_KEY = 2,
 };
 
+enum WIF_CONFIG_TYPE {
+    USE_RENESAS_TOOL_FOR_CONFIG = 0,
+    USE_CONFIG_WIFI_SETTINGS = 1,
+};
 
 struct config_ini_items {
 	/* save the settings from config.ini */
@@ -99,6 +103,7 @@ struct config_ini_items {
 	int cert_location;          /** [CERTS]-->Cert_Location **/
 
 	int target_cloud;			/** [Cloud Connectivity]-->Target_Cloud **/
+    int wifi_config;            /** [WIFI]--> Use_Config_AP_Details**/
 	char wifi_ap_name[64];		/** [WIFI]-->Access_Point **/
 	char wifi_passwd[64];		/** [WIFI]-->Access_Point_Password **/
 	char wifi_cc[4];			/** [WIFI]-->Country_Code **/
@@ -147,6 +152,7 @@ int get_target_cloud( void );
 int get_load_certificate_from( void );
 char* get_certificate_file_name( int );
 bool get_certificate_data( char*, int, char*);
+int get_wifi_config( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
