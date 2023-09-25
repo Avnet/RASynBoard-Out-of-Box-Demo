@@ -41,6 +41,7 @@ struct config_ini_items config_items ={  /* default settings */
 
 	    .cert_location = LOAD_CERTS_USE_DA16600_CERTS,
 		.target_cloud = CLOUD_NONE,
+        .wifi_config = USE_RENESAS_TOOL_FOR_CONFIG,
 		.wifi_ap_name = {0},
 		.wifi_passwd = {0},
 		.wifi_cc = {0},
@@ -532,6 +533,8 @@ static uint32_t read_config_file( void )
             config_items.ble_name, sizeof(config_items.ble_name), inifile);
 
     // WiFi configuration
+    config_items.wifi_config = ini_getl("WIFI", "Use_Config_AP_Details", USE_RENESAS_TOOL_FOR_CONFIG, inifile);
+
     ini_gets("WIFI", "Access_Point", "WiFi AP Name Undefined", \
                         config_items.wifi_ap_name, sizeof(config_items.wifi_ap_name), inifile);
 
@@ -662,6 +665,11 @@ int get_low_power_mode( void )
     return config_items.low_power_mode;
 }
 
+int get_wifi_config( void )
+{
+    return config_items.wifi_config;
+}
+
 int is_imu_data_to_file( void )
 {
     return config_items.imu_write_to_file;
@@ -787,9 +795,16 @@ void printConfg(void)
         }
 
         printf("\n  WiFi Configuration\n");
-        printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
-        printf("    Access Point password: %s\n", config_items.wifi_passwd);
-        printf("    Country Code         : %s\n\n", config_items.wifi_cc);
+
+        if(USE_CONFIG_WIFI_SETTINGS == get_wifi_config()){
+
+            printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
+            printf("    Access Point password: %s\n", config_items.wifi_passwd);
+            printf("    Country Code         : %s\n\n", config_items.wifi_cc);
+        }
+        else{
+            printf("    Please use the Renesas Wi-Fi Provisioning Tool from your app store to \nconfigure the Wi-Fi network.\n");
+        }
     }
 }
 
