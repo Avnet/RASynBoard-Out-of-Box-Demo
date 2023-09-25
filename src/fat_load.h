@@ -20,6 +20,8 @@
 #define DEVICE_CERT_FILE_NAME       "cert_DEVICE_NAME.crt"
 #define DEVICE_PUBLIC_KEY_FILENAME  "pk_DEVICE_NAME.pem"
 
+#define BLE_DEFAULT_NAME "DA16600-"
+
 #define LED_EVENT_NUM           10
 
 enum FW_LOAD_TYPE {
@@ -104,6 +106,8 @@ struct config_ini_items {
 	char iotc_uid[64];			/** [IoTConnect]-->Device_Unique_ID **/
 	char iotc_cpid[64];			/** [IoTConnect]-->CPID **/
 	char iotc_env[64];			/** [IoTConnect]-->Environment **/
+
+	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
 };
 
 extern struct config_ini_items config_items;
@@ -132,6 +136,7 @@ int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
 int is_file_exist_in_sdcard( char *filename );
 int get_ble_mode( void );
+char* get_ble_name( void );
 char* get_wifi_ap( void );
 char* get_wifi_pw( void );
 char* get_wifi_cc( void );

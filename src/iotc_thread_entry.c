@@ -139,8 +139,10 @@ void iotc_thread_entry(void *pvParameters)
     }
     vTaskDelete(NULL);
 }
+
 void init_da16600(void){
 
+    char atcmd[64] = {'\0'};
     static int failCnt = 0;
 
     iotc_print("IoTConnect-state: INIT_DA16600\n");
@@ -179,50 +181,56 @@ void init_da16600(void){
     memset(buf, '\0', ATBUF_SIZE);
     rm_atcmd_send("ATE",1000,buf,sizeof(buf));
 
+    // Check to see if we're configured to connect to one of the supported Cloud Solutions.
+    // If not, then reset the DA16600 to factory defaults so any previous configurations are
+    // removed from the device.
+    if(CLOUD_NONE == get_target_cloud()){
 
-    // Only initialize the da16600 if we're going to use it.
-    if((BLE_ENABLE == get_ble_mode()) || (CLOUD_NONE != get_target_cloud())){
+        // Send the NVRAM clean command.  This resets the DA16600 to factory defaults.
+        // Any MQTT configuration or certificates will be removed from the device.  This
+        // command will also blow away our BLE advertisement setting, so we do this operation
+        // before determining if we're going to set a custom advertisement name.
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("ATF", 5000,buf, sizeof(buf));
 
-        // Check to see if we're configured to connect to one of the supported Cloud Solutions.
-        // If not, then reset the DA16600 to factory defaults so any previous configurations are 
-        // removed from the device.
-        if(CLOUD_NONE == get_target_cloud()){
+        // Delay to allow the DA16600 to reset
+        vTaskDelay(1000);
 
-            // Send the NVRAM clean command.  This resets the DA16600 to factory defaults.
-            // Any MQTT configuration or certificates will be removed from the device.
+    }
+
+    // If BLE mode is enabled, then set the BLE advertisement name based on the config.ini file.
+    // If the default name was not changed, then the DA16600 will generate a random name in the form
+    // of DA16600-<wxyz>
+    if(BLE_ENABLE == get_ble_mode()){
+
+        if(0 != strncmp(BLE_DEFAULT_NAME, get_ble_name(), 32)){
+
+            // Set the BLE advertisement name based on the config.ini entry
             memset(buf, '\0', ATBUF_SIZE);
-            rm_atcmd_send("ATF", 5000,buf, sizeof(buf));
-
-            // Delay to allow the DA16600 to reset
-            vTaskDelay(2000);
-        }
-
-        if(BLE_ENABLE == get_ble_mode()){
-
-            memset(buf, '\0', ATBUF_SIZE);
-            rm_atcmd_send("AT+BLENAME=RASynBoard-make-me-configurable", 5000,buf, sizeof(buf));
-        }
-        else{
-            // Disable all BLE advertising
-            rm_atcmd_send("AT+ADVSTOP", 5000,buf, sizeof(buf));
-        }
-
-        if(CLOUD_NONE == get_target_cloud()){
-
-            printf("No cloud configuration found: Exiting cloud connectivity Thread\n");
-
-            // Free the buf memory
-            if (buf){
-                vPortFree(buf);
-            }
-
-            vTaskDelete(NULL);
-        }
-        else{
-                // Set the next state to load the certificates
-                currentState = LOAD_CERTS;
+            snprintf(atcmd, sizeof(atcmd), "AT+BLENAME=%s", get_ble_name());
+            rm_atcmd_send(atcmd,5000,buf,sizeof(buf));
         }
     }
+    else{
+        // Disable all BLE advertising
+        rm_atcmd_send("AT+ADVSTOP", 5000,buf, sizeof(buf));
+    }
+
+    // Check one more time if we have a cloud configuration.  If not, then
+    // exit the thread.
+    if(CLOUD_NONE == get_target_cloud()){
+        printf("No cloud configuration found: Exiting cloud connectivity Thread\n");
+
+        // Free the buf memory
+        if (buf){
+            vPortFree(buf);
+        }
+
+        vTaskDelete(NULL);
+    }
+
+    // Set the next state to load the certificates
+    currentState = LOAD_CERTS;
 }
 
 fsp_err_t loadAWS_certificates(int certId)
