@@ -525,9 +525,13 @@ static uint32_t read_config_file( void )
 										IMU_FUNC_ENABLE, inifile);
 	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
 										IMU_FUNC_DISABLE, inifile);
-	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
 
-	// WiFi configuration
+	// BLE Configuration
+	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
+    ini_gets("BLE Mode", "BLE_Name", BLE_DEFAULT_NAME, \
+            config_items.ble_name, sizeof(config_items.ble_name), inifile);
+
+    // WiFi configuration
     ini_gets("WIFI", "Access_Point", "WiFi AP Name Undefined", \
                         config_items.wifi_ap_name, sizeof(config_items.wifi_ap_name), inifile);
 
@@ -536,7 +540,6 @@ static uint32_t read_config_file( void )
 
     ini_gets("WIFI", "Country_Code", "US", \
                         config_items.wifi_cc, sizeof(config_items.wifi_cc), inifile);
-
 
     // IoTConnect configuration
     ini_gets("IoTConnect", "CPID", "Undefined", \
@@ -705,7 +708,6 @@ void printConfg(void)
     printf("Release Date       : %s\n\n", RELEASE_DATE);
     printf("Features enabled in config.ini file:\n");
 
-
     printf("\n  Operation mode=%d selected: %s\r\n", mode, mode_description);
 
     // Output recording feature driven by Low Power Mode Selection
@@ -738,6 +740,9 @@ void printConfg(void)
 
     // Output BLE mode
     printf("\n  BLE Mode: %s\n", (config_items.ble_mode) ? "Enabled": "Disabled");
+    if(BLE_ENABLE == config_items.ble_mode){
+        printf("  BLE Advertisement Name: %s\n", config_items.ble_name);
+    }
 
     // Output Cloud configuration
     printf("\n\n  Cloud connectivity: ");
@@ -869,6 +874,11 @@ bool get_certificate_data(char* fileName, int certificate_id, char returnCertDat
 int get_ble_mode( void )
 {
     return config_items.ble_mode;
+}
+
+char* get_ble_name( void )
+{
+    return config_items.ble_name;
 }
 
 char* get_wifi_ap( void )
