@@ -92,7 +92,7 @@ void ndp_info_display(void)
         label_string = labels[j];
         nn_num = *(label_string + 2) - '0';
         if (nn_num < 0 || nn_num >= SYNTIANT_NDP120_MAX_NNETWORKS) {
-            s = SYNTIANT_NDP_ERROR_INVALID_NETWORK;
+            s = NDP_CORE2_ERROR_INVALID_NETWORK;
             return;
         }
         if (nn_num != prev_nn_num) {
@@ -149,6 +149,7 @@ void ndp_thread_entry(void *pvParameters)
     uint32_t q_event, notifications;
 	blink_msg_t  last_stat, current_stat;
 	char buf[32];
+    int ndp_boot_mode = NDP_CORE2_BOOT_MODE_BOOT_FLASH;
 
     FSP_PARAMETER_NOT_USED (pvParameters);
     R_BSP_PinAccessEnable(); /* Enable access to the PFS registers. */
@@ -180,8 +181,12 @@ void ndp_thread_entry(void *pvParameters)
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
 
+    if (get_synpkg_boot_mode() == BOOT_MODE_SD)
+    {
+        ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
+    }
     /* Start NDP120 program */
-    ret = ndp_core2_platform_tiny_start(0, 1);
+    ret = ndp_core2_platform_tiny_start(1, 1, ndp_boot_mode);
     if(ret == 0) {
         printf("ndp_core2_platform_tiny_start done\r\n");
         xSemaphoreGive(g_binary_semaphore);
@@ -189,13 +194,13 @@ void ndp_thread_entry(void *pvParameters)
         printf("ndp_core2_platform_tiny_start failed %d\r\n", ret);
     }
 
-    ret = ndp_core2_platform_tiny_feature_set(SYNTIANT_NDP_FEATURE_PDM);
+    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
     if (ret){
         printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                       SYNTIANT_NDP_FEATURE_PDM, ret);
+                       NDP_CORE2_FEATURE_PDM, ret);
     }
 
-	if (get_synpkg_boot_mode() != BOOT_MODE_SD) {
+	if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
         // read back info from FLASH
 		config_data_in_flash_t flash_data = {0};
 		if (0 == ndp_flash_read_infos(&flash_data)){
@@ -232,10 +237,12 @@ void ndp_thread_entry(void *pvParameters)
 		{
 			xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
 			ndp_core2_platform_tiny_poll(&notifications, 1);
-			ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
-            printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
+			ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
+            if (!ret) {
+                printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
                     ndp_nn_idx, ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], 
                     (sec_val>0)?"with":"without");
+            }
 			xSemaphoreGive(g_ndp_mutex);
 
 			switch (ndp_class_idx) {

@@ -130,6 +130,9 @@ uint32_t read_synpkg_block(char * file_name, uint32_t offset, uint8_t *buff,  ui
 int check_sdcard_env(void);
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header);
 uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_samples, int header);
+#if 1
+void write_extraction_file_end(void);
+#endif
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
 uint32_t get_sdcard_total_sectors( void );
