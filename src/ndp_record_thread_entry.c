@@ -53,16 +53,13 @@ char* extract_process_percent(uint32_t extracted_len, uint32_t wanted_len,
     uint32_t half_len = wanted_len>>1;
     uint32_t most_quarter_len = quarter_len*3;
 
-    if (((extracted_len - most_quarter_len) >= 0) && 
-            ((extracted_len - most_quarter_len) < sample_size)) {
+    if ((extracted_len - most_quarter_len) < sample_size) {
         return "...75%";
     }
-    else if (((extracted_len - half_len) >= 0) && 
-            ((extracted_len - half_len) < sample_size)) {
+    else if ((extracted_len - half_len) < sample_size) {
         return "...50%";
     }
-    else if (((extracted_len - quarter_len) >= 0) && 
-            ((extracted_len - quarter_len) < sample_size)) {
+    else if ((extracted_len - quarter_len) < sample_size) {
         return "...25%";
     }
     else
