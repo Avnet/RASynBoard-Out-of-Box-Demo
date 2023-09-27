@@ -40,16 +40,13 @@ char* flash_process_percent(uint32_t processed_len, uint32_t planed_len,
     uint32_t half_len = planed_len>>1;
     uint32_t most_quarter_len = quarter_len*3;
 
-    if (((processed_len - most_quarter_len) >= 0) && 
-            ((processed_len - most_quarter_len) < process_size)) {
+    if ((processed_len - most_quarter_len) < process_size) {
         return "...75%";
     }
-    else if (((processed_len - half_len) >= 0) && 
-            ((processed_len - half_len) < process_size)) {
+    else if ((processed_len - half_len) < process_size) {
         return "...50%";
     }
-    else if (((processed_len - quarter_len) >= 0) && 
-            ((processed_len - quarter_len) < process_size)) {
+    else if ((processed_len - quarter_len) < process_size) {
         return "...25%";
     }
     else

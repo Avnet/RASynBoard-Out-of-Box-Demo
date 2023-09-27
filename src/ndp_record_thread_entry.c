@@ -53,16 +53,13 @@ char* extract_process_percent(uint32_t extracted_len, uint32_t wanted_len,
     uint32_t half_len = wanted_len>>1;
     uint32_t most_quarter_len = quarter_len*3;
 
-    if (((extracted_len - most_quarter_len) >= 0) && 
-            ((extracted_len - most_quarter_len) < sample_size)) {
+    if ((extracted_len - most_quarter_len) < sample_size) {
         return "...75%";
     }
-    else if (((extracted_len - half_len) >= 0) && 
-            ((extracted_len - half_len) < sample_size)) {
+    else if ((extracted_len - half_len) < sample_size) {
         return "...50%";
     }
-    else if (((extracted_len - quarter_len) >= 0) && 
-            ((extracted_len - quarter_len) < sample_size)) {
+    else if ((extracted_len - quarter_len) < sample_size) {
         return "...25%";
     }
     else
@@ -127,9 +124,14 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
 		write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
 
-        percent_ptr = extract_process_percent(cb_sensor_arg->sets_count, cb_sensor_arg->wanted_sets, 1);
-        if (percent_ptr) printf("%s", percent_ptr);
+        // Catch the case where we're recording IMU data to a file and to the debug UART.  I'm not sure if
+		// there is a valid use case to do this, but the user can configure the app to do this.  If we're
+		// outputting data to the terminal we don't want to output the % done
+		if(!is_imu_data_to_terminal()){
 
+            percent_ptr = extract_process_percent(cb_sensor_arg->sets_count, cb_sensor_arg->wanted_sets, 1);
+            if (percent_ptr) printf("%s", percent_ptr);
+		}
 		xSemaphoreGive(g_ndp_mutex);
 	}
 
@@ -428,86 +430,99 @@ void ndp_record_thread_entry(void *pvParameters)
             rec_process = false;
         }
 
-        while ( rec_process ) {
-            if (file_create == 0) {
-                // Turn on the recording LED
-                turn_led(BSP_LEDGREEN, BSP_LEDON);
+        // If we're recording IMU data, but have not defined a place to put the data, output
+        // an error message and abort the record logic.
+        if(rec_process && is_record_motion() && !is_imu_data_to_file() && !is_imu_data_to_terminal()){
+            printf("Invalid IMU recording configuration!  Not recording any data!\n");
+            printf("Enable at least one recording location in the config.ini file \n");
+            printf("[IMU data stream] section.\n");
 
-                check_record_file_name(data_filename, &record_count);
+            xEventGroupClearBits(g_ndp_event_group, EVENT_BIT_RISING);
 
-                /* Reserve the position of a wav header */
-                printf("Start to record extraction data \n");
-                file_create = 1;
-                record_count ++;
-                usb_disable();
+        }
+        else{
 
-                if (is_record_motion()) { //imu
-                    s = imu_record_operation(1);
-                    if (s)  break;
-                }
-                else {
-                    audio_record_operation(1);
-                }
-            }
-            else
-            {
-                if (is_record_motion()) { //imu
-                    struct cb_sensor_arg_s cb_sensor_arg;
-                    int wanted_sets = IMU_REC_BYTES_PER_SEC * get_recording_period();
+            while ( rec_process ) {
+                if (file_create == 0) {
+                    // Turn on the recording LED
+                    turn_led(BSP_LEDGREEN, BSP_LEDON);
 
-                    memset(&cb_sensor_arg, 0, sizeof(struct cb_sensor_arg_s));
-                    strcpy(cb_sensor_arg.file_name, data_filename);
-                    cb_sensor_arg.sets_count = 0;
-                    cb_sensor_arg.wanted_sets = wanted_sets;
+                    check_record_file_name(data_filename, &record_count);
 
-                    s = imu_record_process(wanted_sets, &cb_sensor_arg);
-                    if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
-                        printf("...100%% ");
-                        fflush(stdin);
-                        printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count);	
-						if (is_imu_data_to_file()) {
-							printf(" and saved to %s", cb_sensor_arg.file_name);
-						}
-						printf("\n");
+                    /* Reserve the position of a wav header */
+                    printf("Start to record extraction data \n");
+                    file_create = 1;
+                    record_count ++;
+                    usb_disable();
+
+                    if (is_record_motion()) { //imu
+                        s = imu_record_operation(1);
+                        if (s)  break;
                     }
                     else {
-                        printf("imu_record failed: %d\n", s);
+                        audio_record_operation(1);
                     }
-
-                    s = imu_record_operation(0);
-                    if (s)  break;
                 }
-                else {
-                    struct cb_audio_arg_s cb_audio_arg;
-                    int wanted_len = AUDIO_REC_BYTES_PER_SEC * get_recording_period();
+                else
+                {
+                    if (is_record_motion()) { //imu
+                        struct cb_sensor_arg_s cb_sensor_arg;
+                        int wanted_sets = IMU_REC_BYTES_PER_SEC * get_recording_period();
 
-                    memset(&cb_audio_arg, 0, sizeof(struct cb_audio_arg_s));
-                    strcpy(cb_audio_arg.file_name, data_filename);
-                    cb_audio_arg.extracted_len = 0;
-                    cb_audio_arg.wanted_len = wanted_len;
+                        memset(&cb_sensor_arg, 0, sizeof(struct cb_sensor_arg_s));
+                        strcpy(cb_sensor_arg.file_name, data_filename);
+                        cb_sensor_arg.sets_count = 0;
+                        cb_sensor_arg.wanted_sets = wanted_sets;
 
-                    s = audio_record_process(wanted_len, &cb_audio_arg);
-                    if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
-                        printf("...100%% ");
-                        fflush(stdin);
-                        printf("\naudio_record done saved %d bytes to %s", 
-                                cb_audio_arg.extracted_len, cb_audio_arg.file_name);
-						printf("\n");
+                        s = imu_record_process(wanted_sets, &cb_sensor_arg);
+                        if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
+                            printf("...100%% ");
+                            fflush(stdin);
+                            printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count);
+                            if (is_imu_data_to_file()) {
+                                printf(" and saved to %s", cb_sensor_arg.file_name);
+                            }
+                            printf("\n");
+                        }
+                        else {
+                            printf("imu_record failed: %d\n", s);
+                        }
+
+                        s = imu_record_operation(0);
+                        if (s)  break;
                     }
                     else {
-                        printf("audio_record failed: %d\n", s);
+                        struct cb_audio_arg_s cb_audio_arg;
+                        int wanted_len = AUDIO_REC_BYTES_PER_SEC * get_recording_period();
+
+                        memset(&cb_audio_arg, 0, sizeof(struct cb_audio_arg_s));
+                        strcpy(cb_audio_arg.file_name, data_filename);
+                        cb_audio_arg.extracted_len = 0;
+                        cb_audio_arg.wanted_len = wanted_len;
+
+                        s = audio_record_process(wanted_len, &cb_audio_arg);
+                        if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
+                            printf("...100%% ");
+                            fflush(stdin);
+                            printf("\naudio_record done saved %d bytes to %s",
+                                    cb_audio_arg.extracted_len, cb_audio_arg.file_name);
+                            printf("\n");
+                        }
+                        else {
+                            printf("audio_record failed: %d\n", s);
+                        }
+                        audio_record_operation(0);
                     }
-                    audio_record_operation(0);
+                    // Turn off the recording LED
+                    turn_led(BSP_LEDGREEN, BSP_LEDOFF);
+
+                    file_create = 0;
+                    rec_process = false;
+                    usb_enable();
+
+                    xEventGroupClearBits(g_ndp_event_group, EVENT_BIT_RISING);
+                    break;
                 }
-				// Turn off the recording LED
-				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
-
-                file_create = 0;
-                rec_process = false;
-                usb_enable();
-
-                xEventGroupClearBits(g_ndp_event_group, EVENT_BIT_RISING);
-                break;
             }
         }
     }
