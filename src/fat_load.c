@@ -359,6 +359,7 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
             return res;
         }
         fatfs_mounted = 1;
+        printf("mount fs\n");
     }
     
     if ( header == 1 ) {
@@ -404,10 +405,13 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size,
 
     sprintf(path, "0:/%s", file_name);
 
-    res = f_mount(&fatfs_obj, "", 1);
-    if(res != FR_OK){
-        printf("f_mount fail %d\r\n",res);
-        return res;
+    if (!fatfs_mounted) {
+        res = f_mount(&fatfs_obj, "", 1);
+        if(res != FR_OK){
+            printf("f_mount fail %d\r\n",res);
+            return res;
+        }
+        fatfs_mounted = 1;
     }
 
 	if ( header == 1 ) {
