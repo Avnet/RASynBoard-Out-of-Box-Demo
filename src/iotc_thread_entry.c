@@ -12,7 +12,7 @@
 #include "stdbool.h"
 
 #define IoTC_ENV    "poc"
-#define MAX_RETRIES 2
+#define MAX_RETRIES 5
 #define OUTPUT_MQTT_DEBUG
 
 #define MY_CHAR_ARRAY_SIZE 64
@@ -69,6 +69,23 @@ void iotc_thread_entry(void *pvParameters)
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 
+    // Put the DA16600 into reset
+    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
+
+    // If we only need BLE mode and the BLE name is the default, just take the DA16600 out of reset and exit this thread
+    if((CLOUD_NONE == get_target_cloud()) && (BLE_ENABLE == get_ble_mode()) && (0 == strncmp(BLE_DEFAULT_NAME, get_ble_name(), 32))){
+
+        // Pull the DA16600 out of reset and kill this task
+        R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
+        vTaskDelete(NULL);
+    }
+
+    // If we don't need the DA16600 at all then leave the device in reset and kill this task.
+    if(((CLOUD_NONE == get_target_cloud()) && (BLE_DISABLE == get_ble_mode()))){
+
+        vTaskDelete(NULL);
+    }
+
     /* Wait for console thread initialization to complete */
     xSemaphoreTake( g_xInitialSemaphore, portMAX_DELAY );
 
@@ -92,6 +109,8 @@ void iotc_thread_entry(void *pvParameters)
     }
 
     printf("IoT Connect on AWS (MQTT) Thread Running...\r\n");
+
+    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
 
     // Set the initial state
     currentState = INIT_DA16600;
@@ -146,9 +165,6 @@ void init_da16600(void){
     static int failCnt = 0;
 
     iotc_print("IoTConnect-state: INIT_DA16600\n");
-
-    // Put the DA16600 into reset
-    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
 
     // Initialize the AT module UART and start the atcmd thread.
     rm_wifi_da16600_init();
