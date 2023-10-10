@@ -181,6 +181,10 @@ void ndp_thread_entry(void *pvParameters)
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
 
+    /* Start USB thread to enable CDC serial communication and MSC mass storage function */
+    start_usb_pcdc_thread();
+    vTaskDelay (pdMS_TO_TICKS(1000UL));
+
     if (get_synpkg_boot_mode() == BOOT_MODE_SD)
     {
         ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
@@ -200,28 +204,29 @@ void ndp_thread_entry(void *pvParameters)
                        NDP_CORE2_FEATURE_PDM, ret);
     }
 
-	if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
-        // read back info from FLASH
-		config_data_in_flash_t flash_data = {0};
-		if (0 == ndp_flash_read_infos(&flash_data)){
-			mode_circular_motion = flash_data.ndp_mode_motion;
-			memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
-		}
+    if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
+    // read back info from FLASH
+        config_data_in_flash_t flash_data = {0};
+        if (0 == ndp_flash_read_infos(&flash_data)){
+            mode_circular_motion = flash_data.ndp_mode_motion;
+	    memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
+	}
+        
         // Output the current configuration for the user
-        printConfg();
+        if (get_print_console_type() != CONSOLE_USB_CDC) {
+            printConfg();
+        }
     }
 
     ndp_info_display();
 
-	if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
+    if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
         ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
         if (!ret){
             printf("disable sensor[0] functionality\n");
         }
-	}
+    }
 
-    /* Start USB thread to enable CDC serial communication and MSC mass storage function */
-    start_usb_pcdc_thread();
     /* Enable NDP IRQ */
     ndp_irq_enable();
 
