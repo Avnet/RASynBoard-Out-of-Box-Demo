@@ -181,10 +181,6 @@ void ndp_thread_entry(void *pvParameters)
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
 
-    /* Start USB thread to enable CDC serial communication and MSC mass storage function */
-    start_usb_pcdc_thread();
-    vTaskDelay (pdMS_TO_TICKS(1000UL));
-
     if (get_synpkg_boot_mode() == BOOT_MODE_SD)
     {
         ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
@@ -229,6 +225,10 @@ void ndp_thread_entry(void *pvParameters)
 
     /* Enable NDP IRQ */
     ndp_irq_enable();
+
+    /* Start USB thread to enable CDC serial communication and MSC mass storage function */
+    start_usb_pcdc_thread();
+    vTaskDelay (pdMS_TO_TICKS(1000UL));
 
     memset(&last_stat, 0, sizeof(blink_msg_t));
     memset(&current_stat, 0, sizeof(blink_msg_t));
