@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "usb_pcdc_vcom.h"
 
-//#define USB_COM_ECHO
+#define USB_COM_ECHO
 
 #define LINE_CODING_LENGTH          (0x07U)
 #define READ_BUF_SIZE               (8U)
@@ -10,10 +10,16 @@
 #define TASK_STACK_SIZE_BYTE        (8192U)
 #define DATA_BUFFER_LENGTH_BYTES    (128U)
 
+#define RESERVE_LOG_BUFFER_LEN      (2048u)
+#define RESERVE_LOG_USB_CMD         "log"
+
 #define deinit_usb     usb_disable
 
 /* Buffer to store user data */
 uint8_t user_data_buf[DATA_LEN] = {0};
+/* Save up to 2kB log when usb is disconnected */
+uint8_t log_data_buf[RESERVE_LOG_BUFFER_LEN] = {0};
+uint32_t log_len = 0;
 /* Flag to indicate USB resume/suspend status */
 static bool  b_usb_attach = false;
 /* Variable to store UART settings */
@@ -31,6 +37,14 @@ int usb_pcdc_print(char *pBuffer, int size)
 	if (true == b_usb_attach)
 	{
 		xStreamBufferSend( g_streambuffer, ( void * )pBuffer, size,  0 );
+	} else {
+		if ((log_len + size) > RESERVE_LOG_BUFFER_LEN)
+		{
+			memset (log_data_buf, 0, RESERVE_LOG_BUFFER_LEN);
+			log_len = 0;
+		}
+		memcpy(log_data_buf + log_len, pBuffer, size);
+		log_len += size;
 	}
 
     return size;
@@ -80,6 +94,12 @@ void usb_pcdc_thread_entry(void * pvParameters)
 			rcv_data[rcv_len] = '\0';
 			/* Write data to host machine */
 			R_USB_Write (&g_basic_ctrl, (uint8_t *)rcv_data, (uint32_t)rcv_len, USB_CLASS_PCDC);
+
+			/* Send the log data saved in the reserved area when receiving cmd "log" */
+			if ((log_len > 0) && (memcmp (rcv_data, RESERVE_LOG_USB_CMD, 3) == 0 ))
+			{
+				R_USB_Write (&g_basic_ctrl, (uint8_t *)log_data_buf, (uint32_t)log_len, USB_CLASS_PCDC);
+			}
 		}
         vTaskDelay (2);
     }
