@@ -1,15 +1,16 @@
 #include "fat_load.h"
 #include "diskio.h"
 #include "rm_block_media_custom.h"
+#include "common_data.h"
 
 /* Instance structure to use this module. */
-static rm_block_media_sd_instance_ctrl_t g_rm_block_media_ctrl;
+static rm_block_media_sd_instance_ctrl_t g_rm_block_media0_ctrl;
 
 const rm_block_media_cfg_t g_rm_block_media_cfg =
 { .p_extend = NULL, .p_callback = r_usb_pmsc_block_media_event_callback, .p_context = NULL, };
 
 rm_block_media_instance_t g_rm_block_media =
-{ .p_api = &g_rm_block_media_on_user_media, .p_ctrl = &g_rm_block_media_ctrl, .p_cfg = &g_rm_block_media_cfg, };
+{ .p_api = &g_rm_block_media_on_user_media, .p_ctrl = &g_rm_block_media0_ctrl, .p_cfg = &g_rm_block_media_cfg, };
 
 /* Global function prototypes */
 extern DRESULT SD_disk_write(BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
@@ -90,8 +91,10 @@ fsp_err_t RM_BLOCK_MEDIA_SD_Read (rm_block_media_ctrl_t * const p_ctrl,
 {
     FSP_PARAMETER_NOT_USED(p_ctrl);
 
+    xSemaphoreTake(g_sd_mutex,portMAX_DELAY);
     /* Call the underlying driver. */
     SD_disk_read(0, p_dest_address, block_address, num_blocks);
+    xSemaphoreGive(g_sd_mutex);
 
     /* set the block media complete event flag.*/
     g_blockmedia_complete_event = true;
@@ -112,8 +115,10 @@ fsp_err_t RM_BLOCK_MEDIA_SD_Write (rm_block_media_ctrl_t * const p_ctrl,
 {
     FSP_PARAMETER_NOT_USED(p_ctrl);
 
+    xSemaphoreTake(g_sd_mutex,portMAX_DELAY);
     /* Call the underlying driver. */
     SD_disk_write(0, p_src_address, block_address, num_blocks);
+    xSemaphoreGive(g_sd_mutex);
 
     /* set the block media complete event flag.*/
     g_blockmedia_complete_event = true;

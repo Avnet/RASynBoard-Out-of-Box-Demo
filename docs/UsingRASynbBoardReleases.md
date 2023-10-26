@@ -39,7 +39,7 @@ To load the binary release **AVT-RASynBoard-OOB-v\<versionString\>.srec** to the
 1. Open the [Renesas Website](https://www.renesas.com)
 2. Either Login with your Renesas account credentials OR Create a free Renesas Account
 
-![](./assets/releases1.jpg "")
+![](./assets/images/releases1.jpg "")
 
 Once you have an account and are logged into to the Renesas system . . . 
 
@@ -47,15 +47,15 @@ Once you have an account and are logged into to the Renesas system . . .
 5. Scroll down to the **Downloads** section
 6. Select the installer that matches your development system's OS and architecture
 
-![](./assets/releases2.jpg "")
+![](./assets/images/releases2.jpg "")
 
 7. Select the **Confirm** link on the **Document Update Notification** pop-up dialog
 
-![](./assets/releases3.jpg "")
+![](./assets/images/releases3.jpg "")
 
 8. Read the disclaimer and select the **Accept and download** link
 
-![](./assets/releases4.jpg "")
+![](./assets/images/releases4.jpg "")
 
 9. The **Renesas_Flash_Programmer_Package_V31102-doc.zip** file is downloaded
 
@@ -70,13 +70,13 @@ Once you have an account and are logged into to the Renesas system . . .
 2. Remove the jumper on **J3 pins 1-2** on the I/O board, if present
 3. Connect a USB-C cable to the USB-C connector on the I/O board as shown below
 
-![](./assets/releases13.jpg "")
-![](./assets/releases7.jpg "")
+![](./assets/images/releases13.jpg "")
+![](./assets/images/releases7.jpg "")
 
 4. Insert the microSD card into the card slot on the underside of the I/O board
 5. Connect the USB to TTL debug cable to the PMOD connector as shown below
 
-![](./assets/releases12.jpg "")
+![](./assets/images/releases12.jpg "")
 
 # Download the Latest Avnet OOB Release
 
@@ -91,21 +91,21 @@ Once you have an account and are logged into to the Renesas system . . .
 2. Select **File --> New Project**, the **Create New Project** dialog opens
 3. Use the configuration shown below, click on the **Connect** button
 
-![](./assets/releases8.jpg "")
+![](./assets/images/releases8.jpg "")
 
 4. Back in the Renesas Flash Programmer main window, you should see that the application connected to your board
 
-![](./assets/releases9.jpg "")
+![](./assets/images/releases9.jpg "")
 
 5. Select **Operation** tab
 6. In the **Program File** entry click Browse, then select the pre-built binary *.srec file just downloaded
 7. Click the large **Start** button to program the selected **\*.srec** file into the RA6M4 MCU
 
-![](./assets/releases10.jpg "")
+![](./assets/images/releases10.jpg "")
 
 8. The binary image is flashed to the RA6M4 device
 
-![](./assets/releases11.jpg "")
+![](./assets/images/releases11.jpg "")
 
 9. Power down RASynBoard by disconnecting the USB cable from the RASynBoard.
 
@@ -116,18 +116,18 @@ Once you have an account and are logged into to the Renesas system . . .
 3. Connect your development PC to the USB-C connector on the core board (NOT the I/O board)
     - Using this USB-C connector will expose the microSD card to the development PC when the OOB application is running
 
-![](./assets/iotcMicroSDCardAccess.jpg "")
+![](./assets/images/iotcMicroSDCardAccess.jpg "")
 
 4. Once the application starts up a new USB drive will enumerate on your development PC
 5. Unzip the downloaded **microSD-Files-V\<versionString\>.zip** file contents to your microSD card
 
-![](./assets/releases14.jpg "")
+![](./assets/images/releases14.jpg "")
 
 6. Remove and re-insert the microSD card
     - This causes the OOB application to restart and read the new files on the microSD card
 7. The application starts and displays the version and release date
 
-![](./assets/releases15.jpg "")
+![](./assets/images/releases15.jpg "")
 
 # Next Steps
 

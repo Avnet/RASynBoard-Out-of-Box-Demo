@@ -99,7 +99,13 @@ DRESULT USER_read (
 )
 {
   /* USER CODE BEGIN READ */
-    return SD_disk_read(pdrv, buff, sector, count);
+    DRESULT ret;
+
+    xSemaphoreTake(g_sd_mutex,portMAX_DELAY);
+    ret = SD_disk_read(pdrv, buff, sector, count);
+    xSemaphoreGive(g_sd_mutex);
+
+    return ret;
   /* USER CODE END READ */
 }
 
@@ -121,7 +127,13 @@ DRESULT USER_write (
 { 
   /* USER CODE BEGIN WRITE */
   /* USER CODE HERE */
-    return SD_disk_write(pdrv, buff, sector, count);
+    DRESULT ret;
+
+    xSemaphoreTake(g_sd_mutex,portMAX_DELAY);
+    ret = SD_disk_write(pdrv, buff, sector, count);
+    xSemaphoreGive(g_sd_mutex);
+
+    return ret;
   /* USER CODE END WRITE */
 }
 #endif /* _USE_WRITE == 1 */

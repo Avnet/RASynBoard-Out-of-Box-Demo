@@ -9,9 +9,10 @@
 #include "queue.h"
 #include "certs.h"
 #include "iotc_thread_entry.h"
+#include "stdbool.h"
 
 #define IoTC_ENV    "poc"
-#define MAX_RETRIES 2
+#define MAX_RETRIES 5
 #define OUTPUT_MQTT_DEBUG
 
 #define MY_CHAR_ARRAY_SIZE 64
@@ -52,6 +53,7 @@ void failure_state(void);
 
 // Helper functions
 void extractJSON(char*);
+bool reestablish_mqtt_conn(void);
 
 #define DEBUG_IOTC_PRINT
 #ifdef  DEBUG_IOTC_PRINT
@@ -67,30 +69,17 @@ void iotc_thread_entry(void *pvParameters)
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 
-    /* Wait for console thread initialization to complete */
-    xSemaphoreTake( g_xInitialSemaphore, portMAX_DELAY );
-
-    // Make sure that the da16600 is disabled.  We'll enable it if we determine that it will be
-    // used in the current configuration
+    // Put the DA16600 into reset
     R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW);
 
-    // Only initialize the da16600 if wer're going to use it.  Otherwise we keep
-    // the device in reset to conserve power consumption
-    if((BLE_ENABLE == get_ble_mode()) || (CLOUD_NONE != get_target_cloud())){
+    // If we don't need the DA16600 at all then leave the device in reset and kill this task.
+    if(((CLOUD_NONE == get_target_cloud()) && (BLE_DISABLE == get_ble_mode()))){
 
-        // Initialize the AT module UART and start the atcmd thread.  We do this here
-        // so that the ndp_thread can send BLE commands even if we're not connecting the
-        // device to the cloud.
-        rm_wifi_da16600_init();
-    }
-
-    // Check to see if we're configured to connect to Avnet's IoT Connect Cloud Solution
-    // If not, then kill this task
-    if(CLOUD_IOTCONNECT != get_target_cloud()){
         vTaskDelete(NULL);
     }
 
-    iotc_print("IoT Connect on AWS (MQTT) Thread Running...\r\n");
+    /* Wait for console thread initialization to complete */
+    xSemaphoreTake( g_xInitialSemaphore, portMAX_DELAY );
 
     // The application is using the FreeRTOS heap4 heap management implementation.
     // Redefine the cJSON malloc and free calls to use the correct calls
@@ -110,7 +99,10 @@ void iotc_thread_entry(void *pvParameters)
         iotc_print("Could not allocate buf memory, exiting thread!\n");
         vTaskDelete(NULL);
     }
-    memset(buf, '\0', ATBUF_SIZE);
+
+    printf("IoT Connect on AWS (MQTT) Thread Running...\r\n");
+
+    R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH);
 
     // Set the initial state
     currentState = INIT_DA16600;
@@ -161,9 +153,13 @@ void iotc_thread_entry(void *pvParameters)
 
 void init_da16600(void){
 
+    char atcmd[64] = {'\0'};
     static int failCnt = 0;
 
     iotc_print("IoTConnect-state: INIT_DA16600\n");
+
+    // Initialize the AT module UART and start the atcmd thread.
+    rm_wifi_da16600_init();
 
     if(MAX_RETRIES == failCnt ){
         printf("ERROR: Could not initialize DA16600\n");
@@ -193,9 +189,57 @@ void init_da16600(void){
     memset(buf, '\0', ATBUF_SIZE);
     rm_atcmd_send("ATE",1000,buf,sizeof(buf));
 
+    // Check to see if we're configured to connect to one of the supported Cloud Solutions.
+    // If not, then reset the DA16600 to factory defaults so any previous configurations are
+    // removed from the device.
+    if(CLOUD_NONE == get_target_cloud()){
+
+        // Send the NVRAM clean command.  This resets the DA16600 to factory defaults.
+        // Any MQTT configuration or certificates will be removed from the device.  This
+        // command will also blow away our BLE advertisement setting, so we do this operation
+        // before determining if we're going to set a custom advertisement name.
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("ATF", 5000,buf, sizeof(buf));
+
+        // Delay to allow the DA16600 to reset
+        vTaskDelay(1000);
+
+    }
+
+    // If BLE mode is enabled, then set the BLE advertisement name based on the config.ini file.
+    // If the default name was not changed, then the DA16600 will generate a random name in the form
+    // of DA16600-<wxyz>
+    if(BLE_ENABLE == get_ble_mode()){
+
+        if(0 != strncmp(BLE_DEFAULT_NAME, get_ble_name(), 32)){
+
+            // Set the BLE advertisement name based on the config.ini entry
+            memset(buf, '\0', ATBUF_SIZE);
+            snprintf(atcmd, sizeof(atcmd), "AT+BLENAME=%s", get_ble_name());
+            rm_atcmd_send(atcmd,5000,buf,sizeof(buf));
+        }
+    }
+    else{
+        // Disable all BLE advertising
+        rm_atcmd_send("AT+ADVSTOP", 5000,buf, sizeof(buf));
+    }
+
+    // Check one more time if we have a cloud configuration.  If not, then
+    // exit the thread.
+    if(CLOUD_NONE == get_target_cloud()){
+        printf("No cloud configuration found: Exiting cloud connectivity Thread\n");
+
+        // Free the buf memory
+        if (buf){
+            vPortFree(buf);
+        }
+
+        vTaskDelete(NULL);
+    }
+
+    // Set the next state to load the certificates
     currentState = LOAD_CERTS;
 }
-
 
 fsp_err_t loadAWS_certificates(int certId)
 {
@@ -358,94 +402,98 @@ void setup_network(void){
     size_t nwipReturnStringLen = 0;
     static int failCnt = 0;
     static int level2FailCnt = 0;
+    int timeCheck = 0;
     char atcmd[256]={'\0'};
 
     iotc_print("IoTConnect-state: SETUP_NETWORK\n");
 
-    // Check to see if we're stuck trying to connect to the network
-    if(MAX_RETRIES <= failCnt){
+    if(USE_CONFIG_WIFI_SETTINGS == get_wifi_config()){
 
-        // Check to see if we've tried to call rm_wifi_da16600_init already while trying to recover the
-        // network.  If not, give it a try before giving up.
-        if( 1 > level2FailCnt++){
+        // Check to see if we're stuck trying to connect to the network
+        if(MAX_RETRIES <= failCnt){
 
-            // Lets try one last thing before we give up on the network connection
-            rm_wifi_da16600_init();
-            currentState = INIT_DA16600;
-            failCnt = 0;
+            // Check to see if we've tried to call rm_wifi_da16600_init already while trying to recover the
+            // network.  If not, give it a try before giving up.
+            if( 1 > level2FailCnt++){
+
+                // Lets try one last thing before we give up on the network connection
+                rm_wifi_da16600_init();
+                currentState = INIT_DA16600;
+                failCnt = 0;
+                return;
+            }
+
+            printf("ERROR: Did not connect to the network, verify your network credentials\n");
+            currentState = FAILURE_STATE;
             return;
         }
 
-        printf("ERROR: Did not connect to the network, verify your network credentials\n");
-        currentState = FAILURE_STATE;
-        return;
-    }
+        // Set WiFi mode to Station mode
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("AT+WFMODE=0",1000,buf,sizeof(buf));
 
-    // Set WiFi mode to Station mode
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+WFMODE=0",1000,buf,sizeof(buf));
+        // Read the wifi mode to verify it's set to station (0)
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("AT+WFMODE",1000,buf,sizeof(buf));
 
-    // Read the wifi mode to verify it's set to station (0)
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+WFMODE",1000,buf,sizeof(buf));
+        // Set the two letter Wi-Fi country code: https://www.iso.org/obp/ui/#search
+        memset(buf, '\0', ATBUF_SIZE);
+        snprintf(atcmd, sizeof(atcmd), "AT+WFCC=%s", get_wifi_cc());
+        rm_atcmd_send(atcmd,1000,buf,sizeof(buf));
 
-    // Set the two letter Wi-Fi country code: https://www.iso.org/obp/ui/#search
-    memset(buf, '\0', ATBUF_SIZE);
-    snprintf(atcmd, sizeof(atcmd), "AT+WFCC=%s", get_wifi_cc());
-    rm_atcmd_send(atcmd,1000,buf,sizeof(buf));
+        // Verify that the AP SSID is configured before trying to connect to the network
+        if(strcmp(get_wifi_ap(), "WiFi AP Name Undefined") == 0){
+            printf("ERROR: WiFi credentials are not defined.  Edit config.ini file to add WiFi credentials\n");
+            currentState = FAILURE_STATE;
+            return;
+        }
 
-    // Verify that the AP SSID is configured before trying to connect to the network
-    if(strcmp(get_wifi_ap(), "WiFi AP Name Undefined") == 0){
-        printf("ERROR: WiFi credentials are not defined.  Edit config.ini file to add WiFi credentials\n");
-        currentState = FAILURE_STATE;
-        return;
-    }
+        // Construct the "Connect to AP" command using
+        // * SSID from configuration
+        // * 4 == WPA+WPA2
+        // * 1 == Key Index
+        // * SSID password from configuration
+        snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
+        rm_atcmd_check_ok(atcmd, 10000);
 
-    // Construct the "Connect to AP" command using
-    // * SSID from configuration
-    // * 4 == WPA+WPA2
-    // * 1 == Key Index
-    // * SSID password from configuration
-    snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
-    rm_atcmd_check_ok(atcmd, 10000);
+        // Start the DHCP Client
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_send("AT+NWDHC=1",5000,buf,sizeof(buf));
 
-    // Start the DHCP Client
-    memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("AT+NWDHC=1",5000,buf,sizeof(buf));
+        // Get the WiFi configuration from the DA16600
+        memset(buf, '\0', ATBUF_SIZE);
+        if(FSP_SUCCESS != rm_atcmd_check_value("AT+WFSTAT",5000,buf,sizeof(buf))){
+            failCnt++;
+            return;
+        }
 
-    // Get the WiFi configuration from the DA16600
-    memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_check_value("AT+WFSTAT",5000,buf,sizeof(buf))){
-        failCnt++;
-        return;
-    }
+        memset(buf, '\0', ATBUF_SIZE);
+        if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,sizeof(buf))){
+            // 0,192.168.0.143,255.255.255.0,192.168.0.1",
+            failCnt++;
+            return;
+        }
 
-    memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,sizeof(buf))){
-        // 0,192.168.0.143,255.255.255.0,192.168.0.1",
-        failCnt++;
-        return;
-    }
+        // Calculate the length of a return string where no address' are defined
+        // We'll use this to determine if we have an IP address
+        nwipReturnStringLen = strlen("0,0.0.0.0,0.0.0.0,0.0.0.0");
 
-    // Calculate the length of a return string where no address' are defined
-    // We'll use this to determine if we have an IP address
-    nwipReturnStringLen = strlen("0,0.0.0.0,0.0.0.0,0.0.0.0");
+        // Check the size of the string returned, if we did not get an ip address and
+        // gateway address, output a message and try again
+        if(strlen(buf) <= nwipReturnStringLen ){
 
-    // Check the size of the string returned, if we did not get an ip address and
-    // gateway address, output a message and try again
-    if(strlen(buf) <= nwipReturnStringLen ){
+            printf("\nERROR: DA16600 did not connect to a Wi-Fi Access Point, verify your Access Point Credentials, trying again . . . \n");
+            failCnt++;
+            return;
+        }
 
-        printf("\nERROR: DA16600 did not connect to a Wi-Fi Access Point, verify your Access Point Credentials, trying again . . . \n");
-        failCnt++;
-        return;
-    }
+        // Start the SNTP client
+        if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWSNTP=1,pool.ntp.org,60",2000)){
+            failCnt++;
+            return;
+        }
 
-    // Start the SNTP client
-    if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWSNTP=1,pool.ntp.org,60",2000)){
-        failCnt++;
-        return;
-    }
-
+    } // End !USE_RENESAS_TOOL_FOR_CONFIG
     // Make sure we get a valid time from the time server before moving on . . .
     do {
         // Get the current GMT time from the time server
@@ -456,6 +504,13 @@ void setup_network(void){
         }
 
         vTaskDelay(1000);
+
+        if(USE_RENESAS_TOOL_FOR_CONFIG == get_wifi_config() && 10 < timeCheck++ ){
+
+            printf("\n\nWaiting for a connection to the internet, verify your Wi-Fi network is setup\n");
+            printf("using the Renesas Wi-Fi Provisioning Tool from your device's App store\n");
+            timeCheck = 0;
+        }
 
       // Loop until the time returned is not the default 1/1/1970
     } while (0 == strncmp(buf, "1970-01-01",strlen("1970-01-01")));
@@ -468,8 +523,6 @@ void setup_network(void){
 
 void run_discovery(void)
 {
-    static int failCnt = 0;
-    int delayCnt = 0;
     EventBits_t   evbits;
 
     static const char discoveryString[] = {"AT+NWHTCH=https://awsdiscovery.iotconnect.io/api/v2.1/dsdk/cpId/%s/env/%s,get"};
@@ -477,20 +530,12 @@ void run_discovery(void)
 
     iotc_print("IoTConnect-state: RUN_DISCOVERY\n");
 
-    // Check to see if we're stuck trying to receive the discovery data
-    if(MAX_RETRIES == failCnt){
-        printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
-        currentState = FAILURE_STATE;
-        return;
-    }
-
     // Build the discovery command using the configured IoTConnect CPID and env strings
     memset(httpsBuffer,'\0',sizeof(httpsBuffer));
     snprintf(jsonString, JSON_STRING_SIZE, discoveryString,  get_iotc_cpid(), get_iotc_env());
 
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send(jsonString, 5000, buf, sizeof(buf))){
-        failCnt++;
         return;
     }
 
@@ -499,13 +544,8 @@ void run_discovery(void)
     evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 10000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
-        if(MAX_RETRIES == delayCnt++){
-            currentState = SETUP_NETWORK;
-            return;
-        }
-
-        // If we timed out but did not iit the max retries, just return.  The state machine will run this state again.
-        printf("WARNING: Timeout waiting for https response from IoTConnect, trying again . . . \n");
+        // If we timed out but did not hit the max retries, just return.  The state machine will run this state again.
+        iotc_print("WARNING: Timeout waiting for https response from IoTConnect, trying again . . . \n");
         return;
     }
 
@@ -541,8 +581,6 @@ void run_discovery(void)
             }
 
             cJSON_Delete(root);
-            currentState = SETUP_NETWORK;
-            failCnt++;
             return;
         }
 
@@ -561,9 +599,7 @@ void run_discovery(void)
 
     //iotc_print("IDENTITY URL: %s\n\r",identityURL);
 
-    // We got through each step without errors, clear the error count
-    // and set the next state;
-    failCnt = 0;
+    // We got through each step without errors set the next state;
     currentState = GET_IDENTITY;
     return;
 }
@@ -574,7 +610,6 @@ void get_identity(void)
 #define FINAL_IDENTITY_SIZE 256
     char finalIdentityURL[FINAL_IDENTITY_SIZE] = {'\0'};
     char jsonString[JSON_STRING_SIZE] = {'\0'};
-    static int errCnt = 0;
     EventBits_t evbits;
 
     iotc_print("IoTConnect-state: GET_IDENTITY\n");
@@ -596,18 +631,8 @@ void get_identity(void)
     if (FSP_SUCCESS != rm_atcmd_send(finalIdentityURL, 5000,buf, sizeof(buf)))
     {
 
-        printf("ERROR: Failed to pull Identity from IoTConnect, trying again . . .\n");
-
-        // If we fail here for more than MAX_RETRIES times, something is
-        // wrong and we likely won't be able to connect.  Enter the failure
-        // state.
-        if(MAX_RETRIES == ++errCnt){
-            currentState = FAILURE_STATE;
-            return;
-        }
-
-        printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
-        currentState = SETUP_NETWORK;
+        iotc_print("ERROR: Failed to pull Identity from IoTConnect, trying again . . .\n");
+        return;
     }
 
 
@@ -616,14 +641,9 @@ void get_identity(void)
     evbits = xEventGroupWaitBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG, pdTRUE, pdFALSE , 5000);
     if(pdFALSE == (evbits & EVENT_BIT_EXTENDED_MSG)){
 
-        if(MAX_RETRIES == ++errCnt){
-            printf("ERROR: Did not pull discovery data from IoTConnect, verify IoTConnect configuration items\n");
-            currentState = FAILURE_STATE;
-            return;
-        }
-
-        printf("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
-        currentState = SETUP_NETWORK;
+        iotc_print("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
+        return;
+//        currentState = SETUP_NETWORK;
     }
 
     // Pull the JSON from httpsBuffer
@@ -678,12 +698,7 @@ void get_identity(void)
     // Verify we have a valid JSON document, if not the call returns NULL
     cJSON *root = cJSON_Parse(jsonString);
     if (root == NULL) {
-            const char *error_ptr = cJSON_GetErrorPtr();
-            if (error_ptr != NULL) {
-                printf("ERROR: Not able to detect JSON in https response message: %s\n", error_ptr);
-            }
             cJSON_Delete(root);
-            currentState = DISCOVERY;
             return;
         }
 
@@ -724,7 +739,6 @@ void setup_mqtt(void)
     // Disable the MQTT client while we setup the connection details
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=0", 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
@@ -733,7 +747,6 @@ void setup_mqtt(void)
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_iotc_uid());
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
@@ -743,8 +756,6 @@ void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQBR=%s,8883",hostnameString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-
-        currentState = DISCOVERY;
         return;
     }
 
@@ -754,7 +765,6 @@ void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQTS=1,%s",subTopicString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-       currentState = DISCOVERY;
         return;
     }
 
@@ -764,21 +774,18 @@ void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQTP=%s",pubTopicString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
     // Enable the MQTT over TLS function
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLS=1", 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
     // All the MQTT configuration items have been sent, enable the MQTT client!
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=1", 1000,buf, sizeof(buf))){
-        currentState = DISCOVERY;
         return;
     }
 
@@ -792,14 +799,13 @@ void setup_mqtt(void)
 
         // If we have to wait too long for the MQTT connect, exit to try again.
         if(MAX_TIMEOUTS == ++timeoutCnt){
-            currentState = DISCOVERY;
             return;
         }
-        vTaskDelay(2000);
+
+        vTaskDelay(4000);
     }
 
-    printf("INFO: MQTT Connection established to IoTConnect on AWS!\n");
-
+    iotc_print("INFO: MQTT Connection established to IoTConnect on AWS!\n");
     currentState = WAIT_FOR_TELEMETRY_DATA;
     return;
 }
@@ -822,11 +828,11 @@ void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
     // Verify we have a valid JSON document, if not the call returns NULL
     cJSON *userTelemetry = cJSON_Parse(newTelemetry);
     if (userTelemetry == NULL) {
-                printf("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
+                iotc_print("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
                 cJSON_Delete(userTelemetry);
                 return;
     }
-    printf("%s\n", newTelemetry);
+    iotc_print("%s\n", newTelemetry);
 
     // Get the current time to include in the telemetry message
     do
@@ -882,7 +888,7 @@ void wait_for_telemetry(void){
     char mqttPublishMessage[MQTT_MSG_SIZE] = {'\0'};
     char mqttJson[MQTT_JSON_SIZE] = {'\0'};
 
-    printf("Waiting for Telemery data!\n");
+    iotc_print("Waiting for Telemery data!\n");
 
     while(pdTRUE){
 
@@ -893,8 +899,9 @@ void wait_for_telemetry(void){
         memset(buf, '\0', ATBUF_SIZE);
         rm_atcmd_check_value("AT+NWMQCL",5000,buf,sizeof(buf));
         if(buf[0] != '1'){
-            currentState = SETUP_NETWORK;
-            return;
+            if(!reestablish_mqtt_conn()){
+                return;
+            }
         }
 
         // Construct the IoTConnect telemetry
@@ -916,6 +923,48 @@ void wait_for_telemetry(void){
         // Free the memory that held the incoming JSON.
         vPortFree((void*) newMsg.msgPtr);
     }
+}
+
+// We call this function if we had previously established the TLS MQTT connection, then we lost it.
+// Maybe we lost the wifi connection, maybe we put the device into a low power state.  Anyway, the DA16600 has
+// all the details it needs to reestablish the network and mqtt connection, we just need to let it do its thing.
+bool reestablish_mqtt_conn(void){
+
+    iotc_print("Reestablishing MQTT connection\n");
+    int timeoutCnt = 0;
+
+    // AT command initialize
+    memset(buf, '\0', ATBUF_SIZE);
+    rm_atcmd_send("ATZ",1000,buf,sizeof(buf));
+
+    // Command Echo
+    memset(buf, '\0', ATBUF_SIZE);
+    rm_atcmd_send("ATE",1000,buf,sizeof(buf));
+
+    // spin here until we have a valid MQTT connection
+    do{
+
+        memset(buf, '\0', ATBUF_SIZE);
+        rm_atcmd_check_value("AT+NWMQCL",2000,buf,sizeof(buf));
+
+//        iotc_print("Check for MQTT connection\n");
+        vTaskDelay(1000);
+
+        // If we checked for an mqtt connection 25 times, then kick
+        // the mqtt connection again.
+        if(25 < timeoutCnt++){
+
+//            iotc_print("Giving up, change to the SETUP_MQTT state to start the connection atain\n");
+            currentState = SETUP_MQTT;
+            return false;
+        }
+
+    }
+    while(buf[0] != '1');
+
+    iotc_print("MQTT connection ready!\n");
+    currentState = WAIT_FOR_TELEMETRY_DATA;
+    return true;
 }
 
 void failure_state(void){

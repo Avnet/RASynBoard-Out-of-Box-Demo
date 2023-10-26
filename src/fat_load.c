@@ -39,7 +39,9 @@ struct config_ini_items config_items ={  /* default settings */
 		.low_power_mode = DOWN_DOWN_LP_MODE,
 		.ble_mode = BLE_ENABLE,
 
+	    .cert_location = LOAD_CERTS_USE_DA16600_CERTS,
 		.target_cloud = CLOUD_NONE,
+        .wifi_config = USE_RENESAS_TOOL_FOR_CONFIG,
 		.wifi_ap_name = {0},
 		.wifi_passwd = {0},
 		.wifi_cc = {0},
@@ -50,6 +52,11 @@ struct config_ini_items config_items ={  /* default settings */
 
 /* Local global variables */
 static FATFS fatfs_obj;
+#if 1
+static int fatfs_mounted = 0;
+static FIL extract_file_fil;
+static int extract_file_opened = 0;
+#endif
 static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int sdcard_slot_status =  SDCARD_IN_SLOT;
@@ -336,6 +343,148 @@ uint32_t remove_file(char * file_name)
     return res;
 }
 
+#if 1
+uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
+{
+    FRESULT res;
+    char path[64];
+    uint32_t bw;
+
+    sprintf(path, "0:/%s", file_name);
+
+    if (!fatfs_mounted) {
+        res = f_mount(&fatfs_obj, "", 1);
+        if(res != FR_OK){
+            printf("f_mount fail %d\r\n",res);
+            return res;
+        }
+        fatfs_mounted = 1;
+        printf("mount fs\n");
+    }
+    
+    if ( header == 1 ) {
+        /* create a new file */
+        res = f_open(&extract_file_fil, path, FA_CREATE_ALWAYS | FA_WRITE);
+    } else {
+        /* append data to file */
+        if (!extract_file_opened) {
+            res = f_open(&extract_file_fil, path, FA_OPEN_APPEND | FA_WRITE);
+            if (res == FR_OK) extract_file_opened = 1;
+        }
+    }
+    if(res != FR_OK){
+        printf("f_open fail %d\r\n",res);
+        return res;
+    }
+
+    res = f_write(&extract_file_fil, buff, len, &bw);
+    if(res != FR_OK){
+        printf("f_write fail %d\r\n",res);
+        return res;
+    }
+
+    if ( header == 1 ) {
+        res =  f_close(&extract_file_fil);
+        if(res != FR_OK){
+            printf("f_close fail %d\r\n",res);
+        }
+        extract_file_opened = 0;
+    } 
+
+    return bw;
+}
+
+uint32_t write_sensor_file(char * file_name, uint32_t sample_size, 
+        int16_t *acc_samples, int header)
+{
+    FRESULT res;
+    char path[64];
+    char buff[128];
+    uint32_t buff_len;
+    uint32_t bw;
+
+    sprintf(path, "0:/%s", file_name);
+
+    if (!fatfs_mounted) {
+        res = f_mount(&fatfs_obj, "", 1);
+        if(res != FR_OK){
+            printf("f_mount fail %d\r\n",res);
+            return res;
+        }
+        fatfs_mounted = 1;
+    }
+
+	if ( header == 1 ) {
+		/* create a new file */
+		res = f_open(&extract_file_fil, path, FA_CREATE_ALWAYS | FA_WRITE);
+	} else {
+		/* append data to file */
+        if (!extract_file_opened) {
+            res = f_open(&extract_file_fil, path, FA_OPEN_APPEND | FA_WRITE);
+            if (res == FR_OK) extract_file_opened = 1;
+        }
+	}
+	if(res != FR_OK){
+		printf("f_open fail %d\r\n",res);
+		return res;
+	}
+
+	if ( header == 1 ) {
+		strcpy(buff, "Acc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
+		buff_len = strlen(buff);
+	}
+    else {
+        uint32_t buff_offset = 0;
+
+        for (int i = 0; i < sample_size / 2; i++) {
+			buff_offset += snprintf(&buff[buff_offset], 128,
+                    "%d,", acc_samples[i]);
+        }
+		buff_offset --; //Truncate the last comma in each line
+		buff_offset += snprintf(&buff[buff_offset], 128,"\r\n");
+
+        buff_len = buff_offset;
+    }
+
+    res = f_write(&extract_file_fil, buff, buff_len, &bw);
+    if(res != FR_OK){
+        printf("f_write fail %d\r\n",res);
+        return res;
+    }
+
+    if ( header == 1 ) {
+        res =  f_close(&extract_file_fil);
+        if(res != FR_OK){
+            printf("f_close fail %d\r\n",res);
+        }
+        extract_file_opened = 0;
+    } 
+
+    return bw;
+}
+
+void write_extraction_file_end(void)
+{
+    FRESULT res;
+
+    if (extract_file_opened) {
+        res =  f_close(&extract_file_fil);
+        if(res != FR_OK){
+            printf("f_close fail %d\r\n",res);
+        }
+        extract_file_opened = 0;
+    }
+
+    if (fatfs_mounted) {
+        res = f_mount(NULL, "", 0);
+        if(res != FR_OK){
+            printf("f_mount umount fail %d\r\n",res);
+        }
+        fatfs_mounted = 0;
+    }
+}
+#else
+
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
 {
     FRESULT res;
@@ -445,6 +594,7 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size,
     }
     return bw;
 }
+#endif
 
 static uint32_t read_config_file( void )
 {
@@ -524,9 +674,15 @@ static uint32_t read_config_file( void )
 										IMU_FUNC_ENABLE, inifile);
 	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
 										IMU_FUNC_DISABLE, inifile);
-	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
 
-	// WiFi configuration
+	// BLE Configuration
+	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
+    ini_gets("BLE Mode", "BLE_Name", BLE_DEFAULT_NAME, \
+            config_items.ble_name, sizeof(config_items.ble_name), inifile);
+
+    // WiFi configuration
+    config_items.wifi_config = ini_getl("WIFI", "Use_Config_AP_Details", USE_RENESAS_TOOL_FOR_CONFIG, inifile);
+
     ini_gets("WIFI", "Access_Point", "WiFi AP Name Undefined", \
                         config_items.wifi_ap_name, sizeof(config_items.wifi_ap_name), inifile);
 
@@ -535,7 +691,6 @@ static uint32_t read_config_file( void )
 
     ini_gets("WIFI", "Country_Code", "US", \
                         config_items.wifi_cc, sizeof(config_items.wifi_cc), inifile);
-
 
     // IoTConnect configuration
     ini_gets("IoTConnect", "CPID", "Undefined", \
@@ -549,7 +704,7 @@ static uint32_t read_config_file( void )
 
     config_items.target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
-    cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_FROM_HEADER, inifile);
+    config_items.cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_USE_DA16600_CERTS, inifile);
 
     ini_gets("Certs", "Root_CA_Filename", "Undefined", \
                         aws_rootCA_file_name, sizeof(aws_rootCA_file_name), inifile);
@@ -658,6 +813,11 @@ int get_low_power_mode( void )
     return config_items.low_power_mode;
 }
 
+int get_wifi_config( void )
+{
+    return config_items.wifi_config;
+}
+
 int is_imu_data_to_file( void )
 {
     return config_items.imu_write_to_file;
@@ -704,7 +864,6 @@ void printConfg(void)
     printf("Release Date       : %s\n\n", RELEASE_DATE);
     printf("Features enabled in config.ini file:\n");
 
-
     printf("\n  Operation mode=%d selected: %s\r\n", mode, mode_description);
 
     // Output recording feature driven by Low Power Mode Selection
@@ -737,6 +896,9 @@ void printConfg(void)
 
     // Output BLE mode
     printf("\n  BLE Mode: %s\n", (config_items.ble_mode) ? "Enabled": "Disabled");
+    if(BLE_ENABLE == config_items.ble_mode){
+        printf("  BLE Advertisement Name: %s\n", config_items.ble_name);
+    }
 
     // Output Cloud configuration
     printf("\n\n  Cloud connectivity: ");
@@ -781,9 +943,16 @@ void printConfg(void)
         }
 
         printf("\n  WiFi Configuration\n");
-        printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
-        printf("    Access Point password: %s\n", config_items.wifi_passwd);
-        printf("    Country Code         : %s\n\n", config_items.wifi_cc);
+
+        if(USE_CONFIG_WIFI_SETTINGS == get_wifi_config()){
+
+            printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
+            printf("    Access Point password: %s\n", config_items.wifi_passwd);
+            printf("    Country Code         : %s\n\n", config_items.wifi_cc);
+        }
+        else{
+            printf("    Please use the Renesas Wi-Fi Provisioning Tool from your app store to \nconfigure the Wi-Fi network.\n");
+        }
     }
 }
 
@@ -870,6 +1039,11 @@ int get_ble_mode( void )
     return config_items.ble_mode;
 }
 
+char* get_ble_name( void )
+{
+    return config_items.ble_name;
+}
+
 char* get_wifi_ap( void )
 {
     return config_items.wifi_ap_name;
@@ -906,7 +1080,7 @@ int get_target_cloud( void )
 
 int get_load_certificate_from( void )
 {
-    return cert_location;
+    return config_items.cert_location;
 }
 
 char* get_certificate_file_name(int certID){

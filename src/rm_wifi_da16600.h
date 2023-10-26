@@ -12,6 +12,9 @@
 #include "rm_wifi_config.h"
 #include "rm_atcmd.h"
 
+#define   wifi_sleep()          R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_LOW)
+#define   wifi_wakup()          R_BSP_PinWrite(DA16600_RstPin, BSP_IO_LEVEL_HIGH)
+
 #ifndef IPADDR_LEN
 #define IPADDR_LEN       16
 #endif

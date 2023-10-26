@@ -484,6 +484,11 @@
       <property id="rtos.awsfreertos.object.queue.queue_length" value="128"/>
       <property id="rtos.awsfreertos.object.queue.allocation" value="rtos.awsfreertos.object.queue.allocation.static"/>
     </object>
+    <object id="rtos.awsfreertos.object.mutex.1817494091">
+      <property id="rtos.awsfreertos.object.mutex.symbol" value="g_sd_mutex"/>
+      <property id="rtos.awsfreertos.object.mutex.type" value="rtos.awsfreertos.object.mutex.type.mutex"/>
+      <property id="rtos.awsfreertos.object.mutex.allocation" value="rtos.awsfreertos.object.mutex.allocation.static"/>
+    </object>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.rm_freertos_port.0"/>
@@ -749,8 +754,8 @@
       <configSetting altId="p103.gpio_mode.gpio_mode_out.high" configurationId="p103.gpio_mode"/>
       <configSetting altId="p104.output.high" configurationId="p104"/>
       <configSetting altId="p104.gpio_mode.gpio_mode_out.high" configurationId="p104.gpio_mode"/>
-      <configSetting altId="p106.output.high" configurationId="p106"/>
-      <configSetting altId="p106.gpio_mode.gpio_mode_out.high" configurationId="p106.gpio_mode"/>
+      <configSetting altId="p106.output.low" configurationId="p106"/>
+      <configSetting altId="p106.gpio_mode.gpio_mode_out.low" configurationId="p106.gpio_mode"/>
       <configSetting altId="p108.debug0.swdio" configurationId="p108"/>
       <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
       <configSetting altId="p109.sci9.txd" configurationId="p109"/>
