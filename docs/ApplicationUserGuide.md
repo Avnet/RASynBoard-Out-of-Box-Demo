@@ -14,11 +14,9 @@ When the ndp120 detects a ML feature in the data it interrupts the RA6 MCU and p
 1. Optionally send a MQTT telemetry message to the target cloud implementation if enabled (see the ```[Cloud Connectivity]``` section below).
 
 ## Data Collection for Developing/Testing New ML Models
-Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse will generate the \*.syspkg files that can be used on the RASynBoard with the OOB application.
+Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse can generate the \*.syspkg files that can be used on the RASynBoard with the OOB application.
 
-**Note: RASynBoard Edge Impulse support is scheduled to be released in late October 2023**
-
-**Note: Edge Impulse will release a custom RASynBoard application to interface with the Edge Impulse Studio to develop/test/deploy/test on device in conjunction with the late October 2023 release**
+**Note: RASynBoard Edge Impulse support has been released!
 
 The OOB application also implements multiple ways to collect data from the on-board sensors
 1. Audio data can be recorded to the microSD card
@@ -26,12 +24,13 @@ The OOB application also implements multiple ways to collect data from the on-bo
 1. (Future enablement) Using additional external sensors
 
 ### Flash microSD card images to core board SPI Flash
-When developing a RASynBoard ML application it's common to use the microSD card to manage the config.ini and \*.synpkg files.  However if users get to a point where they want to deploy the RASynBoard core board without the I/O board, they can move the config.ini and \*.synpkg files to the on-board SPI flash by pressing the user button for > 3 seconds.  
+When developing a RASynBoard ML application it's common to use the microSD card to manage the config.ini and \*.synpkg files.  However if users get to a point where they want to deploy the RASynBoard core board without the I/O board, they can move the config.ini settings and \*.synpkg files to the on-board SPI flash by pressing the user button for > 3 seconds.  
 
 Once the > 3 second button press is detected the application will . . .
 1. Erase the SPI Flash region that holds the config.ini and \*.synpkg files
 1. Concatenate all the files into a single binary blob
 1. Flash the binary blob to the SPI Flash
+1. Copy all core board only relevant config.ini settings to SPI Flash
 
 Once the images have been moved to SPI Flash, the application will run from SPI Flash if . . .
 1. The microSD card is removed from the I/O board
@@ -51,6 +50,8 @@ The OOB application reads application configuration data from the config.ini fil
 
 ### Syntiant Binary Images
 The microSD card is also used to add syntiant binary images that are used by the NDP120.  These files end with the \*.synpkg file extension.  There are three \*.synpkg files for any given ML model.  Using this approach, ML models can be added to the OOB application without having to rebuild the application.  The user defines which \*.synpkg files get loaded onto the NDP120 with config.ini configuration changes (details below).
+
+**Note:** The *.synpkg files are specific to the Syntiant SDK version.  Always use the *.synpkg files included with any specific OOB release to maintain compatability
 
 ### Data Recording
 The other main use of the microSD card is to capture training data from either the on-board TDK digital microphone, or the TDK 6-Axis IMU sensor. 
@@ -117,7 +118,7 @@ The application can be configured to output debug messages to either the UART ex
 - ```Port=2``` Outputs debug to the UART associated with the core board USB-C connector
     - This selection allows developers to access debug when the core board is running without the I/O board
 
-**Note the application must bring this UART connection on-line when the application starts.  Because of this delay, most of the startup debug will not be displayed on the UART.**
+**Note the application must bring this UART connection on-line when the application starts.  Because of this delay, most of the startup debug will not be displayed on the UART.  Release v1.4.0 added a serial command ```log``` that will output the early debug when using the core board USB-C com port**
 
 ![](./assets/images/debugConfig.jpg "")
 
@@ -149,19 +150,6 @@ The OOB application can capture 6-Axis IMU data either to a \*.csv file on the m
 
 ![](./assets/images/imuDataConfig.jpg "")
 
-## Low Power Mode
-The OOB application supports low-power mode.  When in the low-power state, the RA6 device is put into sleep mode, and the DA16600 WiFi/BLE device is held in reset.  The low power mode configuration section defines when the applicatoin enters and exits low power mode.
-
-1. ```[Low Power Mode]-->Power_Mode=x```
-
-- ```[Low Power Mode]-->Power_Mode=0```: When in ```Power_Mode=0``` the application will enter a low-power state when the application detects the "down" \<pause for < 3.6 seconds\> "down" sequence.  The device will stay in a low-power state until any other inference detection event occurs.  When the next event is detected the device will exit the low-power state not enter low-power state again until the "down" \<pause for < 3.6 seconds\> "down" sequence is detected.
-
-- ```[Low Power Mode]-->Power_Mode=1```: When in ```Power_Mode=1``` the application will enter low-power state on power-up and will come out of low-power state when any inference detection occurs.  As soon as the new inference detection logic is completed, the application will automatically re-enter the low-power state.
-
-**Note: The data recording feature is disabled when ```[Low Power Mode]-->Power_Mode=1```**
-
-![](./assets/images/lowPowerConfig.jpg "")
-
 ## BLE Mode
 
 The application can broadcast inference results over BLE that can be displayed on a user interface.  Avnet has a python application that can be used to display the BLE messages.  [Demo GUI Repo](https://github.com/Avnet/Rasynboard_ew23_demo_GUI_qt) (This repo is currently private, we're working on making it public (AAGBT-83))
@@ -186,6 +174,14 @@ There are multiple configuration items required to establish an MQTT connection.
 1. ```[WIFI]-->Access_Point_Password=<Your AP Password Here>```: Used to set your WiFi Access Point password 
 
 ![](./assets/images/wifiConfig.jpg "")
+
+### WiFi Access Point Configuration Source
+Sometimes the user may want to dynamically change the WiFi Acess point configuration.  For instance when deploying a solution on the core board only, it may be necessary to change the WiFi credentials when moving the device to a new location.  
+
+1. ```[WIFI]-->Use_Config_AP_Details=0```: Don't use the config.ini WiFi configuration.  This assumes that the user will use the free Renesas Wi-Fi Provisioning Tool avalible from your mobile device's App store
+1. ```[WIFI]-->Use_Config_AP_Details=1```: Use the config.ini wifi access point configuration
+
+![](./assets/images/wifi_use_config_details.jpg "")
 
 ### Target Cloud Provider
 The application currently only supports IoTConnect on AWS, however we have feature enhancement tickets written to add AWS and Azure implementations.  The ```[Cloud Connectivity]-->Target_Cloud``` configuration item is used to define which service the device should connect to.  

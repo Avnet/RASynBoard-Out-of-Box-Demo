@@ -754,8 +754,8 @@
       <configSetting altId="p103.gpio_mode.gpio_mode_out.high" configurationId="p103.gpio_mode"/>
       <configSetting altId="p104.output.high" configurationId="p104"/>
       <configSetting altId="p104.gpio_mode.gpio_mode_out.high" configurationId="p104.gpio_mode"/>
-      <configSetting altId="p106.output.high" configurationId="p106"/>
-      <configSetting altId="p106.gpio_mode.gpio_mode_out.high" configurationId="p106.gpio_mode"/>
+      <configSetting altId="p106.output.low" configurationId="p106"/>
+      <configSetting altId="p106.gpio_mode.gpio_mode_out.low" configurationId="p106.gpio_mode"/>
       <configSetting altId="p108.debug0.swdio" configurationId="p108"/>
       <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
       <configSetting altId="p109.sci9.txd" configurationId="p109"/>
