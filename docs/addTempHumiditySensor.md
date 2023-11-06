@@ -43,7 +43,7 @@ Since we're going to use the PMOD connector to connect the HS300X device we need
 1. Open ```src/fat_load.c```
 1. Change ```print_console_type = CONSOLE_USB_CDC```
 
-![](./assets/images/addSensor0f.jpg "")
+![](./assets/images/addSensor0F.jpg "")
 
 ## Reconfigure the RASynBoard hardware to expose the I2C signals on the PMOD connector
 
