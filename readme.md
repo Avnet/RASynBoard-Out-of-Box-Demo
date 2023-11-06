@@ -16,6 +16,7 @@ Please follow the links below to learn more about the Avnet RASynBoard Out-of-Bo
 - [Avnet IoTConnect Configuration](./docs/IoTConnect.md):  Details to connect your RASynBoard to Avnet's IoTConnect on AWS cloud solution
 - [Wi-Fi Configuration](./docs/WiFiSetup.md):  Details on how to configure the OOB application to connect to your Wi-Fi network. 
 - [Out-of-Box Development Notes](./docs/OobDevelopmentNotes.md): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applications.
+- [Add a Temperature and Humidity Sensor to the OOB Application](./docs/addTempHumiditySensor.md): Details on how to add the [Renesas HS300X temperature and humidity sensor](https://www.renesas.com/us/en/products/sensor-products/humidity-sensors/us082-hs3001evz-relative-humidity-sensor-pmod-board-renesas-quick-connect-iot) to the OOB application.
 
 # Out-of-Box Releases
 As Avnet adds features and bug fixes to the OOB application we push out releases.  Each release:
