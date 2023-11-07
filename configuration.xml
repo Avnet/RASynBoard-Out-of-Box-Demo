@@ -229,6 +229,14 @@
       <description>FreeRTOS - Memory Management - Heap 4</description>
       <originalPack>Amazon.FreeRTOS-Kernel.10.4.6+fsp.4.5.0.pack</originalPack>
     </component>
+    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_comms_i2c" variant="" vendor="Renesas" version="4.5.0">
+      <description>I2C Communications Implementation</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="Middleware" condition="" group="all" subgroup="rm_hs300x" variant="" vendor="Renesas" version="4.5.0">
+      <description>HS300X Sensor Implementation</description>
+      <originalPack>Renesas.RA.4.5.0.pack</originalPack>
+    </component>
   </raComponentSelection>
   <raElcConfiguration/>
   <raIcuConfiguration/>
@@ -442,6 +450,37 @@
       <property id="module.driver.transfer.offset" value="1"/>
       <property id="module.driver.transfer.src.buffer" value="1"/>
     </module>
+    <module id="module.driver.hs300x_on_hs300x.101569892">
+      <property id="module.driver.hs300x.name" value="g_hs300x_sensor0"/>
+      <property id="module.driver.hs300x.p_callback" value="hs300x_callback"/>
+    </module>
+    <module id="module.driver.comms_i2c_on_comms_i2c_device.362030901">
+      <property id="module.driver.comms_i2c_device.name" value="g_comms_i2c_device0"/>
+      <property id="module.driver.comms_i2c_device.semaphore_timeout" value="0xFFFFFFFF"/>
+      <property id="module.driver.comms_i2c_device.slave_address" value="0x00"/>
+      <property id="module.driver.comms_i2c_device.address_mode" value="module.driver.comms_i2c_device.address_mode.address_mode_7bit"/>
+      <property id="module.driver.comms_i2c_device.p_callback" value="comms_i2c_callback"/>
+    </module>
+    <module id="module.driver.comms_i2c_on_comms_i2c_bus.887331618">
+      <property id="module.driver.comms_i2c_bus.name" value="g_comms_i2c_bus0"/>
+      <property id="module.driver.comms_i2c_bus.bus_timeout" value="0xFFFFFFFF"/>
+      <property id="module.driver.comms_i2c_bus.blocking_semaphore" value="module.driver.comms_i2c_bus.blocking_semaphore.use"/>
+      <property id="module.driver.comms_i2c_bus.bus_recursive_mutex" value="module.driver.comms_i2c_bus.bus_recursive_mutex.use"/>
+    </module>
+    <module id="module.driver.i2c_on_iic_master.2086536253">
+      <property id="module.driver.i2c_master.name" value="g_i2c_master0"/>
+      <property id="module.driver.i2c_master.channel" value="1"/>
+      <property id="module.driver.i2c_master.rate" value="module.driver.i2c_master.rate.rate_standard"/>
+      <property id="module.driver.i2c_master.rise_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.fall_time_ns" value="120"/>
+      <property id="module.driver.i2c_master.duty" value="50"/>
+      <property id="module.driver.i2c_master.slave" value="0x00"/>
+      <property id="module.driver.i2c_master.addr_mode" value="module.driver.i2c_master.addr_mode.addr_mode_7bit"/>
+      <property id="module.driver.i2c_master.timeout_mode" value="module.driver.i2c_master.timeout_mode.short_mode"/>
+      <property id="module.driver.i2c_master.timeout_scl_low" value="module.driver.i2c_master.timeout_scl_low.enabled"/>
+      <property id="module.driver.i2c_master.p_callback" value="NULL"/>
+      <property id="module.driver.i2c_master.ipl" value="board.icu.common.irq.priority12"/>
+    </module>
     <object id="rtos.awsfreertos.object.binary_semaphore.2047280178">
       <property id="rtos.awsfreertos.object.binary_semaphore.symbol" value="g_binary_semaphore"/>
       <property id="rtos.awsfreertos.object.binary_semaphore.allocation" value="rtos.awsfreertos.object.binary_semaphore.allocation.static"/>
@@ -556,6 +595,22 @@
       <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
       <property id="rtos.awsfreertos.thread.secure_context" value="rtos.awsfreertos.thread.secure_context.enable"/>
     </context>
+    <context id="rtos.awsfreertos.thread.2104487893">
+      <property id="_symbol" value="sensor_thread"/>
+      <property id="rtos.awsfreertos.thread.name" value="Sensor Thread"/>
+      <property id="rtos.awsfreertos.thread.stack" value="2048"/>
+      <property id="rtos.awsfreertos.thread.priority" value="1"/>
+      <property id="rtos.awsfreertos.thread.context" value="NULL"/>
+      <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
+      <property id="rtos.awsfreertos.thread.secure_context" value="rtos.awsfreertos.thread.secure_context.enable"/>
+      <stack module="module.driver.hs300x_on_hs300x.101569892">
+        <stack module="module.driver.comms_i2c_on_comms_i2c_device.362030901" requires="module.driver.hs300x.requires.comms_i2c_device">
+          <stack module="module.driver.comms_i2c_on_comms_i2c_bus.887331618" requires="module.driver.comms_i2c_device.requires.comms_i2c_bus">
+            <stack module="module.driver.i2c_on_iic_master.2086536253" requires="module.driver.comms_i2c_bus.requires.i2c"/>
+          </stack>
+        </stack>
+      </stack>
+    </context>
     <config id="config.driver.lpm">
       <property id="config.driver.lpm.param_checking_enable" value="config.driver.lpm.param_checking_enable.bsp"/>
       <property id="config.driver.lpm.standby_limit" value="config.driver.lpm.standby_limit.disabled"/>
@@ -619,7 +674,7 @@
       <property id="config.awsfreertos.thread.configidle_should_yield" value="config.awsfreertos.thread.configidle_should_yield.enabled"/>
       <property id="config.awsfreertos.thread.configuse_task_notifications" value="config.awsfreertos.thread.configuse_task_notifications.enabled"/>
       <property id="config.awsfreertos.thread.configuse_mutexes" value="config.awsfreertos.thread.configuse_mutexes.enabled"/>
-      <property id="config.awsfreertos.thread.configuse_recursive_mutexes" value="config.awsfreertos.thread.configuse_recursive_mutexes.disabled"/>
+      <property id="config.awsfreertos.thread.configuse_recursive_mutexes" value="config.awsfreertos.thread.configuse_recursive_mutexes.enabled"/>
       <property id="config.awsfreertos.thread.configuse_counting_semaphores" value="config.awsfreertos.thread.configuse_counting_semaphores.enabled"/>
       <property id="config.awsfreertos.thread.configcheck_for_stack_overflow" value="config.awsfreertos.thread.configcheck_for_stack_overflow.disabled"/>
       <property id="config.awsfreertos.thread.configqueue_registry_size" value="10"/>
@@ -664,6 +719,9 @@
       <property id="config.awsfreertos.thread.max_length" value="192"/>
       <property id="config.awsfreertos.thread.include_time_and_task" value="config.awsfreertos.thread.include_time_and_task.disabled"/>
     </config>
+    <config id="config.driver.comms_i2c">
+      <property id="config.driver.comms_i2c.param_checking_enable" value="config.driver.comms_i2c.param_checking_enable.bsp"/>
+    </config>
     <config id="config.driver.dmac">
       <property id="config.driver.dmac.param_checking_enable" value="config.driver.dmac.param_checking_enable.bsp"/>
     </config>
@@ -671,6 +729,11 @@
       <property id="config.aws.wifi.common.max_ssid_len" value="32"/>
       <property id="config.aws.wifi.common.max_bssid_len" value="6"/>
       <property id="config.aws.wifi.common.max_passphrase_len" value="32"/>
+    </config>
+    <config id="config.driver.hs300x">
+      <property id="config.driver.hs300x.param_checking_enable" value="config.driver.hs300x.param_checking_enable.bsp"/>
+      <property id="config.driver.hs300x.sensor_data" value="config.driver.hs300x.sensor_data.both_humidity_temperature"/>
+      <property id="config.driver.hs300x.programming_mode" value="config.driver.hs300x.programming_mode.off"/>
     </config>
     <config id="config.driver.iic_master">
       <property id="config.driver.iic_master.param_checking_enable" value="config.driver.iic_master.param_checking_enable.bsp"/>
@@ -734,6 +797,9 @@
       <configSetting altId="iic0.mode.enabled.a" configurationId="iic0.mode"/>
       <configSetting altId="iic0.scl.p400" configurationId="iic0.scl"/>
       <configSetting altId="iic0.sda.p401" configurationId="iic0.sda"/>
+      <configSetting altId="iic1.mode.enabled.b" configurationId="iic1.mode"/>
+      <configSetting altId="iic1.scl.p205" configurationId="iic1.scl"/>
+      <configSetting altId="iic1.sda.p206" configurationId="iic1.sda"/>
       <configSetting altId="irq0.irq05.p410" configurationId="irq0.irq05"/>
       <configSetting altId="irq0.irq13.p015" configurationId="irq0.irq13"/>
       <configSetting altId="irq0.mode.enabled" configurationId="irq0.mode"/>
@@ -766,9 +832,11 @@
       <configSetting altId="p111.gpio_mode.gpio_mode_out.low" configurationId="p111.gpio_mode"/>
       <configSetting altId="p112.output.low" configurationId="p112"/>
       <configSetting altId="p112.gpio_mode.gpio_mode_out.low" configurationId="p112.gpio_mode"/>
-      <configSetting altId="p205.sci4.txd" configurationId="p205"/>
+      <configSetting altId="p205.iic1.scl" configurationId="p205"/>
+      <configSetting altId="p205.gpio_speed.gpio_speed_medium" configurationId="p205.gpio_drivecapacity"/>
       <configSetting altId="p205.gpio_mode.gpio_mode_peripheral" configurationId="p205.gpio_mode"/>
-      <configSetting altId="p206.sci4.rxd" configurationId="p206"/>
+      <configSetting altId="p206.iic1.sda" configurationId="p206"/>
+      <configSetting altId="p206.gpio_speed.gpio_speed_medium" configurationId="p206.gpio_drivecapacity"/>
       <configSetting altId="p206.gpio_mode.gpio_mode_peripheral" configurationId="p206.gpio_mode"/>
       <configSetting altId="p207.output.low" configurationId="p207"/>
       <configSetting altId="p207.gpio_mode.gpio_mode_out.low" configurationId="p207.gpio_mode"/>
@@ -794,9 +862,6 @@
       <configSetting altId="sci3.mode.custom.free" configurationId="sci3.mode"/>
       <configSetting altId="sci3.rxd.p408" configurationId="sci3.rxd"/>
       <configSetting altId="sci3.txd.p409" configurationId="sci3.txd"/>
-      <configSetting altId="sci4.mode.asynchronous.free" configurationId="sci4.mode"/>
-      <configSetting altId="sci4.rxd.p206" configurationId="sci4.rxd"/>
-      <configSetting altId="sci4.txd.p205" configurationId="sci4.txd"/>
       <configSetting altId="sci9.mode.asynchronous.free" configurationId="sci9.mode"/>
       <configSetting altId="sci9.rxd.p110" configurationId="sci9.rxd"/>
       <configSetting altId="sci9.txd.p109" configurationId="sci9.txd"/>
