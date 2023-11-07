@@ -12,9 +12,7 @@ This document includes all the details required to . . .
 1. You have an [Avnet RASynBoard EVK](http://avnet.me/rasynboard)
 1. You have a microSD card for the EVK
 1. You have a USB-C cable to connect the EVK to your development PC
-1. You have loaded the OOB application onto your RASynBoard by either . . . 
-    1. Completing the [Developer Guide / RASynBoard Getting Started](./RASyBoardGettingStarted.md)
-    1. Loading the OOB binary image by following the [Quick Start / Using RASynBoard Releases](./UsingRASynbBoardReleases.md) guide
+1. You have completed the [RASynBoard Getting Started Guide](./RASyBoardGettingStarted.md)
 1. You have exercised the **5-keyword ML model "up", "down", "back", "next", "ok-syntiant"**
 1. You have a [USB to TTL debug cable](https://www.adafruit.com/product/954) to view debug from the OOB application
 
