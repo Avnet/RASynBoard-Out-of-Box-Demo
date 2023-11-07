@@ -1,16 +1,16 @@
 # Introduction
 
-This document captures the steps to add the Renesas US082-HS3001EVZ temperature and humidity sensor to the Avnet RASynBoard Out of Box application.  We're going to use the Renesas Flexable Software Package (FSP) to complete the tasks required to add this sensor to the project.  The FSP is a powerful feature that you'll see in action.  
+This document captures the steps to add the Renesas US082-HS3001EVZ temperature and humidity sensor to the Avnet RASynBoard Out of Box application.  We're going to use the Renesas Flexible Software Package (FSP) to complete the tasks required to add this sensor to the project.  The FSP is a powerful feature that you'll see in action.  
 
 In order to use this PMOD I2C sensor with the Avnet OOB application we need to . . .
 
 1. Clone the project
 1. Open the project in the Renesas e^2 Studio IDE
 1. Connect the sensor to the RASynBoard
-1. Disable the PMOD UART initialization calls in the project
+1. Disable the PMOD UART software initialization calls in the project
+1. Add a new thread to read the sensor
 1. Disable the PMOD debug UART hardware signals (we'll re-use these signals for the I2C interface)
 1. Add the I2C interface
-1. Add a new thread to read the sensor
 1. Add the new sensor drivers
 1. Write 10 lines to code to initialize and read the sensor
 1. Run the application and verify that the sensor is working
@@ -21,13 +21,11 @@ As you'll see the FSP makes this an easy task!
 
 First we'll clone the Avnet Out-of-Box application.  I prefer to clone git repos that way I get my source control all setup from the start.  This makes tracking any software changes a breeze.
 
-If you need help getting these steps done, please reference the [RASynBoard Getting Started Guide](./RASyBoardGettingStarted.md).  Once you have built and run the OOB application come back to this guide.
+If you need help getting these steps done, please reference the [RASynBoard Getting Started Guide](./RASyBoardGettingStarted.md).  Once you have built and run the unmodified OOB application come back to this guide.
 
 # Wire the Sensor
 
-Use the graphic below to wire your HS300X sensor to your RASynBoard.  I noticed that the SCL and SDA signals are not pinned out correctly on the PMOD connector, so you have to swap the signals on Pins 3 -4.
-
-**Note**: All connections show below are on the top set of pins
+Since the RASynBoard has a PMOD connector, we can simply plug in the HS300X sensor to the board.  Use the graphic below to connect your HS300X sensor to your RASynBoard.  
 
 ![](./assets/images/addSensor12.jpg "")
 
@@ -45,27 +43,6 @@ Since we're going to use the PMOD connector to connect the HS300X device we need
 
 ![](./assets/images/addSensor0F.jpg "")
 
-## Reconfigure the RASynBoard hardware to expose the I2C signals on the PMOD connector
-
-The standard OOB application exposes Debug UART signals on the PMOD, but we need to reconfigure these pins to I2C signals.  The I2C sensor will use these signals from the PMOD connector.
-
-1. In the IDE open the ```configuration.xml``` file, this opens the FSP Configuration
-
-![](./assets/images/addSensor001.jpg "")
-
-1. Select the **Pins** tab
-1. Select **Peripherals** --> **Connectivity:SCI** --> **SCI4** 
-1. Select the pull down control in the **Operation Mode** --> **Value** column
-1. First select **Disabled** (This is a recommended step)
-1. Select **Simple I2C**
-1. Change the **Pin Group Selection** to **_A only**
-
-![](./assets/images/addSensor06.jpg "")
-
-Your SCI4 configuration should should look like this . . . 
-
-![](./assets/images/addSensor09.jpg "")
-
 # Add a new FreeRTOS Sensor Thread
 
 1. Select the **Stacks** tab
@@ -82,6 +59,62 @@ Your SCI4 configuration should should look like this . . .
 
 ![](./assets/images/addSensor02.jpg "")
 
+The new thread is added to the project, but the (rm_comms_i2c) block is red indicating an issue with the configuration.  You can always hover your mouse over the red error text to see what the issue is with a hint on how to resolve the issue.
+
+1. Select the **Sensor Thread** in the Threads list
+1. In the Sensor Thread **Properties** tab under **Common-->General** update the following items . . .  
+   - ```Use Mutexes --> Enabled```
+   - ```Use Recursive Mutexes --> Enabled```
+
+![](./assets/images/addSensor04.jpg "")
+
+## Reconfigure the RASynBoard hardware to expose the I2C signals on the PMOD connector
+
+The standard OOB application exposes Debug UART signals on the PMOD, but we need to reconfigure these pins to I2C signals.  The I2C sensor will use these signals from the PMOD connector.
+
+### Disable the Debug UART interface
+
+1. In the IDE open the ```configuration.xml``` file, this opens the FSP Configuration
+
+![](./assets/images/addSensor001.jpg "")
+
+1. Select the **Pins** tab
+1. Select **Peripherals** --> **Connectivity:SCI** --> **SCI4** 
+1. Select the pull down control in the **Operation Mode** --> **Value** column
+1. Select **Disabled** 
+
+![](./assets/images/addSensor06.jpg "")
+
+Your SCI4 configuration should look like this . . . 
+
+![](./assets/images/addSensor09.jpg "")
+
+### Enable the I2C Channel 1 Interface
+
+1. Select the **Pins** tab
+1. Select **Peripherals -> Connectivity:IIC -> IIC1**
+1. Change the **Operation Mode** to ```Enabled```
+
+![](./assets/images/addSensor14.jpg "")
+
+### Add and configure the I2C Master block for the new sensor
+
+1. Select the **Stacks** tab
+1. With the **Sensor Thread** selected
+  1. Click on the **Add I2C Communications Peripheral** block
+  1. A **New** option appears
+  1. Select **New**
+  1. Select **I2C Master (r_iic_master)**
+
+![](./assets/images/addSensor05.jpg "")
+
+### Select the I2C channel
+
+1. Select the **g_i2c_master0 I2C Master (r_ii2_master)** block 
+1. In the Properties tab change the **Channel** to ```1``` to select the I2C interface exposed on the PMOD
+
+![](./assets/images/addSensor07.jpg "")
+
 # Add the HS300X Driver Code to the project
 We'll use the Renesas Flexible Software Package tool to generate all the driver code to read our new sensor.
 
@@ -89,32 +122,6 @@ We'll use the Renesas Flexible Software Package tool to generate all the driver 
 1. Select **Stacks** --> **New Stack** --> **Sensor** --> **HS300X Temperature/Humidity Sensor (rm_hs300x)**
 
 ![](./assets/images/addSensor03.jpg "")
-
-The sensor stack is added to the project, but the (rm_comms_i2c) block is red indicating an issue with the configuration
-
-1. Select the **Sensor Thread** in the Threads list
-1. In the Sensor Thread **Properties** tab under **Common-->General** update . . .
-   - ```Use Mutexes --> Enabled```
-   - ```Use Recursive Mutexes --> Enabled```
-
-![](./assets/images/addSensor04.jpg "")
-
-## Add and configure the I2C Master block for the new sensor
-
-1. Select the **Stacks** tab
-1. With the **Sensor Thread** selected
-  1. Click on the **Add I2C Communications Peripheral** block
-  1. Select **New**
-  1. Select **I2C Master (r_iic_master)**
-
-![](./assets/images/addSensor05.jpg "")
-
-## Select the I2C channel
-
-1. Select the **g_i2c_master0 I2C Master (r_sci_i2c)** block 
-1. In the Properties tab change the **Channel** to ```4``` to select the I2C interface ```SCI4``` exposed on the PMOD
-
-![](./assets/images/addSensor07.jpg "")
 
 ## Generate the Project Content
 
@@ -136,7 +143,7 @@ Note that the project now has the hs300x drivers included under the ```ra/fsp/sr
 
 ## ```sensor_thread_entry()```
 
-If you expand the ```src``` directory you'll see a new file ```sensor_thread_entry()``` has been added to the project, and furthermore calls were added to call our new thread on startup.  So far we have not written any code but we already have an execution path enabled to read our sensor.  Pretty cool!  Note that the ```sensor_thread_entry.c``` file is pretty sparse!
+If you expand the ```src``` directory you'll see a new file ```sensor_thread_entry.c``` has been added to the project, and furthermore calls were added to call our new thread on startup.  So far we have not written any code but we already have an execution path enabled to read our sensor.  Pretty cool!  Note that the ```sensor_thread_entry.c``` file is pretty sparse!
 
 ![](./assets/images/addSensor0A.jpg "")
 
@@ -146,7 +153,7 @@ Usually at this point we would need to dig into documentation to learn how to in
 
 1. Expand the ```Developer Assistance``` folder
 1. Expand the ```Sensor Thread``` folder
-1. Add a few blank lines in ```sensor_thread_entry.c``` below the ```#include "sensor_thread.h"```line
+1. Add a few blank lines in ```sensor_thread_entry.c``` below the ```#include "sensor_thread.h"``` line
 
 ![](./assets/images/addSensor0B.jpg "")
 
@@ -174,6 +181,11 @@ After dragging all the identified items to my **sensor_thread_entry.c** file it 
 ## Populate ```sensor_thread_entry()```
 
 So just like that we have all the driver code done!  
+
+1. Add the standard I/O ```#include <stdio.h>``` at the top of the ```sensor_thread_entry.c``` file
+
+
+![](./assets/images/addSensor15.jpg "")
 
 1. Copy and paste the code below overwriting the existing empty ```sensor_thread_entry()``` function
 
@@ -219,7 +231,9 @@ If you have issues starting the debugger, refer back to the [RASynBoard Getting 
 ![](./assets/images/addSensor0D.jpg "")
 
 1. Once the debugger is running it will be halted at the call to ```SystemInit()```
-1. Press the **F8** key twice to run the application in the debugger
+1. Press the **F8** key to continue
+1. Next the debugger stops at the first line in ```int main(void)```
+1. Press the **F8** key to continue
 
 # Change the debug output
 
@@ -240,7 +254,7 @@ Since we highjacked the Debug UART signals for the I2C signals, we need to redir
 1. Open the serial port associated with the USB-C cable on the core board
   1. Set the port to 155200, 8,N, 1
 
-You should see debug every second with the sensor gets read
+You should see debug every second when the sensor data is read
 
 ![](./assets/images/addSensor11.jpg "")
 
@@ -248,8 +262,10 @@ You should see debug every second with the sensor gets read
 
 This document included all the details needed to add the Renesas HS300X temperature and humidity sensor to the Avnet RASynBoard Out-of-Box application.  You got a brief introduction to the Renesas Flexible Software Package and saw how easy it is to add one of the supported sensors to a RA project.
 
-This project is included on the GitHub page under a branch called ```addTempHumSensor```
+This project is included on the GitHub page under a branch called ```AddTempHumiditySensor```
 
 To pull this branch . . . 
 1. ```git clone https://github.com/Avnet/RASynBoard-Out-of-Box-Demo.git```
-1. ```git checkout AddTempHumSensor```
+1. ```git checkout AddTempHumiditySensor```
+
+If you have any questions, issues or comments on this content please open a new issue on the GitHub page!
