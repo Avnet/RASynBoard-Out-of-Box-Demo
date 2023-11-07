@@ -1,6 +1,6 @@
 # Introduction
 
-This document captures the steps to add the Renesas US082-HS3001EVZ temperature and humidity sensor to the Avnet RASynBoard Out of Box application.  We're going to use the Renesas Flexable Software Package (FSP) to complete the tasks required to add this sensor to the project.  The FSP is a powerful feature that you'll see in action.  
+This document captures the steps to add the Renesas US082-HS3001EVZ temperature and humidity sensor to the Avnet RASynBoard Out of Box application.  We're going to use the Renesas Flexible Software Package (FSP) to complete the tasks required to add this sensor to the project.  The FSP is a powerful feature that you'll see in action.  
 
 In order to use this PMOD I2C sensor with the Avnet OOB application we need to . . .
 
@@ -58,7 +58,7 @@ The standard OOB application exposes Debug UART signals on the PMOD, but we need
 
 ![](./assets/images/addSensor06.jpg "")
 
-Your SCI4 configuration should should look like this . . . 
+Your SCI4 configuration should look like this . . . 
 
 ![](./assets/images/addSensor09.jpg "")
 
@@ -260,8 +260,8 @@ You should see debug every second with the sensor gets read
 
 This document included all the details needed to add the Renesas HS300X temperature and humidity sensor to the Avnet RASynBoard Out-of-Box application.  You got a brief introduction to the Renesas Flexible Software Package and saw how easy it is to add one of the supported sensors to a RA project.
 
-This project is included on the GitHub page under a branch called ```addTempHumSensor```
+This project is included on the GitHub page under a branch called ```AddTempHumiditySensor```
 
 To pull this branch . . . 
 1. ```git clone https://github.com/Avnet/RASynBoard-Out-of-Box-Demo.git```
-1. ```git checkout AddTempHumSensor```
+1. ```git checkout AddTempHumiditySensor```
