@@ -60,7 +60,7 @@ static int extract_file_opened = 0;
 static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int sdcard_slot_status =  SDCARD_IN_SLOT;
-static int print_console_type = CONSOLE_UART;
+static int print_console_type = CONSOLE_USB_CDC;
 
 char mode_description[64] = {0};
 int mode;
