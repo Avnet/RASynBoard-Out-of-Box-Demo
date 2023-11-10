@@ -1,6 +1,15 @@
 # Introduction
 
-This document captures the steps to add the Renesas US082-HS3001EVZ temperature and humidity sensor to the Avnet RASynBoard Out of Box application.  We're going to use the Renesas Flexible Software Package (FSP) to complete the tasks required to add this sensor to the project.  The FSP is a powerful feature that you'll see in action.  
+The [Avnet RASynBoard](http://avnet.me/rasynboard) already includes two TDK sensors on the core board; the TDK [ICM-42671-P (6-axis IMU)](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42670-p/), and the [TDK T5838 (digital MEMS microphone)](https://invensense.tdk.com/products/digital/t5838/).  While these two sensors will support many different ML use cases, adding additional sensors extends the number of use cases that can be addressed. 
+
+This document captures the steps to add the [Renesas US082-HS3001EVZ](https://www.renesas.com/us/en/products/sensor-products/humidity-sensors/us082-hs3001evz-relative-humidity-sensor-pmod-board-renesas-quick-connect-iot) temperature and humidity sensor to the Avnet RASynBoard Out of Box application.  We're going to use the Renesas Flexible Software Package (FSP) to complete the tasks required to add this sensor to the project.  The FSP is a powerful feature that you'll see in action.  
+
+This content does not show how to pass the add-on sensor data to the NDP120 for inferencing.  Look for follow on content that will cover that topic.
+
+Buy links for the hardware:
+ - [Avnet RASynBoard](http://avnet.me/rasynboard)
+ - [Renesas US082-HS3001EVZ](https://www.renesas.com/us/en/products/sensor-products/humidity-sensors/us082-hs3001evz-relative-humidity-sensor-pmod-board-renesas-quick-connect-iot?partno=US082-HS3001EVZ#modalBuyDirect)
+
 
 In order to use this PMOD I2C sensor with the Avnet OOB application we need to . . .
 
@@ -252,7 +261,7 @@ Since we highjacked the Debug UART signals for the I2C signals, we need to redir
 1. Stop debugging the application by clicking on the stop button (red square)
 1. Restart the application by clicking on the green bug
 1. Open the serial port associated with the USB-C cable on the core board
-  1. Set the port to 155200, 8,N, 1
+  1. Set the port to 115200, 8,N, 1
 
 You should see debug every second when the sensor data is read
 
