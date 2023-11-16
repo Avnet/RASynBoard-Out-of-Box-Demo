@@ -28,13 +28,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v103**
+ 	** SDK: v105 **
 */
 
 #include "syntiant_common.h"
 
 #include "syntiant_util.h"
 #include "syntiant_driver.h"
+#include "string.h"
 
 #ifndef NULL
 #define NULL (0)
@@ -52,16 +53,31 @@ int syntiant_tiny_io_init(void *d, int spi_default_speed)
     return s;
 }
 
+int syntiant_tiny_spi_speed(void *d, uint32_t spi_speed)
+{
+    int s;
+    struct ndp120_tiny_handle_t *ndp_handle = (struct ndp120_tiny_handle_t*)d;
+
+    s = syntiant_ndp_spi_speed(ndp_handle->spifd, spi_speed);
+    return s;
+}
+
 int syntiant_tiny_transfer(void *d, int mcu, uint32_t addr, 
         void *out, void *in, unsigned int count)
 {
     struct ndp120_tiny_handle_t *ndp_handle = (d)?(struct ndp120_tiny_handle_t*)d:NULL;
+
+#ifdef INFERENCE_MCU_NO_TOUCH
+    if (mcu && ndp_handle->mcu_no_touch && in) {
+        memset(in, 0, count);
+        return 0;
+    }
+#endif
     
     return syntiant_ndp_transfer((ndp_handle)?&(ndp_handle->spifd):NULL, 
             mcu, addr, out, in, count);
 }
 
-#include <stdio.h>
 /* iif mailbox-exchange wait. this sample implementation just polls for mailbox
  * completion */
 #define MBWAIT_MAX_TRY  30000
@@ -76,7 +92,6 @@ int syntiant_tiny_mbwait(void *d)
     do {
         s = syntiant_ndp120_tiny_poll(ndpp, &notifications, 1);
         if(s) {
-            printf("mbwait tiny_poll failed: %d\n", s);
             return s;
         }
         max_try ++;

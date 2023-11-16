@@ -143,7 +143,7 @@ void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
 /* pvParameters contains TaskHandle_t */
 void ndp_thread_entry(void *pvParameters)
 {
-    int ret;
+    int ret, fatal_error;
     uint8_t ndp_class_idx, ndp_nn_idx, sec_val;
     EventBits_t   evbits;
     uint32_t q_event, notifications;
@@ -241,7 +241,10 @@ void ndp_thread_entry(void *pvParameters)
 		if( evbits & EVENT_BIT_VOICE ) 
 		{
 			xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-			ndp_core2_platform_tiny_poll(&notifications, 1);
+			ndp_core2_platform_tiny_poll(&notifications, 1, &fatal_error);
+            if (fatal_error) {
+                printf("\nNDP Fatal Error!!!\n\n");
+            }
 			ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
             if (!ret) {
                 printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
