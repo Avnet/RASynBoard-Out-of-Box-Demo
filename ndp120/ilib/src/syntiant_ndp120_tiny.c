@@ -2057,7 +2057,8 @@ error:
     return s;
 }
 
-#if !defined(EXCLUDE_HOST_LOAD_CODE) && !defined(EXCLUDE_HOST_LOAD_FLASH)
+#if !defined(EXCLUDE_HOST_LOAD_CODE) || !defined(EXCLUDE_HOST_LOAD_FLASH) || \
+    !defined(EXCLUDE_HOST_LOAD_FILE)
 static int
 syntiant_ndp120_tiny_load_other_pkgs(
     struct syntiant_ndp120_tiny_device_s *ndp120, uint8_t *chunk_ptr,
