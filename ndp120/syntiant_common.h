@@ -76,7 +76,7 @@
 #define DEFAULT_MCU_CLK_DIV             1
 
 /* maximum transfer size on the device */
-#define SYNTIANT_MAX_BLOCK_SIZE         (128)
+#define SYNTIANT_MAX_BLOCK_SIZE         (32)
 
 /* set mcuclkdiv for super low-power */
 //#define MATCH_SWITCH_MCUCLKDIV

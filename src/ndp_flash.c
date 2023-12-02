@@ -7,11 +7,10 @@
  *****************************************************************************/
 #include <stdio.h>
 #include <string.h>
+#include <string.h>
 #include "syntiant_platform.h"
 #include "ndp_flash.h"
-#include <string.h>
 
-#define SYNTIANT_NDP_ERROR_NONE  0
 #define DUMMY_0_BYTES			0
 #define DUMMY_1_BYTES			1
 #define DUMMY_2_BYTES			2
@@ -56,22 +55,33 @@ char* flash_process_percent(uint32_t processed_len, uint32_t planed_len,
 int ndp_flash_init(void)
 {
     int ret;
+    
     ret = ndp_core2_platform_tiny_mspi_config();
     if (ret) {
         printf("**** mspi init failed: %d\n", ret);
     }
+
 	/* set HOLD pin */
-	ret = ndp_core2_platform_tiny_gpio_config(FLASH_PIN_HOLD, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
+	ret = ndp_core2_platform_tiny_gpio_config(FLASH_PIN_HOLD, 
+            NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
 	if (ret) {
-        printf("**** set gpio failed: %d\n", ret);
+        printf("**** set FLASH HOLD failed: %d\n", ret);
     }
+
+    /* set MSSB1/GPIO1 pin */
+    ret = ndp_core2_platform_tiny_gpio_config(MSPI_IMU_SSB, 
+            NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
+    if (ret) {
+        printf("**** set IMU MSSB1 failed %d\n", ret);
+    }
+
     return ret;
 }
 
 static int ndp_flash_spi_transfer(uint8_t cmd, uint8_t *addr, int addr_len,
 								uint8_t dummy, uint8_t *data, int data_len, int type)
 {
-    int ret = SYNTIANT_NDP_ERROR_NONE;
+    int ret = NDP_CORE2_ERROR_NONE;
 	uint8_t send_cmd[8];
 	uint8_t *pdata = data;
 	uint8_t end = 1;
@@ -87,7 +97,7 @@ static int ndp_flash_spi_transfer(uint8_t cmd, uint8_t *addr, int addr_len,
 	}
 
 	while (dummy > 0) {
-		send_cmd[ index++ ] = 0x0f;
+		send_cmd[ index++ ] = 0x00;
 		dummy --;
 	}
 
@@ -98,6 +108,7 @@ static int ndp_flash_spi_transfer(uint8_t cmd, uint8_t *addr, int addr_len,
 
 	ret = ndp_core2_platform_tiny_mspi_write(MSPI_FLASH_SSB, index, send_cmd, end);
 	if (ret) return ret;
+    
 
 	end = 1;
 	switch (flag) {
@@ -428,7 +439,15 @@ int ndp_flash_program_infos(void)
 int ndp_flash_program_all_fw(void)
 {
     int ret;
+    uint16_t device_id;
+    uint32_t jedec_id;
 	char flash_file_name[] = "temp_flash.bin";
+
+    device_id = ndp_flash_get_deviceid();
+    printf("FLASH device_id: 0x%x\n", device_id);
+
+    jedec_id = ndp_flash_get_JEDEC_ID();
+    printf("FLASH jedec_id: 0x%x\n", jedec_id);
 
 	printf("FLASH chip erase ...\n");
 	ret = ndp_flash_chip_erase();
@@ -450,7 +469,6 @@ int ndp_flash_program_all_fw(void)
 	remove_file(flash_file_name);
 
 	ret = ndp_flash_program_infos();
-
     return ret;
 }
 

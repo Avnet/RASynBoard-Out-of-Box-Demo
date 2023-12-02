@@ -66,6 +66,7 @@ static char *labels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS]
 static char numlabels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS];
 
 static uint32_t sensor_info_per_sensor[SYNTIANT_NDP120_SENSOR_MAX];
+static uint8_t sensor_configured[SYNTIANT_NDP120_SENSOR_MAX] = "";
 #endif
 #endif
 
@@ -514,6 +515,14 @@ static int do_file_load_synpkg(struct syntiant_ndp120_tiny_device_s *ndp,
 
 /** *******************************************************
  * **********************************************************/
+#define MSPI_FLASH_SSB          0
+#define MSPI_IMU_SSB            1
+#define GPIO_PIN_6              6
+#define GPIO_PIN_7              7
+#define GPIO_LEVEL_LOW          0
+#define GPIO_LEVEL_HIGH         1
+#define FLASH_PIN_HOLD          GPIO_PIN_7
+#define FLASH_PIN_WP            GPIO_PIN_6
 static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp, 
         int boot_mode)
 {
@@ -610,26 +619,20 @@ static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp,
 		SYNTIANT_TRACE("   Loading NDP120 images and Booting From SPI Flash\n");
 #if 1
 		/* set HOLD pin */
-		s = ndp_core2_platform_tiny_gpio_config(7, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
+		s = ndp_core2_platform_tiny_gpio_config(FLASH_PIN_HOLD, 
+                NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
 		if (s) {
 			SYNTIANT_TRACE("      set HOLD pin failed %d\n", s);
 			return s;
 		}
         /* set MSSB1/GPIO1 pin */
-        s = ndp_core2_platform_tiny_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
+        s = ndp_core2_platform_tiny_gpio_config(MSPI_IMU_SSB, 
+                NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
         if (s) {
             SYNTIANT_TRACE("      set IMU MSSB1 failed %d\n", s);
             return s;
         }
 #endif
-	    /* via MB command */
-	    SYNTIANT_TRACE("MB BOOT FROM FLASH...\n");
-	    s = syntiant_ndp120_tiny_boot_from_flash(ndp);
-	    if (s) {
-	        SYNTIANT_TRACE("Error loading from flash: %d\n", s);
-            goto error;
-	    }
-
         /* Boot from flash */
         if (ndp->boot_flag == SYNTIANT_NDP120_SERIAL_BOOT) {
             /* via serial boot */
@@ -1672,6 +1675,7 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
 
 #ifndef GET_INFO_LITE
     int i;
+    uint8_t sensor_id;
     uint32_t *pbi_version;
 
     pbi_version = (uint32_t *)&pbiver[0];
@@ -1693,10 +1697,12 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
         SYNTIANT_TRACE("scale factor of NN%d: %d\n", i, info.scale_factor[i]);
     }
     for (i = 0; i < SYNTIANT_NDP120_SENSOR_MAX; i++) {
-        if (sensor_info_per_sensor[i]) {
-            SYNTIANT_TRACE("sensor id of sensor num%d: [%u] %s\n", i,
-                sensor_info_per_sensor[i], 
-                syntiant_ndp_sensor_id_name(sensor_info_per_sensor[i]));
+        sensor_id = sensor_info_per_sensor[i] &
+            SYNTIANT_NDP120_SENSOR_CONTROL_ID_MASK;
+        if (sensor_id != SYNTIANT_NDP120_SENSOR_ID_NONE) {
+            printf("sensor id of sensor num%d: %s\n", i,
+               syntiant_ndp_sensor_id_name(sensor_id));
+            sensor_configured[i] = 1;
         }
     }
 #endif

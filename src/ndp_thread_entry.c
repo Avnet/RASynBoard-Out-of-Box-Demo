@@ -185,6 +185,7 @@ void ndp_thread_entry(void *pvParameters)
     {
         ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
     }
+
     /* Start NDP120 program */
     ret = ndp_core2_platform_tiny_start(1, 1, ndp_boot_mode);
     if(ret == 0) {
@@ -205,8 +206,8 @@ void ndp_thread_entry(void *pvParameters)
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
             mode_circular_motion = flash_data.ndp_mode_motion;
-	    memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
-	}
+	        memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
+	    }
         
         // Output the current configuration for the user
         if (get_print_console_type() != CONSOLE_USB_CDC) {
@@ -216,12 +217,14 @@ void ndp_thread_entry(void *pvParameters)
 
     ndp_info_display();
 
+#if 0
     if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
         ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
         if (!ret){
             printf("disable sensor[0] functionality\n");
         }
     }
+#endif
 
     /* Enable NDP IRQ */
     ndp_irq_enable();

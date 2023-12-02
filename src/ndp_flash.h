@@ -9,8 +9,8 @@
 #include "fat_load.h"
 
 /* mspi ssb */
-#define MSPI_FLASH_SSB         0
-#define MSPI_IMU_SSB             1
+#define MSPI_FLASH_SSB                  0
+#define MSPI_IMU_SSB                    1
 /* The address of storing */
 #define FLASH_MCU_ADDR                  0x0
 #define FLASH_MCU_LENGTH                21612

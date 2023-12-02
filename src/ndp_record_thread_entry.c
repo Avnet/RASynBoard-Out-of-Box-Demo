@@ -21,6 +21,7 @@
 #define   LONG_PRESS_TIME         pdMS_TO_TICKS(3000UL)
 
 #define   IMU_SENSOR_INDEX         0
+#define   IMU_SENSOR_MSSB          1
 
 extern int firmware_idx;
 
@@ -331,13 +332,16 @@ void ndp_print_imu(void)
     uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
 
     /* set MSSB0/GPIO0 pin */
+#if 0
+    printf("Setting MSS0 to High\n");
     ndp_core2_platform_tiny_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
     /* reset MSSB1/GPIO1 pin */
     ndp_core2_platform_tiny_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
+#endif
 
     //ndp_core2_platform_tiny_mspi_config();
-    ndp_core2_platform_tiny_mspi_write(1, 1, &reg, 0);
-    ndp_core2_platform_tiny_mspi_read(1, 1, &imu_val, 1);
+    ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &reg, 0);
+    ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 1, &imu_val, 1);
     printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
 }
 
@@ -381,11 +385,15 @@ void ndp_record_thread_entry(void *pvParameters)
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 	/* Start recording after 6 seconds */
-	vTaskDelay (pdMS_TO_TICKS(3000UL));
+	vTaskDelay (pdMS_TO_TICKS(1000UL));
 	printf("Record_thread running\n");
 
-	//ndp_print_imu();
-   
+#if 0
+    if (is_record_motion()) {
+	    ndp_print_imu();
+    }
+#endif
+  
 	if (SDCARD_IN_SLOT != get_sdcard_slot_status()) {
 	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
 	    vTaskDelete(NULL);
