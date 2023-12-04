@@ -55,6 +55,8 @@ static char label_data[NDP120_MCU_LABELS_MAX_LEN] = "";
 static void send_ble_update(char* ,int ,char*, int);
 extern void printConfg(void);
 
+static void set_decimation_inshift( void );
+
 void ndp_info_display(void)
 {
     int s, total_nn, total_labels;
@@ -226,6 +228,8 @@ void ndp_thread_entry(void *pvParameters)
     }
 #endif
 
+    set_decimation_inshift();
+
     /* Enable NDP IRQ */
     ndp_irq_enable();
 
@@ -376,5 +380,87 @@ static void send_ble_update(char* ble_string ,int timeout ,char* buf, int buf_si
     if(BLE_ENABLE == get_ble_mode()){
         rm_atcmd_send(ble_string ,timeout, buf, buf_size);
     }
+}
+
+static void set_decimation_inshift( void ){
+
+#define INSHIFT_AUDIO_ID 0
+#define INSHIFT_SINGLE_MIC_ID 0
+#define INSHIFT_DUAL_MIC_ID 1
+
+    int decimation_inshift_mic0_read_value = 0;
+    int decimation_inshift_mic1_read_value = 0;
+    int decimation_inshift_calculated_value = 0;
+
+    int decimation_inshift_value_mic0 = get_dec_inshift_value();
+    int decimation_inshift_offset = get_dec_inshift_offset();
+
+    // Read the decimation_inshift values for both mics
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &decimation_inshift_mic0_read_value);
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &decimation_inshift_mic1_read_value);
+
+    printf("\n-------------------------------------\n");
+    printf("*** Decimation Inshift Details ***\n");
+    printf("-------------------------------------\n");
+    printf("Model Decimation Inshift Mic0: %d\n", decimation_inshift_mic0_read_value);
+    printf("Model Decimation Inshift Mic1: %d\n", decimation_inshift_mic1_read_value);
+    printf("-------------------------------------\n");
+
+    // Catch the case where we don't make any changes; just bail out.
+    if((decimation_inshift_value_mic0 == DEC_INSHIFT_VALUE_DEFAULT) &&
+       (decimation_inshift_offset == DEC_INSHIFT_OFFSET_DEFAULT )){
+        return;
+    }
+
+    // Check the configuration
+    if(decimation_inshift_value_mic0 != DEC_INSHIFT_VALUE_DEFAULT){
+
+        printf("DECIMATION_INSHIFT_VALUE     : %d\n", decimation_inshift_value_mic0);
+        decimation_inshift_calculated_value = decimation_inshift_value_mic0;
+
+    }
+    else { // User did not define a custom decimation_inshift value, apply the offset.  Note the default
+           // value for the offset is zero.  So we can safely apply this offset without any validation.  We'll
+           // verify the final value below before applying them to the NDP120.
+
+        printf("DECIMATION_INSHIFT_OFFSET    : %d\n", decimation_inshift_offset);
+        decimation_inshift_calculated_value = decimation_inshift_mic0_read_value + decimation_inshift_offset;
+
+    }
+    printf("-------------------------------------\n");
+
+    // Check for invalid low value
+    if(decimation_inshift_calculated_value < DEC_INSHIFT_VALUE_MIN ){
+
+        printf("Warning calculated value %d is below the min allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MIN);
+        decimation_inshift_calculated_value = DEC_INSHIFT_VALUE_MIN;
+    }
+
+    // Check for invalid low value
+    else if(decimation_inshift_calculated_value > DEC_INSHIFT_VALUE_MAX){
+
+        printf("Warning calculated value %d is above max allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MAX);
+        decimation_inshift_calculated_value = DEC_INSHIFT_VALUE_MAX;
+    }
+
+    printf("Setting new value to %d\n", decimation_inshift_calculated_value);
+    printf("-------------------------------------\n");
+
+    // Write the new value(s) into the NDP120
+    int mic0;
+    ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, &decimation_inshift_calculated_value);
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &mic0);
+    printf("Final Decimation Inshift Mic0: %d\n", mic0);
+
+
+    // Only update the mic1 value if one was set in the model
+    if(0 != decimation_inshift_mic1_read_value){
+        int mic1;
+        ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, &decimation_inshift_calculated_value);
+        ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &mic1);
+        printf("Final Decimation Inshift Mic1: %d\n", mic1);
+    }
+
+    printf("-------------------------------------\n\n");
 }
 
