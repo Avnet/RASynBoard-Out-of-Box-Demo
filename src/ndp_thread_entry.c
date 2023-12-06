@@ -197,6 +197,8 @@ void ndp_thread_entry(void *pvParameters)
         printf("ndp_core2_platform_tiny_start failed %d\r\n", ret);
     }
 
+    set_decimation_inshift();
+
     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
     if (ret){
         printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
@@ -227,8 +229,6 @@ void ndp_thread_entry(void *pvParameters)
         }
     }
 #endif
-
-    set_decimation_inshift();
 
     /* Enable NDP IRQ */
     ndp_irq_enable();
@@ -447,18 +447,14 @@ static void set_decimation_inshift( void ){
     printf("-------------------------------------\n");
 
     // Write the new value(s) into the NDP120
-    int mic0;
     ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, &decimation_inshift_calculated_value);
-    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &mic0);
-    printf("Final Decimation Inshift Mic0: %d\n", mic0);
+    printf("Final Decimation Inshift Mic0: %d\n", decimation_inshift_calculated_value);
 
 
     // Only update the mic1 value if one was set in the model
     if(0 != decimation_inshift_mic1_read_value){
-        int mic1;
         ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, &decimation_inshift_calculated_value);
-        ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &mic1);
-        printf("Final Decimation Inshift Mic1: %d\n", mic1);
+        printf("Final Decimation Inshift Mic1: %d\n", decimation_inshift_calculated_value);
     }
 
     printf("-------------------------------------\n\n");

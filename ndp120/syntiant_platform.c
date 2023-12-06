@@ -83,6 +83,7 @@ struct ndp_core2_platform_tiny_s {
     uint32_t curr_notification;
     struct syntiant_ndp120_tiny_device_s ndp;
     struct ndp120_tiny_handle_t ndp_handle;
+    struct syntiant_ndp120_config_mic_s aud_mic[AUD_MIC_MAX];
 };
 
 static struct ndp_core2_platform_tiny_s ndp120_app_state;
@@ -931,8 +932,7 @@ int ndp_core2_platform_tiny_match_process(uint8_t *nn_id, uint8_t *match_id,
 #ifndef EXCLUDE_GET_INFO
 #ifndef GET_INFO_LITE
         if (label_string) {
-            label_match = labels_per_network[ndpp->last_network_id]
-                       [summary & NDP120_SPI_MATCH_WINNER_MASK];
+            label_match = labels_per_network[*nn_id][*match_id];
             if (label_match) strcpy(label_string, label_match);
         }
 #endif
@@ -1007,6 +1007,15 @@ int ndp_core2_platform_tiny_halt_mcu(void)
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
 
     s = syntiant_ndp120_tiny_halt_mcu(ndpp);
+    return s;
+}
+
+int ndp_core2_platform_tiny_dsp_restart(void)
+{
+    int s;
+    struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
+
+    s = syntiant_ndp120_tiny_dsp_restart(ndpp);
     return s;
 }
 
@@ -1443,6 +1452,7 @@ int ndp_core2_platform_tiny_audio_config_get(uint8_t aud_id, uint8_t mic_id,
         SYNTIANT_TRACE("audio params get config error %d\n", s);
         return s;
     }
+    memcpy(&ndp120->aud_mic[mic_id], &cfg.u.aud, sizeof(struct syntiant_ndp120_config_mic_s));
 
 #ifndef EXCLUDE_GET_INFO
     if (print) {
@@ -1464,14 +1474,7 @@ int ndp_core2_platform_tiny_audio_config_set(uint8_t aud_id, uint8_t mic_id,
     memset(&cfg, 0, sizeof(cfg));
     cfg.u.aud.aud_id = aud_id;
     cfg.u.aud.mic_id = mic_id;
-    cfg.get = SYNTIANT_SC2_CONFIG_PDM;
-    cfg.set = 0;
-    s = syntiant_ndp120_tiny_config_pdm_audio_params(ndpp, &cfg);
-    if (s) {
-        SYNTIANT_TRACE("audio params get config error %d\n", s);
-        return s;
-    }
-
+    memcpy(&cfg.u.aud, &ndp120->aud_mic[mic_id], sizeof(struct syntiant_ndp120_config_mic_s));
     cfg.u.aud.aud.decimation_inshift = *decimation_inshift;
     cfg.get = SYNTIANT_SC2_CONFIG_PDM;
     cfg.set = SYNTIANT_SC2_CONFIG_PDM;
@@ -1482,6 +1485,8 @@ int ndp_core2_platform_tiny_audio_config_set(uint8_t aud_id, uint8_t mic_id,
     }
 
     *decimation_inshift = cfg.u.aud.aud.decimation_inshift;
+    memcpy(&ndp120->aud_mic[mic_id], &cfg.u.aud, sizeof(struct syntiant_ndp120_config_mic_s));
+
     return s;
 }
 
@@ -1623,23 +1628,17 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
 
 #ifndef GET_INFO_LITE
     *total_nn = info.total_nn;
-    
+
     /* get pointers to the labels */
-    num_labels = 0;
-    j = 0;
-
-    /* labels_len is 4 byte aligned. We continue processing
-       labels until the running sum of label characters
-       processed is within 3 bytes of labels_len */
-    while ((info.labels_len - j > 3) &&
-            (num_labels < SYNTIANT_NDP120_MAX_CLASSES)) {
-        labels[num_labels] = &label_data[j];
-        (num_labels)++;
-        for (; label_data[j]; j++)
+    num_labels = j = 0;
+    /* labels_len is 4 byte aligned; continue processing labels until the
+       running length of label characters is within 3 bytes of labels_len */
+    while (j < info.labels_len-3 && num_labels < SYNTIANT_NDP120_MAX_CLASSES) {
+        labels[(num_labels)++] = &label_data[j];
+        while (label_data[j++])
             ;
-        j++;
-    }
-
+    }    
+    
     /* build an array that hold all labels based on network number */
     class_num = 0;
     nn_num = 0;
@@ -1650,7 +1649,7 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
         nn_num = *(label_string + 2) - '0';
         if (nn_num < 0 || nn_num >= SYNTIANT_NDP120_MAX_NNETWORKS) {
             s = SYNTIANT_NDP_ERROR_INVALID_NETWORK;
-            return -1;
+            break;
         }
         if (nn_num != prev_nn_num) {
             class_num = 0;
@@ -1875,7 +1874,7 @@ int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal,
     int s = 0;
     struct syntiant_ndp120_tiny_device_s *ndpp = NULL;
     int on = SYNTIANT_NDP120_INTERRUPT_DEFAULT;
-
+	
     SYNTIANT_TRACE("ndp120 init start...\n");
     memset(ndp120, 0, sizeof(struct ndp_core2_platform_tiny_s));
 

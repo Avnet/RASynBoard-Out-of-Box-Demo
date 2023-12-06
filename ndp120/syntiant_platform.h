@@ -50,6 +50,7 @@ extern "C" {
 
 #define STRING_LEN 256
 #define MAX_LABELS 64
+#define AUD_MIC_MAX 2
 
 enum {
     NDP_CORE2_ERROR_NONE = 0,    /**< operation successful */
@@ -160,8 +161,8 @@ extern int ndp_core2_platform_tiny_transfer(int mcu, uint32_t addr,
 
 extern int ndp_core2_platform_tiny_poll(uint32_t *notifications, int clear, 
         int *fatal_error);
-extern int ndp_core2_platform_tiny_match_process(uint8_t *match_id, uint8_t *nn_id, 
-		uint8_t *sec_val, char *label_string);
+extern int ndp_core2_platform_tiny_match_process(uint8_t *nn_id, uint8_t *match_id, 
+        uint8_t *sec_val, char *label_string);
 
 
 /* system control */
@@ -169,6 +170,7 @@ extern int ndp_core2_platform_tiny_interrupts(int *cause);
 extern int ndp_core2_platform_tiny_config_interrupts(uint32_t interrupt, int enable);
 extern int ndp_core2_platform_tiny_vadmic_ctl(int mode);
 extern int ndp_core2_platform_tiny_halt_mcu(void);
+extern int ndp_core2_platform_tiny_dsp_restart(void);
 
 
 /* cspi related */
