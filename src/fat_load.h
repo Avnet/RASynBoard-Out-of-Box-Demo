@@ -113,6 +113,7 @@ struct config_ini_items {
 	char iotc_env[64];			/** [IoTConnect]-->Environment **/
 
 	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
+	char ntp_time_server[32];   /** [WIFI]-->NTP_Time_Server **/
 };
 
 extern struct config_ini_items config_items;
@@ -156,6 +157,7 @@ int get_load_certificate_from( void );
 char* get_certificate_file_name( int );
 bool get_certificate_data( char*, int, char*);
 int get_wifi_config( void );
+char* get_ntp_time_server( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

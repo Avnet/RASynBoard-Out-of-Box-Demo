@@ -692,6 +692,9 @@ static uint32_t read_config_file( void )
     ini_gets("WIFI", "Country_Code", "US", \
                         config_items.wifi_cc, sizeof(config_items.wifi_cc), inifile);
 
+    ini_gets("WIFI", "NTP_Time_Server", "pool.ntp.org", \
+                        config_items.ntp_time_server, sizeof(config_items.ntp_time_server), inifile);
+
     // IoTConnect configuration
     ini_gets("IoTConnect", "CPID", "Undefined", \
                         config_items.iotc_cpid, sizeof(config_items.iotc_cpid), inifile);
@@ -948,11 +951,13 @@ void printConfg(void)
 
             printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
             printf("    Access Point password: %s\n", config_items.wifi_passwd);
-            printf("    Country Code         : %s\n\n", config_items.wifi_cc);
+            printf("    Country Code         : %s\n", config_items.wifi_cc);
         }
         else{
             printf("    Please use the Renesas Wi-Fi Provisioning Tool from your app store to \nconfigure the Wi-Fi network.\n");
         }
+        printf("    NTP Time Server      : %s\n\n", config_items.ntp_time_server);
+
     }
 }
 
@@ -1099,3 +1104,7 @@ char* get_certificate_file_name(int certID){
     }
 }
 
+char* get_ntp_time_server( void ){
+
+    return config_items.ntp_time_server;
+}

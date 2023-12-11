@@ -487,11 +487,12 @@ void setup_network(void){
             return;
         }
 
+        // Set the time server FQDN based on the config.ini entry
+        memset(atcmd, '\0', ATCMD_SIZE);
+        snprintf(atcmd, sizeof(atcmd), "AT+NWSNTP=1,%s,60", get_ntp_time_server());
+
         // Start the SNTP client
-        if(FSP_SUCCESS != rm_atcmd_check_ok("AT+NWSNTP=1,pool.ntp.org,60",2000)){
-            failCnt++;
-            return;
-        }
+        rm_atcmd_check_ok(atcmd,2000);
 
     } // End !USE_RENESAS_TOOL_FOR_CONFIG
     // Make sure we get a valid time from the time server before moving on . . .
