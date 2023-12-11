@@ -28,8 +28,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v103**
+ 	** SDK: v105 **
 */
+
 #ifndef _SYNTIANT_DRIVER_H_
 #define _SYNTIANT_DRIVER_H_
 
@@ -47,18 +48,9 @@ enum ndp120_spi_regs_e {
     NDP120B0_SPI_MDATA = 0x44
 };
 
-enum ndp120_spi_type_e {
-    NDP120_SPI_TYPE_LINUX,
-    NDP120_SPI_TYPE_NORDIC,
-    NDP120_SPI_TYPE_REALTEK,
-    NDP120_SPI_TYPE_TELINK_8X,
-    NDP120_SPI_TYPE_TELINK_9X,
-    NDP120_SPI_TYPE_DECT,
-    NDP120_SPI_TYPE_FT4222,
-    NDP120_SPI_TYPE_MAX = NDP120_SPI_TYPE_LINUX
-};
-
 int syntiant_ndp_spi_init(void *d, int spi_default_speed, int spi_read_delay);
+
+int syntiant_ndp_spi_speed(int spifd, uint32_t spi_speed);
 
 int syntiant_ndp_transfer(void *d, int mcu, uint32_t addr,
         void *out, void *in, unsigned int count);

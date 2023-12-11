@@ -21,6 +21,10 @@
 #define DEVICE_PUBLIC_KEY_FILENAME  "pk_DEVICE_NAME.pem"
 
 #define BLE_DEFAULT_NAME "DA16600-"
+#define DEC_INSHIFT_VALUE_DEFAULT -100
+#define DEC_INSHIFT_VALUE_MIN 7
+#define DEC_INSHIFT_VALUE_MAX 13
+#define DEC_INSHIFT_OFFSET_DEFAULT 0
 
 #define LED_EVENT_NUM           10
 
@@ -114,6 +118,8 @@ struct config_ini_items {
 
 	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
 	char ntp_time_server[32];   /** [WIFI]-->NTP_Time_Server **/
+	int dec_inshift_value;
+	int dec_inshift_offset;
 };
 
 extern struct config_ini_items config_items;
@@ -158,6 +164,8 @@ char* get_certificate_file_name( int );
 bool get_certificate_data( char*, int, char*);
 int get_wifi_config( void );
 char* get_ntp_time_server( void );
+int get_dec_inshift_value( void );
+int get_dec_inshift_offset( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

@@ -636,6 +636,8 @@ static uint32_t read_config_file( void )
 						model_file_name, sizeof(model_file_name), inifile);
 	ini_gets(section, "Button_shift", "audio", \
 						config_items.button_switch, sizeof(config_items.button_switch), inifile);
+	config_items.dec_inshift_value = ini_getl(section, "DECIMATION_INSHIFT_VALUE", DEC_INSHIFT_VALUE_DEFAULT, inifile);
+    config_items.dec_inshift_offset = ini_getl(section, "DECIMATION_INSHIFT_OFFSET", DEC_INSHIFT_OFFSET_DEFAULT, inifile);
 
 	/* Get led color according according to voice command */
 	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
@@ -1108,3 +1110,16 @@ char* get_ntp_time_server( void ){
 
     return config_items.ntp_time_server;
 }
+
+int get_dec_inshift_value( void )
+{
+    return config_items.dec_inshift_value;
+}
+
+int get_dec_inshift_offset( void )
+{
+    return config_items.dec_inshift_offset;
+}
+
+
+

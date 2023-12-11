@@ -28,7 +28,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v103 **
+ 	** SDK: v105 **
 */
 
 #include "syntiant_common.h"
@@ -36,8 +36,13 @@
 #include <stdint.h>
 #include <string.h>
 #include <stddef.h>
-#include <syntiant_ilib/syntiant_ndp120_tiny.h>
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/time.h>
+#endif
+
+#include <syntiant_ilib/syntiant_ndp120_tiny.h>
 
 /* flag to compile in/out debug prints */
 #define SYNTIANT_NDP120_DEBUG         0
@@ -210,6 +215,10 @@
 #define FLL_CLOCK_FREQ      (32768)
 #define EXT_CLOCK_FREQ      (21504000)
 
+/* soft boot from flash */
+#define NDP120_SOFT_FLASH_BOOT_SIG      0x53594E54U
+#define NDP120_SOFT_FLASH_BOOT_ADDR     (0x40009174U)
+
 #if SYNTIANT_NDP120_DEBUG
 static int SYNTIANT_NDP120_PRINTF(const char * fmt, ...){
     int ret;
@@ -347,7 +356,7 @@ enum {
 
 struct syntiant_ndp120_mb_names_s {
     uint32_t op;
-    const char *name;
+    char *name;
 };
 
 enum {
@@ -431,6 +440,17 @@ static uint8_t *syntiant_sc2_device_id[] = {
     syntiant_ndp115_a0_device_id,
     syntiant_ndp120_b0_device_id,
     0
+};
+
+struct mb_state_cache {
+    uint8_t mbin_seq;
+    uint8_t mbin_resp_seq;
+    uint8_t mbout_seq;
+    uint8_t mbin_resync;
+    uint8_t mbin_resp;
+    uint8_t mbin_state;
+    uint8_t watermarkint_resync;
+    uint8_t rsvd;
 };
 
 typedef struct {
@@ -829,6 +849,7 @@ static ndp120_pll_preset_value_t mode_1p1v_98p304MHz_4p096MHz[] = {
     {0x0, 0x0}
 };
 #endif
+
 /* Define the table of PLL settings */
 ndp120_pll_preset_t ndp120_pll_presets[] = {
 #ifndef EXCLUDE_CLOCK_OPTION
@@ -905,8 +926,8 @@ static void ndp_strncpy(char *dst, const char *src, unsigned len)
 static char ndp_toascii_nibble(unsigned char c)
 {
     if (c > 0xF) return 0;
-    if (c > 0x9) return c + 'A';
-    return c + '0';
+    if (c > 0x9) return (char) (c + 'A');
+    return (char) (c + '0');
 }
 #endif
 
@@ -922,12 +943,10 @@ static void ndp_toascii_hexbyte(uint8_t op, char *buf, unsigned len)
 #endif
 
 #if SYNTIANT_NDP120_DEBUG
-static const char *syntiant_ndp120_find_mb_name(
-    uint8_t op, struct syntiant_ndp120_mb_names_s *array)
+static char *syntiant_ndp120_find_mb_name(
+    uint8_t op, struct syntiant_ndp120_mb_names_s *p)
 {
-    struct syntiant_ndp120_mb_names_s *p;
-
-    for (p = array; p->name; p++) {
+    for ( ; p->name; p++) {
         if (p->op == op) return p->name;
     }
     return "<UNKNOWN>";
@@ -936,23 +955,21 @@ static const char *syntiant_ndp120_find_mb_name(
 
 #if SYNTIANT_NDP120_DEBUG
 static void
-syntiant_ndp120_mcu_mb_op_decoder(uint8_t op, char *buf, unsigned int len)
+syntiant_ndp120_mcu_mb_op_decoder(uint8_t data, char *buf, unsigned int len)
 {
-    const char *name;
-
     if (!buf || !len) return;
 
-    if (op & SYNTIANT_NDP120_MB_MCU_DATA_MASK) {
-        op &= 0x3F;
+    if (data & SYNTIANT_NDP120_MB_MCU_DATA_MASK) {
+        uint8_t op = data & (SYNTIANT_NDP120_MB_MCU_DATA_MASK - 1);
         ndp_strncpy(buf, "DATA: 0x", len);
         while (*buf) buf++, len--;
         ndp_toascii_hexbyte(op, buf, len);
         while (*buf) buf++, len--;
         *buf++ = 0;
-    } else if ((op & SYNTIANT_NDP120_MB_MCU_ERROR_MASK) &&
-               (op & (SYNTIANT_NDP120_MB_MCU_ERROR_MASK - 1))) {
-        op &= 0x1F;
-        name = syntiant_ndp120_find_mb_name(op, syntiant_ndp120_mcu_mb_error_names);
+    } else if ((data & SYNTIANT_NDP120_MB_MCU_ERROR_MASK) &&
+               (data & (SYNTIANT_NDP120_MB_MCU_ERROR_MASK - 1))) {
+        uint8_t op = data & (SYNTIANT_NDP120_MB_MCU_ERROR_MASK - 1);
+        char *name = syntiant_ndp120_find_mb_name(op, syntiant_ndp120_mcu_mb_error_names);
         ndp_strncpy(buf, "ERROR: ", len);
         while (*buf) buf++, len--;
         ndp_strncpy(buf, name, len);
@@ -964,8 +981,8 @@ syntiant_ndp120_mcu_mb_op_decoder(uint8_t op, char *buf, unsigned int len)
         *buf++ = ')';
         *buf++ = 0;
     } else {
-        op &= 0x7f;
-        name = syntiant_ndp120_find_mb_name(op, syntiant_ndp120_tiny_mcu_mb_op_names);
+        uint8_t op = data & 0x7f;
+        char *name = syntiant_ndp120_find_mb_name(op, syntiant_ndp120_tiny_mcu_mb_op_names);
         ndp_strncpy(buf, name, len);
     }
 }
@@ -987,11 +1004,9 @@ static struct syntiant_ndp120_mb_names_s syntiant_ndp120_tiny_dsp_mb_op_names[]
 
 #if SYNTIANT_NDP120_DEBUG
 static const char *
-syntiant_ndp120_dsp_mb_op_decoder(uint32_t msg)
+syntiant_ndp120_dsp_mb_op_decoder(uint8_t msg)
 {
-    uint8_t op = SYNTIANT_NDP120_DSP_MB_GET_MESSAGE(msg);
-
-    return syntiant_ndp120_find_mb_name(op, syntiant_ndp120_tiny_dsp_mb_op_names);
+    return syntiant_ndp120_find_mb_name(msg, syntiant_ndp120_tiny_dsp_mb_op_names);
 }
 #endif
 
@@ -1042,15 +1057,17 @@ static int
 syntiant_ndp120_tiny_mbin_send(
     struct syntiant_ndp120_tiny_device_s *ndp, uint8_t data)
 {
-    data = (uint8_t)((data & 0x7F) | get_mbin_seq(ndp));
+    data &= 0x7F;
 #if SYNTIANT_NDP120_DEBUG
+    if (data != 0xF)
     {
         char buf[32] = "";
         syntiant_ndp120_mcu_mb_op_decoder(data & 0x7F, buf, sizeof(buf));
         SYNTIANT_NDP120_PRINTF("0x%02X (%s) --> mbin\n", data, buf);
     }
 #endif
-     return ndp_spi_write(NDP120_SPI_MBIN, data);
+    data |= get_mbin_seq(ndp);
+    return ndp_spi_write(NDP120_SPI_MBIN, data);
 }
 
 static int
@@ -1085,6 +1102,47 @@ syntiant_ndp120_tiny_mbin_resp_get(
     *data &= 0x7f;
 error:
     return s;
+}
+
+static int
+restore_mb_state(struct syntiant_ndp120_tiny_device_s *ndp)
+{
+    int s = SYNTIANT_NDP_ERROR_NONE;
+    struct mb_state_cache cache = {0};
+
+    s = syntiant_ndp120_tiny_read_block(ndp,
+            SYNTIANT_NDP120_MCU_OP,
+            SYNTIANT_NDP120_OPEN_RAM_MATCH_RESULTS_END,
+            (void *) &cache, sizeof(cache));
+    if (s) goto error;
+    ndp->mb_state.mbin_seq = cache.mbin_seq;
+    ndp->mb_state.mbin_resp_seq = cache.mbin_resp_seq;
+    ndp->mb_state.mbout_seq = cache.mbout_seq;
+    ndp->mb_state.mbin_resync = cache.mbin_resync;
+    ndp->mb_state.mbin_resp = cache.mbin_resp;
+    ndp->mb_state.mbin_state = cache.mbin_state;
+    ndp->mb_state.watermarkint_resync = cache.watermarkint_resync;
+error:
+    return s;
+}
+
+static int
+save_mb_state(struct syntiant_ndp120_tiny_device_s *ndp)
+{
+    struct mb_state_cache cache = {0};
+
+    cache.mbin_seq = ndp->mb_state.mbin_seq;
+    cache.mbin_resp_seq = ndp->mb_state.mbin_resp_seq;
+    cache.mbout_seq = ndp->mb_state.mbout_seq;
+    cache.mbin_resync = ndp->mb_state.mbin_resync;
+    cache.mbin_resp = ndp->mb_state.mbin_resp;
+    cache.mbin_state = ndp->mb_state.mbin_state;
+    cache.watermarkint_resync = ndp->mb_state.watermarkint_resync;
+
+    return syntiant_ndp120_tiny_write_block(
+            ndp, SYNTIANT_NDP120_MCU_OP,
+            SYNTIANT_NDP120_OPEN_RAM_MATCH_RESULTS_END,
+                (void*) &cache, sizeof(cache));
 }
 
 static int
@@ -1131,8 +1189,8 @@ syntiant_ndp120_tiny_do_mailbox_req_no_sync(
         mcu_fw_pointers(ndp, 0);
         break;
     case SYNTIANT_NDP120_DSP_MB_H2D_ADX_LOWER:
-        ndp->dsp_fw_state_addr = (ndp->dsp_fw_state_addr & 0xFFFF0000) |
-            ndp->mb_state.watermarkint_data;
+        ndp->dsp_fw_state_addr &= 0xFFFF0000;
+        ndp->dsp_fw_state_addr |= ndp->mb_state.watermarkint_data;
         SYNTIANT_NDP120_PRINTF("LOWER: dsp fw ptr: 0x%x\n",
                 ndp->dsp_fw_state_addr);
         break;
@@ -1145,6 +1203,11 @@ syntiant_ndp120_tiny_do_mailbox_req_no_sync(
     default:
         break;
     }
+    /* save the state of MB in device memory */
+    if (ndp->pkg_load_flag & SYNTIANT_NDP120_NN_LOADED) {
+        s = save_mb_state(ndp);
+    }
+    if (s) goto error;
 error:
     return s;
 }
@@ -1348,7 +1411,7 @@ mbout_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
 #if SYNTIANT_NDP120_DEBUG
         syntiant_ndp120_mcu_mb_op_decoder(data, buf, sizeof(buf));
 #endif
-        SYNTIANT_NDP120_PRINTF("Received (%s)(0x%x) in mbout\n", buf, data);
+        SYNTIANT_NDP120_PRINTF("Received 0x%x (%s) in mbout\n", data, buf);
         *notify = SYNTIANT_NDP120_NOTIFICATION_MAILBOX_OUT |
                   SYNTIANT_NDP120_NOTIFICATION_OTHER_LOAD_DONE;
         break;
@@ -1481,30 +1544,32 @@ error:
 static int
 dsp_mb_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
 {
-    int s = 0;
+    int s = SYNTIANT_NDP120_ERROR_NONE;
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
     char const *name;
     uint32_t data;
     static int extract_count = 0;
 #endif
+    uint32_t payload;
+    uint8_t message;
     s = syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
             NDP120_CHIP_CONFIG_WATERMARKINT, &ndp120->mb_state.watermarkint);
     if (s) goto error;
+    message = SYNTIANT_NDP120_DSP_MB_GET_MESSAGE(ndp120->mb_state.watermarkint);
+    payload = SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint);
 
 #if SYNTIANT_NDP120_DEBUG
-    name = syntiant_ndp120_dsp_mb_op_decoder(ndp120->mb_state.watermarkint);
-    if (SYNTIANT_NDP120_DSP_MB_GET_MESSAGE(ndp120->mb_state.watermarkint) !=
-            SYNTIANT_NDP120_DSP_MB_D2H_DEBUG) {
+    name = syntiant_ndp120_dsp_mb_op_decoder(message);
+    if (message != SYNTIANT_NDP120_DSP_MB_D2H_DEBUG && message != 0xF) {
         SYNTIANT_NDP120_PRINTF("DSP sent: %s\n", name);
     }
 #endif
 
-    switch (SYNTIANT_NDP120_DSP_MB_GET_MESSAGE(ndp120->mb_state.watermarkint)) {
+    switch (message) {
     case SYNTIANT_NDP120_DSP_MB_D2H_WATERMARK:
-        if (SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint)
-            != NDP120_D2H_INVALID_REQ) {
+        if (payload != NDP120_D2H_INVALID_REQ) {
             *notify = SYNTIANT_NDP120_NOTIFICATION_WATER_MARK;
-#if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
+#if 0 && SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
             syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
                 NDP120_DSP_CONFIG_BUFFILLLEVEL(4), &data);
             SYNTIANT_NDP120_PRINTF("FILL LEVEL: 0x%X\n", data);
@@ -1516,8 +1581,7 @@ dsp_mb_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
         break;
 
     case SYNTIANT_NDP120_DSP_MB_D2H_EXTRACT_READY:
-        if (SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint)
-            != NDP120_D2H_INVALID_REQ) {
+        if (payload != NDP120_D2H_INVALID_REQ) {
             *notify |= SYNTIANT_NDP120_NOTIFICATION_EXTRACT_READY;
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
             syntiant_ndp120_tiny_read(ndp120, SYNTIANT_NDP120_MCU_OP,
@@ -1528,9 +1592,7 @@ dsp_mb_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
             extract_count += 1;
             SYNTIANT_NDP120_PRINTF("extract cnt: %d, payload: %d\n",
-                extract_count,
-                SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(
-                    ndp120->mb_state.watermarkint));
+                extract_count, payload);
 #endif
 
             /* send watermark as ack, as extract ready won't be accepted */
@@ -1554,14 +1616,12 @@ dsp_mb_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
     case SYNTIANT_NDP120_DSP_MB_D2H_ALGO_ERROR_INIT:
         *notify = SYNTIANT_NDP120_NOTIFICATION_ALGO_ERROR;
 #if SYNTIANT_NDP120_DEBUG || SYNTIANT_NDP120_DEBUG_POLL
-        SYNTIANT_NDP120_PRINTF("algo_config_index : %d\n",
-             SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint));
+        SYNTIANT_NDP120_PRINTF("algo_config_index : %d\n", payload);
 #endif
         break;
 
     case SYNTIANT_NDP120_DSP_MB_D2H_ADX_LOWER:
-        ndp120->mb_state.watermarkint_data =
-            SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(ndp120->mb_state.watermarkint);
+        ndp120->mb_state.watermarkint_data = payload;
         SYNTIANT_NDP120_PRINTF("LOWER: DSP FW PTR: 0x%x\n",
                 ndp120->dsp_fw_state_addr);
         syntiant_ndp120_tiny_mbin_send(ndp120,
@@ -1569,9 +1629,8 @@ dsp_mb_processor(struct syntiant_ndp120_tiny_device_s *ndp120, uint32_t *notify)
         break;
 
     case SYNTIANT_NDP120_DSP_MB_D2H_ADX_UPPER:
-        ndp120->dsp_fw_state_addr = (ndp120->dsp_fw_state_addr & 0xFFFF) |
-            (uint32_t)(SYNTIANT_NDP120_DSP_MB_GET_PAYLOAD(
-                        ndp120->mb_state.watermarkint) << 16);
+        ndp120->dsp_fw_state_addr &= 0xFFFF;
+        ndp120->dsp_fw_state_addr |= payload << 16;
         SYNTIANT_NDP120_PRINTF("UPPER: DSP FW PTR: 0x%x\n",
                 ndp120->dsp_fw_state_addr);
         if (ndp120->dsp_fw_state_addr &&
@@ -1602,7 +1661,7 @@ error:
 }
 
 int
-syntiant_ndp120_tiny_get_ext_freq(int clock_option, uint32_t *core_clock_freq)
+syntiant_ndp120_tiny_get_core_freq(int clock_option, uint32_t *core_clock_freq)
 {
     int s = SYNTIANT_NDP120_ERROR_NONE;
     uint8_t ndp120_pll_presets_elements = ARRAY_LEN(ndp120_pll_presets);
@@ -1612,11 +1671,11 @@ syntiant_ndp120_tiny_get_ext_freq(int clock_option, uint32_t *core_clock_freq)
                         REFACTOR_PLL_INDEX;
 
     if (clock_option < pll_start_idx) { /* for FLL */
-        *core_clock_freq = ndp120_fll_presets[clock_option].input_freq;
+        *core_clock_freq = ndp120_fll_presets[clock_option].output_freq;
     } else if ((clock_option >= pll_start_idx) &&
                 (clock_option <= pll_end_idx)) { /* for PLL */
         *core_clock_freq = ndp120_pll_presets
-                            [clock_option - pll_start_idx].input_freq;
+                            [clock_option - pll_start_idx].output_freq;
     } else {
         s = SYNTIANT_NDP120_ERROR_ARG;
     }
@@ -1890,6 +1949,10 @@ syntiant_ndp120_tiny_init(struct syntiant_ndp120_tiny_device_s *ndp,
         /* Drive the interrupt line output active high interrupts */
         spi_data = NDP120_SPI_CFG_INTEN(1) | NDP120_SPI_CFG_INTNEG(0);
         s = ndp_spi_write(NDP120_SPI_CFG, spi_data);
+    } else if (mode == SYNTIANT_NDP_INIT_MODE_RESTART) {
+        /* Resync to device state */
+        s = restore_mb_state(ndp);
+        if (s) goto error;
     } else {
         /* NO_TOUCH case, don't do anything  */
     }
@@ -1994,6 +2057,8 @@ error:
     return s;
 }
 
+#if !defined(EXCLUDE_HOST_LOAD_CODE) || !defined(EXCLUDE_HOST_LOAD_FLASH) || \
+    !defined(EXCLUDE_HOST_LOAD_FILE)
 static int
 syntiant_ndp120_tiny_load_other_pkgs(
     struct syntiant_ndp120_tiny_device_s *ndp120, uint8_t *chunk_ptr,
@@ -2276,6 +2341,7 @@ syntiant_ndp120_tiny_load(
 error:
     return s;
 }
+#endif
 
 /* Send data */
 int
@@ -2289,8 +2355,8 @@ syntiant_ndp120_tiny_send_data(struct syntiant_ndp120_tiny_device_s *ndp,
         s = SYNTIANT_NDP120_ERROR_ARG;
         goto error;
     }
-#if SYNTIANT_NDP120_DEBUG
-    SYNTIANT_NDP120_PRINTF("ndp120_send_data, sending %d bytes", len);
+#if SYNTIANT_NDP120_DEBUG && 0
+    SYNTIANT_NDP120_PRINTF("ndp120_send_data, sending %d bytes\n", len);
 #endif
 
     s = syntiant_ndp120_tiny_write_block(
@@ -2428,45 +2494,52 @@ syntiant_ndp120_tiny_write_block(struct syntiant_ndp120_tiny_device_s *ndp,
     return s;
 }
 
+#ifndef EXCLUDE_SENSOR_FEATURE
 int syntiant_ndp120_tiny_enable_disable_sensor(
-    struct syntiant_ndp120_tiny_device_s *ndp, uint8_t sensor_id,
+    struct syntiant_ndp120_tiny_device_s *ndp, uint32_t sensor_info,
     int enable)
 {
-    int s = SYNTIANT_NDP120_ERROR_NONE;
-    unsigned int ifc_type, ifc_addr;
-    uint8_t out[2];
+    int s0, s = SYNTIANT_NDP120_ERROR_NONE;
+    uint32_t cmd[4] = {SYNTIANT_NDP120_ENABLE_DISABLE_SENSOR,
+        sizeof(uint32_t) * 2, 0, 0};
 
-    switch (sensor_id) {
-        case SYNTIANT_NDP120_SENSOR_ID_NONE:
-            break;
+    cmd[2] = !!enable;
+    cmd[3] = sensor_info;
 
-        case SYNTIANT_NDP120_SENSOR_ID_ICM42670:
-            if (enable) {
-                s = syntiant_ndp120_tiny_dsp_restart(ndp);
-                if (s) {
-                    goto error;
-                }
-                /* reset the last ptr */
-                ndp->last_ptr = 0;
-            } else {
-                ifc_type = SYNTIANT_NDP120_SERIAL_INTERFACE_SPI1;
-                ifc_addr = 9;
-                out[0] = 0x1f;
-                out[1] = 0x00;
-                s = syntiant_ndp120_tiny_serial_transfer(
-                    ndp, ifc_type, ifc_addr, out, sizeof(out), NULL, 0, 0);
-            }
-            break;
-
-        default:
-            s = SYNTIANT_NDP120_ERROR_ARG;
-            break;
+    if (enable) {
+        /* reset the last ptr */
+        ndp->last_ptr = 0;
     }
 
+    if (ndp->iif->sync) {
+        s = (ndp->iif->sync)(ndp->iif->d);
+        if (s) {
+            SYNTIANT_NDP120_PRINTF(
+                "Error in syntiant_ndp120_tiny_enable_disable_sensor\n");
+            return s;
+        }
+    }
+
+    /* write cmd */
+    s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP,
+        SYNTIANT_NDP120_CMD_RAM, cmd, sizeof(cmd));
+    if (s) goto error;
+
+    /* send command */
+    s = syntiant_ndp120_tiny_do_mailbox_req_no_sync(ndp,
+        SYNTIANT_NDP120_MB_MCU_CMD, NULL);
+    if (s) goto error;
+
 error:
+    if (ndp->iif->unsync) {
+        s0 = (ndp->iif->unsync)(ndp->iif->d);
+        s = s ? s : s0;
+    }
     return s;
 }
+#endif
 
+#ifndef EXCLUDE_TINY_EXTRACTION
 int
 syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
     uint8_t *data, unsigned int *lenp, int extract_from_buffer)
@@ -2737,6 +2810,7 @@ error:
     }
     return s;
 }
+#endif
 
 int syntiant_ndp120_tiny_spi_direct_config(struct
     syntiant_ndp120_tiny_device_s *ndp, uint32_t threshold_bytes,
@@ -2850,7 +2924,7 @@ error:
     return s;
 }
 
-
+#ifndef EXCLUDE_GET_INFO
 int
 syntiant_ndp120_tiny_get_info(struct syntiant_ndp120_tiny_device_s *ndp,
     struct syntiant_ndp120_tiny_info *idata)
@@ -2860,7 +2934,11 @@ syntiant_ndp120_tiny_get_info(struct syntiant_ndp120_tiny_device_s *ndp,
     uint32_t ver_len = NDP120_MCU_PBI_VER_MAX_LEN;
     uint32_t address = SYNTIANT_NDP120_OPEN_RAM_RESULTS;
     uint32_t cmd[2] = { SYNTIANT_NDP120_GET_INFO, 0 };
+#ifndef GET_INFO_LITE
     uint32_t sf_len, sensor_info_len;
+#else
+    uint32_t total_nn;
+#endif
 
     if (ndp->iif->sync) {
         s = (ndp->iif->sync)(ndp->iif->d);
@@ -2869,9 +2947,13 @@ syntiant_ndp120_tiny_get_info(struct syntiant_ndp120_tiny_device_s *ndp,
             return s;
         }
     }
+#ifndef GET_INFO_LITE
     if (idata && idata->fw_version && idata->dsp_fw_version
         && idata->pkg_version && idata->labels) {
-
+#else
+    if (idata && idata->fw_version && idata->dsp_fw_version
+        && idata->pkg_version) {
+#endif
         /* write MB cmd */
         s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP,
             SYNTIANT_NDP120_CMD_RAM, cmd, sizeof(cmd));
@@ -2948,6 +3030,7 @@ syntiant_ndp120_tiny_get_info(struct syntiant_ndp120_tiny_device_s *ndp,
             idata->pkg_version_len);
         if (s) goto error;
 
+#ifndef GET_INFO_LITE
         address += idata->pkg_version_len;
         s = syntiant_ndp120_tiny_read_block(
             ndp, SYNTIANT_NDP120_MCU_OP, address, idata->labels,
@@ -2976,6 +3059,23 @@ syntiant_ndp120_tiny_get_info(struct syntiant_ndp120_tiny_device_s *ndp,
         s = syntiant_ndp120_tiny_read_block(ndp, SYNTIANT_NDP120_MCU_OP,
             address, idata->sensor_info, sensor_info_len);
         if (s) goto error;
+#else
+        address += idata->pkg_version_len;
+        address += idata->labels_len;
+        address += ver_len;
+        s = syntiant_ndp120_tiny_read(
+            ndp, SYNTIANT_NDP120_MCU_OP, address, &total_nn);
+        if (s) goto error;
+#endif
+    }
+    /* It is assumed at this point that the NN synpackage has been loaded */
+#ifndef GET_INFO_LITE
+    if (idata->total_nn) 
+#else
+    if (total_nn) 
+#endif
+    {
+        ndp->pkg_load_flag |= SYNTIANT_NDP120_NN_LOADED;
     }
 error:
     if (ndp->iif->unsync) {
@@ -2984,7 +3084,9 @@ error:
     }
     return s;
 }
+#endif
 
+#ifndef EXCLUDE_PRINT_DEBUG
 int syntiant_ndp120_tiny_get_debug(struct syntiant_ndp120_tiny_device_s *ndp,
         struct syntiant_ndp120_tiny_debug *mcu_dsp_dbg_cnts)
 {
@@ -3024,6 +3126,7 @@ error:
     }
     return s;
 }
+#endif
 
 int syntiant_ndp120_tiny_input_config(
     struct syntiant_ndp120_tiny_device_s *ndp, uint32_t input_mode)
@@ -3167,6 +3270,7 @@ error:
     return s;
 }
 
+#ifndef EXCLUDE_GET_INFO
 int
 syntiant_ndp120_tiny_config_pdm_audio_params(
     struct syntiant_ndp120_tiny_device_s *ndp,
@@ -3258,6 +3362,7 @@ out:
     }
     return s;
 }
+#endif
 
 int syntiant_ndp120_tiny_halt_mcu(struct syntiant_ndp120_tiny_device_s *ndp)
 {
@@ -3300,19 +3405,60 @@ done:
     return s;
 }
 
+int syntiant_ndp120_tiny_soft_flash_boot(
+    struct syntiant_ndp120_tiny_device_s *ndp)
+{
+    int s;
+    uint32_t data = NDP120_SOFT_FLASH_BOOT_SIG;
+
+    s = syntiant_ndp120_tiny_write(ndp, SYNTIANT_NDP120_MCU_OP,
+            NDP120_SOFT_FLASH_BOOT_ADDR, data);
+    if (s) {
+        goto done;
+    }
+    data = 0;
+    s = syntiant_ndp120_tiny_read(ndp, SYNTIANT_NDP120_MCU_OP,
+          NDP120_SOFT_FLASH_BOOT_ADDR, &data);
+    if (s) {
+        goto done;
+    }
+    SYNTIANT_NDP120_PRINTF("read from flash boot add:(0x%x): 0x%x\n",
+        NDP120_SOFT_FLASH_BOOT_ADDR, data);
+
+done:
+    return s;
+}
+
 int
 syntiant_ndp120_tiny_boot_from_flash(struct syntiant_ndp120_tiny_device_s *ndp)
 {
     int s = SYNTIANT_NDP120_ERROR_NONE;
     uint32_t msg = 0;
 
+    /* indicate to mcufw to do soft boot from flash */
+    s = syntiant_ndp120_tiny_soft_flash_boot(ndp);
+    if (s) {
+        SYNTIANT_NDP120_PRINTF("set soft boot from flash failed %d\n", s);
+        /* fall thru anyway */
+    }
+
+    /* wait for bootloader to be in BOOTING loop */
+    s = syntiant_ndp120_tiny_poll_notification(ndp,
+            SYNTIANT_NDP120_NOTIFICATION_BOOTING);
+    if (s) {
+        SYNTIANT_NDP120_PRINTF("poll_notification failed %d\n", s);
+        goto done;
+    }
+
     mailbox_reset_state(ndp);
 
+    /* tell bootloader to boot mcufw from flash */
     s = syntiant_ndp120_tiny_mb_cmd(ndp, SYNTIANT_NDP120_MB_BOOT_FROM_FLASH, &msg);
     if (s) {
         goto done;
     }
 
+    /* wait until mcufw has loaded dnn synpkg (from flash) */
     s = syntiant_ndp120_tiny_poll_notification(
         ndp, SYNTIANT_NDP120_NOTIFICATION_OTHER_LOAD_DONE);
     if (s) {
@@ -3324,23 +3470,7 @@ syntiant_ndp120_tiny_boot_from_flash(struct syntiant_ndp120_tiny_device_s *ndp)
         goto done;
     }
 
-done:
-    return s;
-}
-
-int syntiant_ndp120_tiny_soft_flash_boot(
-    struct syntiant_ndp120_tiny_device_s *ndp)
-{
-    int s;
-    uint32_t data = NDP120_SOFT_FLASH_BOOT_SIG;
-
-    /* indicate to mcufw to do soft boot from flash */
-    s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP,
-        NDP120_SOFT_FLASH_BOOT_ADDR, &data, sizeof(data));
-    if (s) {
-        goto done;
-    }
-
+    SYNTIANT_NDP120_PRINTF("boot from flash ok\n");
 done:
     return s;
 }

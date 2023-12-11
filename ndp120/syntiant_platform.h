@@ -28,7 +28,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v103 **
+ 	** SDK: v105 **
 */
 
 #ifndef _SYNTIANT_PLATFORM_H_
@@ -42,7 +42,7 @@ extern "C" {
 
 #include "syntiant_common.h"
 
-#define SYNTIANT_NDP_SDK_VERSION    "v103"
+#define SYNTIANT_NDP_SDK_VERSION    "v105"
 
 #define EXT_CLOCK_FREQ      (21504000)
 #define PLL_FLL_CLOCK_FREQ  (32768)
@@ -50,6 +50,7 @@ extern "C" {
 
 #define STRING_LEN 256
 #define MAX_LABELS 64
+#define AUD_MIC_MAX 2
 
 enum {
     NDP_CORE2_ERROR_NONE = 0,    /**< operation successful */
@@ -101,6 +102,11 @@ enum {
     /**< enable the chip-specific default interrupts */
 };
 
+enum {
+    NDP_CORE2_GET_FROM_ILIB = 0,
+    NDP_CORE2_GET_FROM_MCU
+};
+
 /**
  * @brief extract source enable types
  */
@@ -124,11 +130,6 @@ enum {
 };
 
 enum {
-    NDP_CORE2_GET_FROM_ILIB = 0,
-    NDP_CORE2_GET_FROM_MCU
-};
-
-enum {
     /* gpio */
     NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT            = 0x00,
     NDP_CORE2_CONFIG_VALUE_GPIO_DIR_IN             = 0x01
@@ -148,39 +149,49 @@ enum {
     NDP_CORE2_BOOT_MODE_NONE
 };
 
-
+/* general */
 extern int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal, 
         int boot_mode);
-extern int ndp_core2_platform_tiny_recover(void);
+extern int ndp_core2_platform_tiny_recover(uint8_t clock_option);
 extern int ndp_core2_platform_tiny_feature_set(int feature_flag);
+extern int ndp_core2_platform_tiny_mcuclkdiv_set(uint32_t div_val);
 
 extern int ndp_core2_platform_tiny_transfer(int mcu, uint32_t addr, 
         void *out, void *in, unsigned int count);
 
-extern int ndp_core2_platform_tiny_poll(uint32_t *notifications, int clear);
-extern int ndp_core2_platform_tiny_match_process(uint8_t *match_id, uint8_t *nn_id, 
-		uint8_t *sec_val, char *label_string);
+extern int ndp_core2_platform_tiny_poll(uint32_t *notifications, int clear, 
+        int *fatal_error);
+extern int ndp_core2_platform_tiny_match_process(uint8_t *nn_id, uint8_t *match_id, 
+        uint8_t *sec_val, char *label_string);
 
+
+/* system control */
 extern int ndp_core2_platform_tiny_interrupts(int *cause);
 extern int ndp_core2_platform_tiny_config_interrupts(uint32_t interrupt, int enable);
 extern int ndp_core2_platform_tiny_vadmic_ctl(int mode);
 extern int ndp_core2_platform_tiny_halt_mcu(void);
-		
-#ifndef EXCLUDE_TINY_CSPI        
+extern int ndp_core2_platform_tiny_dsp_restart(void);
+
+
+/* cspi related */
+#ifndef EXCLUDE_TINY_CSPI     
 extern int ndp_core2_platform_tiny_mspi_config(void);
 extern int ndp_core2_platform_tiny_mspi_read(int ssb, int num_bytes, 
         uint8_t* data, int end_packet);
 extern int ndp_core2_platform_tiny_mspi_write(int ssb, int num_bytes, 
         uint8_t* data, int end_packet);
-
+        
 extern int ndp_core2_platform_tiny_flash_get_id(uint8_t *data);
 extern int ndp_core2_platform_tiny_flash_read_data(uint32_t addr, 
         uint8_t *data, unsigned int len);
 extern int ndp_core2_platform_tiny_flash_sector_erase(uint32_t addr);
 extern int ndp_core2_platform_tiny_flash_page_program(uint32_t addr, 
         uint8_t *data, unsigned int len);
+
 #endif //EXCLUDE_TINY_CSPI
 
+
+/* extraction related */
 #ifndef EXCLUDE_TINY_EXTRACTION
 typedef void (*audio_data_cb_f)(uint32_t extract_size, uint8_t *audio_data, 
                     void *audio_arg);
@@ -200,21 +211,32 @@ extern int ndp_core2_platform_tiny_src_type(uint8_t *data, uint32_t *data_size);
 
 extern int ndp_core2_platform_tiny_gpio_config(int gpio_num, 
         uint32_t dir, uint32_t value);
+extern int ndp_core2_platform_tiny_audio_config_get(uint8_t aud_id, uint8_t mic_id, 
+        int print, uint8_t *decimation_inshift);
+extern int ndp_core2_platform_tiny_audio_config_set(uint8_t aud_id, uint8_t mic_id, 
+        uint8_t *decimation_inshift);
 
+
+/* sensor control related */
 #ifndef EXCLUDE_SENSOR_FEATURE
 typedef void (*sensor_data_cb_f)(uint32_t extract_size, uint8_t *sensor_data, 
                     void *sensor_arg);
 
 extern int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable);
 extern int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
-        int sensor_num, sensor_data_cb_f sensor_data_cb, void *sensor_arg);
+        int sensor_num, 
+        sensor_data_cb_f sensor_data_cb, void *sensor_arg);
 #endif //EXCLUDE_SENSOR_FEATURE
 
+
+/* get information related */
 #ifndef EXCLUDE_GET_INFO
 extern int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels, 
         char *labels_get, int *labels_len);
 #endif //EXCLUDE_GET_INFO
 
+
+/* debug printing related */
 #ifndef EXCLUDE_PRINT_DEBUG
 extern void ndp_core2_platform_tiny_debug(void);
 #endif //EXCLUDE_PRINT_DEBUG
