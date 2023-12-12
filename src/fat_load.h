@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common_data.h"
 
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
@@ -113,7 +114,15 @@ struct config_ini_items {
 	char iotc_env[64];			/** [IoTConnect]-->Environment **/
 
 	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
+
 	char ntp_time_server[32];   /** [WIFI]-->NTP_Time_Server **/
+
+	// AWS configuration items
+	char aws_endpoint[64];      /** [AWS]-->Endpoint **/
+	char aws_device_id[64];     /** [AWS]-->Device_Unique_ID **/
+    char aws_pub_topic[64];     /** [AWS]-->MQTT_Pub_Topic **/
+    char aws_sub_topic[64];     /** [AWS]-->MQTT_Sub_Topic **/
+
 };
 
 extern struct config_ini_items config_items;
@@ -149,7 +158,7 @@ char* get_ble_name( void );
 char* get_wifi_ap( void );
 char* get_wifi_pw( void );
 char* get_wifi_cc( void );
-char* get_iotc_uid( void );
+char* get_device_uid( void );
 char* get_iotc_env( void );
 char* get_iotc_cpid( void );
 int get_target_cloud( void );
@@ -158,6 +167,11 @@ char* get_certificate_file_name( int );
 bool get_certificate_data( char*, int, char*);
 int get_wifi_config( void );
 char* get_ntp_time_server( void );
+char* get_aws_endpoint( void );
+char* get_aws_deviceId( void );
+char* get_aws_sub_topic( void );
+char* get_aws_pub_topic( void );
+
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
