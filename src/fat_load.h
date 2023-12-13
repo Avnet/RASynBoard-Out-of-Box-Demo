@@ -117,7 +117,7 @@ struct config_ini_items {
 	char iotc_env[64];			/** [IoTConnect]-->Environment **/
 
 	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
-
+	char ntp_time_server[32];   /** [WIFI]-->NTP_Time_Server **/
 	int dec_inshift_value;
 	int dec_inshift_offset;
 };
@@ -163,6 +163,7 @@ int get_load_certificate_from( void );
 char* get_certificate_file_name( int );
 bool get_certificate_data( char*, int, char*);
 int get_wifi_config( void );
+char* get_ntp_time_server( void );
 int get_dec_inshift_value( void );
 int get_dec_inshift_offset( void );
 
