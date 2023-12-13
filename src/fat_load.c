@@ -48,6 +48,12 @@ struct config_ini_items config_items ={  /* default settings */
 		.iotc_uid = {0},
 		.iotc_cpid = {0},
 		.iotc_env = {0},
+	    .ble_name = {0},
+	    .ntp_time_server = {0},
+	    .aws_endpoint = {0},
+	    .aws_device_id = {0},
+	    .aws_pub_topic = {0},
+	    .aws_sub_topic = {0},
 };
 
 /* Local global variables */
@@ -695,18 +701,44 @@ static uint32_t read_config_file( void )
     ini_gets("WIFI", "NTP_Time_Server", "pool.ntp.org", \
                         config_items.ntp_time_server, sizeof(config_items.ntp_time_server), inifile);
 
-    // IoTConnect configuration
-    ini_gets("IoTConnect", "CPID", "Undefined", \
-                        config_items.iotc_cpid, sizeof(config_items.iotc_cpid), inifile);
-
-    ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
-                        config_items.iotc_uid, sizeof(config_items.iotc_uid), inifile);
-
-    ini_gets("IoTConnect", "Environment", "Undefined", \
-                        config_items.iotc_env, sizeof(config_items.iotc_env), inifile);
-
     config_items.target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
+    // Only read the configuration items needed for the current cloud configuration
+    switch(config_items.target_cloud){
+        case CLOUD_IOTCONNECT:
+            // IoTConnect configuration
+            ini_gets("IoTConnect", "CPID", "Undefined", \
+                                config_items.iotc_cpid, sizeof(config_items.iotc_cpid), inifile);
+
+            ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
+                                config_items.iotc_uid, sizeof(config_items.iotc_uid), inifile);
+
+            ini_gets("IoTConnect", "Environment", "Undefined", \
+                                config_items.iotc_env, sizeof(config_items.iotc_env), inifile);
+
+            break;
+        case CLOUD_AWS:
+            // AWS configuration items
+            ini_gets("AWS", "Endpoint", "Undefined", \
+                                config_items.aws_endpoint, sizeof(config_items.aws_endpoint), inifile);
+
+            ini_gets("AWS", "Device_Unique_ID", "Undefined", \
+                                config_items.aws_device_id, sizeof(config_items.aws_device_id), inifile);
+
+            ini_gets("AWS", "MQTT_Pub_Topic", "Undefined", \
+                                config_items.aws_pub_topic, sizeof(config_items.aws_pub_topic), inifile);
+
+            ini_gets("AWS", "MQTT_Sub_Topic", "Undefined", \
+                                config_items.aws_sub_topic, sizeof(config_items.aws_sub_topic), inifile);
+
+            break;
+        case CLOUD_AZURE:
+            break;
+        default:
+            break;
+    }
+
+    // Certificate config items
     config_items.cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_USE_DA16600_CERTS, inifile);
 
     ini_gets("Certs", "Root_CA_Filename", "Undefined", \
@@ -918,7 +950,11 @@ void printConfg(void)
 						6, config_items.iotc_cpid, 6, &(config_items.iotc_cpid[26]));
                 break;
             case CLOUD_AWS:
-                printf("AWS <currently not supported>\n");
+                printf("AWS IoT Core\n");
+                printf("    Device Unique ID: %s\n", config_items.aws_device_id);
+                printf("    Endpoint        : %s\n", config_items.aws_endpoint);
+                printf("    Pub Topic       : %s\n", config_items.aws_pub_topic);
+                printf("    Sub Topic       : %s\n", config_items.aws_sub_topic);
                 break;
             case CLOUD_AZURE:
                 printf("Azure <currently not supported>\n");
@@ -1063,7 +1099,7 @@ char* get_wifi_cc( void ){
     return config_items.wifi_cc;
 }
 
-char* get_iotc_uid( void )
+char* get_device_uid( void )
 {
     return config_items.iotc_uid;
 }
@@ -1108,3 +1144,21 @@ char* get_ntp_time_server( void ){
 
     return config_items.ntp_time_server;
 }
+char* get_aws_endpoint( void ){
+    return config_items.aws_endpoint;
+}
+
+char* get_aws_deviceId( void ){
+    return config_items.aws_device_id;
+}
+
+char* get_aws_sub_topic( void )
+{
+    return config_items.aws_sub_topic;
+}
+
+char* get_aws_pub_topic( void )
+{
+    return config_items.aws_pub_topic;
+}
+
