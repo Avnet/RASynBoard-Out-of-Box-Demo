@@ -15,14 +15,13 @@
 #define MAX_RETRIES 5
 #define OUTPUT_MQTT_DEBUG
 
-#define MY_CHAR_ARRAY_SIZE 64
 #define IDENTITY_URL_SIZE 128
 #define JSON_STRING_SIZE 2048
 
 // Local globals
 char *buf;
 char identityURL[IDENTITY_URL_SIZE];
-char hostnameString[MY_CHAR_ARRAY_SIZE] = {'\0'};
+char hostnameString[128] = {'\0'};
 char pubTopicString[MY_CHAR_ARRAY_SIZE] = {'\0'};
 char subTopicString[MY_CHAR_ARRAY_SIZE] = {'\0'};
 
@@ -816,7 +815,7 @@ void setup_mqtt(void)
     if(get_target_cloud() == CLOUD_AWS){
 
         // Update the global strings with values pulled from the JSON. We'll use these each time we send telemetry.
-        strncpy(hostnameString, get_aws_endpoint(), MY_CHAR_ARRAY_SIZE-1);
+        strncpy(hostnameString, get_aws_endpoint(), AWS_ENDPOINT_STRING_SIZE-1);
         strncpy(pubTopicString, get_aws_pub_topic(), MY_CHAR_ARRAY_SIZE-1);
         strncpy(subTopicString, get_aws_sub_topic(), MY_CHAR_ARRAY_SIZE-1);
 

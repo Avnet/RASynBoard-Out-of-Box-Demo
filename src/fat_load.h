@@ -11,6 +11,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "common_data.h"
+#define MY_CHAR_ARRAY_SIZE 64
+#define AWS_ENDPOINT_STRING_SIZE 128
+
 
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
@@ -91,37 +94,37 @@ enum WIF_CONFIG_TYPE {
 
 struct config_ini_items {
 	/* save the settings from config.ini */
-	char button_switch[8];		/** [Function_x]-->Button_shift **/
-	int led_event_color[LED_EVENT_NUM];	/** [Led]-->IDXn **/
+	char button_switch[8];		                /** [Function_x]-->Button_shift **/
+	int led_event_color[LED_EVENT_NUM];	        /** [Led]-->IDXn **/
 
-	int recording_period;		/** [Recording Period]-->Recording_Period **/
-	int imu_write_to_file;		/** [IMU data stream]-->Write_to_file **/
-	int imu_print_to_terminal;	/** [IMU data stream]-->Print_to_terminal **/
+	int recording_period;		                /** [Recording Period]-->Recording_Period **/
+	int imu_write_to_file;		                /** [IMU data stream]-->Write_to_file **/
+	int imu_print_to_terminal;	                /** [IMU data stream]-->Print_to_terminal **/
 
-	int low_power_mode;			/** [Low Power Mode]-->Power_Mode **/
-	int ble_mode;				/** [BLE Mode]-->BLE_Enabled **/
+	int low_power_mode;			                /** [Low Power Mode]-->Power_Mode **/
+	int ble_mode;				                /** [BLE Mode]-->BLE_Enabled **/
 
-	int cert_location;          /** [CERTS]-->Cert_Location **/
+	int cert_location;                          /** [CERTS]-->Cert_Location **/
 
-	int target_cloud;			/** [Cloud Connectivity]-->Target_Cloud **/
-    int wifi_config;            /** [WIFI]--> Use_Config_AP_Details**/
-	char wifi_ap_name[64];		/** [WIFI]-->Access_Point **/
-	char wifi_passwd[64];		/** [WIFI]-->Access_Point_Password **/
-	char wifi_cc[4];			/** [WIFI]-->Country_Code **/
+	int target_cloud;			                /** [Cloud Connectivity]-->Target_Cloud **/
+    int wifi_config;                            /** [WIFI]--> Use_Config_AP_Details**/
+	char wifi_ap_name[MY_CHAR_ARRAY_SIZE];		/** [WIFI]-->Access_Point **/
+	char wifi_passwd[MY_CHAR_ARRAY_SIZE];		/** [WIFI]-->Access_Point_Password **/
+	char wifi_cc[4];			                /** [WIFI]-->Country_Code **/
 
-	char iotc_uid[64];			/** [IoTConnect]-->Device_Unique_ID **/
-	char iotc_cpid[64];			/** [IoTConnect]-->CPID **/
-	char iotc_env[64];			/** [IoTConnect]-->Environment **/
+	char iotc_uid[MY_CHAR_ARRAY_SIZE];			/** [IoTConnect]-->Device_Unique_ID **/
+	char iotc_cpid[MY_CHAR_ARRAY_SIZE];			/** [IoTConnect]-->CPID **/
+	char iotc_env[MY_CHAR_ARRAY_SIZE];			/** [IoTConnect]-->Environment **/
 
-	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
+	char ble_name[32];                          /** [BLE Mode]-->BLE_Name **/
 
-	char ntp_time_server[32];   /** [WIFI]-->NTP_Time_Server **/
+	char ntp_time_server[32];                   /** [WIFI]-->NTP_Time_Server **/
 
 	// AWS configuration items
-	char aws_endpoint[64];      /** [AWS]-->Endpoint **/
-	char aws_device_id[64];     /** [AWS]-->Device_Unique_ID **/
-    char aws_pub_topic[64];     /** [AWS]-->MQTT_Pub_Topic **/
-    char aws_sub_topic[64];     /** [AWS]-->MQTT_Sub_Topic **/
+	char aws_endpoint[AWS_ENDPOINT_STRING_SIZE];/** [AWS]-->Endpoint **/
+	char aws_device_id[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->Device_Unique_ID **/
+    char aws_pub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Pub_Topic **/
+    char aws_sub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Sub_Topic **/
 
 };
 
