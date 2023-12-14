@@ -57,6 +57,24 @@ extern void printConfg(void);
 
 static void set_decimation_inshift( void );
 
+
+#define   IMU_SENSOR_INDEX         0
+#define   IMU_SENSOR_MSSB          1
+#define   IMU_FLASH_MSSB           0
+#define   GPIO_LEVEL_LOW           0
+#define   GPIO_LEVEL_HIGH          1
+
+void ndp_print_imu(void)
+{
+    uint8_t imu_val = 0;
+    uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
+
+    ndp_core2_platform_tiny_mspi_config();
+    ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &reg, 0);
+    ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 1, &imu_val, 1);
+    printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
+}
+
 void ndp_info_display(void)
 {
     int s, total_nn, total_labels;
@@ -180,6 +198,7 @@ void ndp_thread_entry(void *pvParameters)
 
     /* Delay 100 ms */
     R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
+
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
 
@@ -197,14 +216,6 @@ void ndp_thread_entry(void *pvParameters)
         printf("ndp_core2_platform_tiny_start failed %d\r\n", ret);
     }
 
-    set_decimation_inshift();
-
-    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
-    if (ret){
-        printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                       NDP_CORE2_FEATURE_PDM, ret);
-    }
-
     if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
     // read back info from FLASH
         config_data_in_flash_t flash_data = {0};
@@ -219,16 +230,29 @@ void ndp_thread_entry(void *pvParameters)
         }
     }
 
-    ndp_info_display();
-
-#if 0
     if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
-        ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
-        if (!ret){
-            printf("disable sensor[0] functionality\n");
+        set_decimation_inshift();
+
+        ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+        if (ret){
+            printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                        NDP_CORE2_FEATURE_PDM, ret);
         }
     }
-#endif
+
+    ndp_info_display();
+
+    if (motion_to_disable() != CIRCULAR_MOTION_DISABLE) {
+	    ndp_print_imu();
+
+        ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+        if (ret) {
+            printf("Enable sensor[%d] icm-42670 failed: %d\n", IMU_SENSOR_INDEX, ret);
+        }
+        else {
+            printf("Enable sensor[%d] icm-42670 done\n", IMU_SENSOR_INDEX);
+        }
+    }
 
     /* Enable NDP IRQ */
     ndp_irq_enable();
@@ -252,6 +276,7 @@ void ndp_thread_entry(void *pvParameters)
             if (fatal_error) {
                 printf("\nNDP Fatal Error!!!\n\n");
             }
+
 			ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
             if (!ret) {
                 printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
@@ -345,6 +370,19 @@ void ndp_thread_entry(void *pvParameters)
 				usb_disable();
 				printf ("\nBegin to program the spi flash ..... \n");
 				turn_led(BSP_LEDRED, BSP_LEDON);
+            
+                ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+                if (ret) {
+                    printf("Feature set NONE failed: %d\n", ret);
+                    break;
+                }
+
+                ret = ndp_core2_platform_tiny_halt_mcu();
+                if (ret) {
+                    printf("Halt MCU failed: %d\n", ret);
+                    break;
+                }
+
 				ndp_flash_init();
 				ndp_flash_program_all_fw();
 

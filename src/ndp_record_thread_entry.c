@@ -21,7 +21,6 @@
 #define   LONG_PRESS_TIME         pdMS_TO_TICKS(3000UL)
 
 #define   IMU_SENSOR_INDEX         0
-#define   IMU_SENSOR_MSSB          1
 
 extern int firmware_idx;
 
@@ -77,6 +76,13 @@ static int imu_record_operation(int isstart)
     if (isstart) {
         ndp_irq_disable();
 
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
+        if (s) {
+            printf("enable xtract interrupt failed: %d\n", s);
+            return s;
+        }
+
         /* enable sensor */
         s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
         if (s) {
@@ -88,6 +94,13 @@ static int imu_record_operation(int isstart)
         s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
         if (s) {
             printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            return s;
+        }
+
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
+        if (s) {
+            printf("disable xtract interrupt failed: %d\n", s);
             return s;
         }
 
@@ -326,25 +339,6 @@ process_out:
     return s;
 }
 
-void ndp_print_imu(void)
-{
-    uint8_t imu_val = 0;
-    uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
-
-    /* set MSSB0/GPIO0 pin */
-#if 0
-    printf("Setting MSS0 to High\n");
-    ndp_core2_platform_tiny_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
-    /* reset MSSB1/GPIO1 pin */
-    ndp_core2_platform_tiny_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
-#endif
-
-    //ndp_core2_platform_tiny_mspi_config();
-    ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &reg, 0);
-    ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 1, &imu_val, 1);
-    printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
-}
-
 static void check_record_file_name(char *fname, int *findex)
 {
     char valid_filename[32] = {0};
@@ -388,12 +382,6 @@ void ndp_record_thread_entry(void *pvParameters)
 	vTaskDelay (pdMS_TO_TICKS(1000UL));
 	printf("Record_thread running\n");
 
-#if 0
-    if (is_record_motion()) {
-	    ndp_print_imu();
-    }
-#endif
-  
 	if (SDCARD_IN_SLOT != get_sdcard_slot_status()) {
 	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
 	    vTaskDelete(NULL);
