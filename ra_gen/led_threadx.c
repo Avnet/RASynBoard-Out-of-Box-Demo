@@ -16,38 +16,35 @@ void rtos_startup_err_callback(void *p_instance, void *p_data);
 void rtos_startup_common_init(void);
 extern uint32_t g_fsp_common_thread_count;
 
-const rm_freertos_port_parameters_t led_threadx_parameters =
-{ .p_context = (void*) NULL, };
+const rm_freertos_port_parameters_t led_threadx_parameters = { .p_context =
+		(void*) NULL, };
 
-void led_threadx_create(void)
-{
-    /* Increment count so we will know the number of threads created in the RA Configuration editor. */
-    g_fsp_common_thread_count++;
+void led_threadx_create(void) {
+	/* Increment count so we will know the number of threads created in the RA Configuration editor. */
+	g_fsp_common_thread_count++;
 
-    /* Initialize each kernel object. */
+	/* Initialize each kernel object. */
 
 #if 1
-    led_threadx = xTaskCreateStatic (
+	led_threadx = xTaskCreateStatic(
 #else
                     BaseType_t led_threadx_create_err = xTaskCreate(
                     #endif
-                                     led_threadx_func,
-                                     (const char*) "LED IDLE Thread", 1024 / 4, // In words, not bytes
-                                     (void*) &led_threadx_parameters, //pvParameters
-                                     2,
+			led_threadx_func, (const char*) "LED IDLE Thread", 1024 / 4, // In words, not bytes
+			(void*) &led_threadx_parameters, //pvParameters
+			2,
 #if 1
-                                     (StackType_t*) &led_threadx_stack,
-                                     (StaticTask_t*) &led_threadx_memory
+			(StackType_t*) &led_threadx_stack,
+			(StaticTask_t*) &led_threadx_memory
 #else
                         & led_threadx
                         #endif
-                                     );
+			);
 
 #if 1
-    if (NULL == led_threadx)
-    {
-        rtos_startup_err_callback (led_threadx, 0);
-    }
+	if (NULL == led_threadx) {
+		rtos_startup_err_callback(led_threadx, 0);
+	}
 #else
                     if (pdPASS != led_threadx_create_err)
                     {
@@ -55,12 +52,11 @@ void led_threadx_create(void)
                     }
                     #endif
 }
-static void led_threadx_func(void *pvParameters)
-{
-    /* Initialize common components */
-    rtos_startup_common_init ();
+static void led_threadx_func(void *pvParameters) {
+	/* Initialize common components */
+	rtos_startup_common_init();
 
-    /* Initialize each module instance. */
+	/* Initialize each module instance. */
 
 #if (1 == BSP_TZ_NONSECURE_BUILD) && (1 == 1)
                     /* When FreeRTOS is used in a non-secure TrustZone application, portALLOCATE_SECURE_CONTEXT must be called prior
@@ -74,6 +70,6 @@ static void led_threadx_func(void *pvParameters)
                      portALLOCATE_SECURE_CONTEXT(0);
                     #endif
 
-    /* Enter user code for this thread. Pass task handle. */
-    led_threadx_entry (pvParameters);
+	/* Enter user code for this thread. Pass task handle. */
+	led_threadx_entry(pvParameters);
 }

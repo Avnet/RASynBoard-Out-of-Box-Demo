@@ -60,6 +60,10 @@ extern TimerHandle_t g_timer;
 void g_timer_callback(TimerHandle_t xTimer);
 extern QueueHandle_t g_led_queue;
 extern SemaphoreHandle_t g_ndp_mutex;
+extern SemaphoreHandle_t g_xInitialSemaphore;
+extern EventGroupHandle_t g_https_extended_msg_event_group;
+extern QueueHandle_t g_telemetry_queue;
+extern SemaphoreHandle_t g_sd_mutex;
 void g_common_init(void);
 FSP_FOOTER
 #endif /* COMMON_DATA_H_ */

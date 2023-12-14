@@ -1,7 +1,9 @@
-collapse/module.driver.basic_on_usb.956297984=false
+collapse/module.driver.basic_on_usb.1123255072=false
 collapse/module.driver.i2c_on_iic_master.352656797=false
 collapse/module.driver.pcdc_on_usb.1744859941=false
+collapse/module.driver.pmsc_on_usb.2010370931=false
 collapse/module.driver.spi_on_spi.135396154=false
 collapse/module.driver.uart_on_sci_uart.174075565=false
 collapse/module.driver.uart_on_sci_uart.440878227=false
+collapse/module.driver.usb_composite.1313110113=false
 eclipse.preferences.version=1

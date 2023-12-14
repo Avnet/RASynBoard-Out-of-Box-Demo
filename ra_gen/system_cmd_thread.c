@@ -16,38 +16,35 @@ void rtos_startup_err_callback(void *p_instance, void *p_data);
 void rtos_startup_common_init(void);
 extern uint32_t g_fsp_common_thread_count;
 
-const rm_freertos_port_parameters_t system_cmd_thread_parameters =
-{ .p_context = (void*) NULL, };
+const rm_freertos_port_parameters_t system_cmd_thread_parameters = {
+		.p_context = (void*) NULL, };
 
-void system_cmd_thread_create(void)
-{
-    /* Increment count so we will know the number of threads created in the RA Configuration editor. */
-    g_fsp_common_thread_count++;
+void system_cmd_thread_create(void) {
+	/* Increment count so we will know the number of threads created in the RA Configuration editor. */
+	g_fsp_common_thread_count++;
 
-    /* Initialize each kernel object. */
+	/* Initialize each kernel object. */
 
 #if 1
-    system_cmd_thread = xTaskCreateStatic (
+	system_cmd_thread = xTaskCreateStatic(
 #else
                     BaseType_t system_cmd_thread_create_err = xTaskCreate(
                     #endif
-                                           system_cmd_thread_func,
-                                           (const char*) "SysCMD Thread", 1024 / 4, // In words, not bytes
-                                           (void*) &system_cmd_thread_parameters, //pvParameters
-                                           2,
+			system_cmd_thread_func, (const char*) "SysCMD Thread", 1024 / 4, // In words, not bytes
+			(void*) &system_cmd_thread_parameters, //pvParameters
+			2,
 #if 1
-                                           (StackType_t*) &system_cmd_thread_stack,
-                                           (StaticTask_t*) &system_cmd_thread_memory
+			(StackType_t*) &system_cmd_thread_stack,
+			(StaticTask_t*) &system_cmd_thread_memory
 #else
                         & system_cmd_thread
                         #endif
-                                           );
+			);
 
 #if 1
-    if (NULL == system_cmd_thread)
-    {
-        rtos_startup_err_callback (system_cmd_thread, 0);
-    }
+	if (NULL == system_cmd_thread) {
+		rtos_startup_err_callback(system_cmd_thread, 0);
+	}
 #else
                     if (pdPASS != system_cmd_thread_create_err)
                     {
@@ -55,12 +52,11 @@ void system_cmd_thread_create(void)
                     }
                     #endif
 }
-static void system_cmd_thread_func(void *pvParameters)
-{
-    /* Initialize common components */
-    rtos_startup_common_init ();
+static void system_cmd_thread_func(void *pvParameters) {
+	/* Initialize common components */
+	rtos_startup_common_init();
 
-    /* Initialize each module instance. */
+	/* Initialize each module instance. */
 
 #if (1 == BSP_TZ_NONSECURE_BUILD) && (1 == 1)
                     /* When FreeRTOS is used in a non-secure TrustZone application, portALLOCATE_SECURE_CONTEXT must be called prior
@@ -74,6 +70,6 @@ static void system_cmd_thread_func(void *pvParameters)
                      portALLOCATE_SECURE_CONTEXT(0);
                     #endif
 
-    /* Enter user code for this thread. Pass task handle. */
-    system_cmd_thread_entry (pvParameters);
+	/* Enter user code for this thread. Pass task handle. */
+	system_cmd_thread_entry(pvParameters);
 }

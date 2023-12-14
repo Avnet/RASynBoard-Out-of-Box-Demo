@@ -68,8 +68,8 @@ extern sci_uart_instance_ctrl_t g_uart3_ctrl;
 extern const uart_cfg_t g_uart3_cfg;
 extern const sci_uart_extended_cfg_t g_uart3_cfg_extend;
 
-#ifndef ble_uart_callback
-void ble_uart_callback(uart_callback_args_t *p_args);
+#ifndef rm_atcmd_uart_callback
+void rm_atcmd_uart_callback(uart_callback_args_t *p_args);
 #endif
 /** SPI on SPI Instance. */
 extern const spi_instance_t g_spi1_master;

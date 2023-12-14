@@ -52,6 +52,9 @@ extern const uint16_t NULL[];
             #define USB_CFG_HPRN_USE
             #endif
 #if (RA_NOT_DEFINED != RA_NOT_DEFINED)
+            #define USB_CFG_HUVC_USE
+            #endif
+#if (RA_NOT_DEFINED != RA_NOT_DEFINED)
             #define USB_CFG_PCDC_USE
             #endif
 #if (RA_NOT_DEFINED != RA_NOT_DEFINED)
@@ -69,7 +72,7 @@ extern const uint16_t NULL[];
 #if ((RA_NOT_DEFINED != RA_NOT_DEFINED) || (RA_NOT_DEFINED != RA_NOT_DEFINED) || (RA_NOT_DEFINED != RA_NOT_DEFINED))
             #define USB_CFG_OTG_USE
             #endif
-#if (defined(USB_CFG_HCDC_USE) || defined(USB_CFG_HPRN_USE) || defined(USB_CFG_HMSC_USE) || defined(USB_CFG_HHID_USE) || defined(USB_CFG_HVND_USE))
+#if (defined(USB_CFG_HCDC_USE) || defined(USB_CFG_HPRN_USE) || defined(USB_CFG_HMSC_USE) || defined(USB_CFG_HHID_USE) || defined(USB_CFG_HVND_USE) || defined(USB_CFG_HUVC_USE))
             #define USB_CFG_HOST_MODE 1
             #else
 #define USB_CFG_HOST_MODE 0

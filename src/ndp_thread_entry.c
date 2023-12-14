@@ -371,4 +371,3 @@ static void send_ble_update(char* ble_string ,int timeout ,char* buf, int buf_si
         rm_atcmd_send(ble_string ,timeout, buf, buf_size);
     }
 }
-

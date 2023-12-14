@@ -111,7 +111,7 @@ FSP Configuration
       P103 45 GPIO CS_NDP Low - "Output mode (Initial High)" CMOS - "AGT2: AGTIO2; BUS_ASYNCH0: D03; CAN0: CTX0; GPT_OPS0: GTOWUP; GPT2: GTIOC2A; OSPI0: OMSIO6; QSPI0: QIO3; SCI0: CTSRTS0; SPI1: SSLB0" SPI_NDP_CS IO - SPI_NDP_CS 
       P104 44 GPIO CS_SD Low None "Output mode (Initial High)" CMOS - "AGT2: AGTEE2; BUS_ASYNCH0: D04; GPT_POEG1: GTETRGB; GPT1: GTIOC1B; ICU0: IRQ01; OSPI0: OMDQS; QSPI0: QIO2; SCI8: RXD8; SCI8: SCL8; SPI1: SSLB1" SPI_uSD_CS IO - SPI_uSD_CS 
       P105 43 - - - - Disabled - - "AGT2: AGTO2; BUS_ASYNCH0: D05; GPT_POEG0: GTETRGA; GPT1: GTIOC1A; ICU0: IRQ00; OSPI0: OMSIO5; SCI8: SDA8; SCI8: TXD8; SPI1: SSLB2" - None - J5_7/PMOD_1 
-      P106 42 GPIO DA16600_RstPin Low - "Output mode (Initial High)" CMOS - "AGT0: AGTOB0; BUS_ASYNCH0: D06; GPT8: GTIOC8B; OSPI0: OMSIO0; SCI8: SCK8; SPI1: SSLB3" WLBT_RST IO - WLBT_RST 
+      P106 42 GPIO DA16600_RstPin Low - "Output mode (Initial Low)" CMOS - "AGT0: AGTOB0; BUS_ASYNCH0: D06; GPT8: GTIOC8B; OSPI0: OMSIO0; SCI8: SCK8; SPI1: SSLB3" WLBT_RST IO - WLBT_RST 
       P108 33 DEBUG0_SWDIO - Low - "Peripheral mode" CMOS None "AGT3: AGTOA3; DEBUG0: SWDIO; DEBUG0: TMS; GPT_OPS0: GTOULO; GPT0: GTIOC0B; SCI9: CTSRTS9; SPI0: SSLA0" SWDIO IO - SWDIO 
       P109 34 SCI9_TXD9 - Low - "Peripheral mode" CMOS None "AGT3: AGTOB3; CAN1: CTX1; CGC0: CLKOUT; DEBUG0: TDO; DEBUG0: TRACESWO; GPT_OPS0: GTOVUP; GPT1: GTIOC1A; SCI9: SDA9; SCI9: TXD9; SPI0: MOSIA" UART_TXD9 IO - UART_TXD9 
       P110 35 SCI9_RXD9 - Low None "Peripheral mode" CMOS None "AGT3: AGTEE3; CAN1: CRX1; DEBUG0: TDI; GPT_OPS0: GTOVLO; GPT1: GTIOC1B; ICU0: IRQ03; SCI2: CTSRTS2; SCI9: RXD9; SCI9: SCL9; SPI0: MISOA" UART_RXD9 IO - UART_RXD9 
@@ -138,7 +138,7 @@ FSP Configuration
       P408 15 SCI3_RXD3 - Low None "Peripheral mode" CMOS None "AGT2: AGTOB2; CTSU0: TS04; ETHERC_MII0: ET0_CRS; ETHERC_RMII0: RMII_CRS_DV; GPT_OPS0: GTOWLO; GPT6: GTIOC6B; ICU0: IRQ07; IIC0: SCL0; SCI3: RXD3; SCI3: SCL3; SCI4: CTS4; USB_FS0: USB_ID" WLBT_RXD IO - WLBT_RXD 
       P409 14 SCI3_TXD3 - Low None "Peripheral mode" CMOS None "AGT2: AGTOA2; CTSU0: TS05; ETHERC_MII0: ET0_RX_CLK; ETHERC_RMII0: RMII_RX_ER; GPT_OPS0: GTOWUP; ICU0: IRQ06; SCI3: SDA3; SCI3: TXD3; USB_FS0: USB_EXICEN" WLBT_TXD IO - WLBT_TXD 
       P410 13 ICU0_IRQ05 - - IRQ05 "IRQ mode" - None "AGT1: AGTOB1; CTSU0: TS06; ETHERC_MII0: ET0_ERXD0; ETHERC_RMII0: RMII_RXD1; GPT_OPS0: GTOVLO; GPT9: GTIOC9B; ICU0: IRQ05; SCI0: RXD0; SCI0: SCL0; SCI3: SCK3; SDHI0: SD0DAT1; SPI1: MISOB" NDP_INT IO - NDP_INT 
-      P411 12 SCI3_CTSRTS3 - Low None "Peripheral mode" CMOS None "AGT1: AGTOA1; CTSU0: TS07; ETHERC_MII0: ET0_ERXD1; ETHERC_RMII0: RMII_RXD0; GPT_OPS0: GTOVUP; GPT9: GTIOC9A; ICU0: IRQ04; SCI0: SDA0; SCI0: TXD0; SCI3: CTSRTS3; SDHI0: SD0DAT0; SPI1: MOSIB" WLBT_RTS IO - WLBT_RTS 
+      P411 12 - - - - Disabled - - "AGT1: AGTOA1; CTSU0: TS07; ETHERC_MII0: ET0_ERXD1; ETHERC_RMII0: RMII_RXD0; GPT_OPS0: GTOVUP; GPT9: GTIOC9A; ICU0: IRQ04; SCI0: SDA0; SCI0: TXD0; SCI3: CTSRTS3; SDHI0: SD0DAT0; SPI1: MOSIB" WLBT_RTS None - WLBT_RTS 
       P500 49 - - - - Disabled - - "ADC1: AN116; AGT0: AGTOA0; CAC0: CACREF; GPT_OPS0: GTIU; QSPI0: QSPCLK; SCI5: CTS5; USB_FS0: USB_VBUSEN" - None - "J5_8/Click Shuttle 3" 
       RES 25 SYSTEM0_RES - - - - - - - - IO "Read only" - 
       USBDM 18 USB_FS0_USB_DM - - - - - - - - IO "Read only" - 
@@ -242,7 +242,7 @@ FSP Configuration
     General: Cpu Clock Hz: SystemCoreClock
     General: Tick Rate Hz: 1000
     General: Max Priorities: 5
-    General: Minimal Stack Size: 128
+    General: Minimal Stack Size: 1024
     General: Max Task Name Len: 16
     Stats: Use Trace Facility: Disabled
     Stats: Use Stats Formatting Functions: Disabled
@@ -385,7 +385,7 @@ FSP Configuration
       Extra: RS-485: DE Pin Polarity: Active High
       Extra: RS-485: DE Port Number: Disabled
       Extra: RS-485: DE Pin Number: Disabled
-      Interrupts: Callback: ble_uart_callback
+      Interrupts: Callback: rm_atcmd_uart_callback
       Interrupts: Receive Interrupt Priority: Priority 3
       Interrupts: Transmit Data Empty Interrupt Priority: Priority 3
       Interrupts: Transmit End Interrupt Priority: Priority 3
@@ -395,13 +395,19 @@ FSP Configuration
       General: Name: g_lpm0
       General: Low Power Mode: Software Standby mode
       General: Output port state in standby and deep standby: No change
-      Standby Options: Wake Sources: IRQ5, IRQ13
-      Standby Options: Snooze Request Source: RXD0 falling edge
-      Standby Options: Snooze End Sources: 
-      Standby Options: DTC state in Snooze Mode: Disabled
-      Standby Options: Snooze Cancel Source: None
+      Deep Sleep and Standby Options: Wake Sources: IRQ5, IRQ13
+      Deep Sleep and Standby Options: Snooze Options (Not available on every MCU): Snooze Request Source: RXD0 falling edge
+      Deep Sleep and Standby Options: Snooze Options (Not available on every MCU): Snooze End Sources: 
+      Deep Sleep and Standby Options: Snooze Options (Not available on every MCU): DTC state in Snooze Mode: Disabled
+      Deep Sleep and Standby Options: Snooze Options (Not available on every MCU): Snooze Cancel Source: None
+      RAM Retention Control (Not available on every MCU): RAM retention in Standby mode: 
+      RAM Retention Control (Not available on every MCU): TCM retention in Deep Sleep and Standby modes: Not Supported
+      RAM Retention Control (Not available on every MCU): Standby RAM retention in Standby and Deep Standby modes: Not Supported
+      Oscillator LDO Control (Not available on every MCU): PLL1 LDO State in standby mode: Not Supported
+      Oscillator LDO Control (Not available on every MCU): PLL2 LDO State in standby mode: Not Supported
+      Oscillator LDO Control (Not available on every MCU): HOCO LDO State in standby mode: Not Supported
       Deep Standby Options: I/O Port Retention: Maintain the IO port states
-      Deep Standby Options: Power-Supply Control: Supply power to the Standby SRAM, low-speed on-chip oscillator, AGTn (n = 0-3) and USBFS resume detecting unit
+      Deep Standby Options: Power-Supply Control: Supply power to the Standby RAM, low-speed on-chip oscillator, AGTn (n = 0-3) and USBFS resume detecting unit
       Deep Standby Options: Cancel Sources: 
       Deep Standby Options: Cancel Edges: 
       
@@ -488,7 +494,7 @@ FSP Configuration
   Thread "NDP Thread"
     Symbol: ndp_thread
     Name: NDP Thread
-    Stack size (bytes): 32768
+    Stack size (bytes): 40960
     Priority: 4
     Thread Context: NULL
     Memory Allocation: Static
@@ -535,6 +541,15 @@ FSP Configuration
     Memory Allocation: Static
     Allocate Secure Context: Enable
     
+  Thread "IoTC Thread"
+    Symbol: iotc_thread
+    Name: IoTC Thread
+    Stack size (bytes): 32768
+    Priority: 1
+    Thread Context: NULL
+    Memory Allocation: Static
+    Allocate Secure Context: Enable
+    
   Object "g_binary_semaphore Binary Semaphore"
     Symbol: g_binary_semaphore
     Memory Allocation: Static
@@ -560,6 +575,25 @@ FSP Configuration
     
   Object "g_ndp_mutex Mutex"
     Symbol: g_ndp_mutex
+    Type: Mutex
+    Memory Allocation: Static
+    
+  Object "g_xInitialSemaphore Binary Semaphore"
+    Symbol: g_xInitialSemaphore
+    Memory Allocation: Static
+    
+  Object "g_https_extended_msg_event_group Event Group"
+    Symbol: g_https_extended_msg_event_group
+    Memory Allocation: Static
+    
+  Object "g_telemetry_queue Queue"
+    Symbol: g_telemetry_queue
+    Item Size (Bytes): 8
+    Queue Length (Items): 128
+    Memory Allocation: Static
+    
+  Object "g_sd_mutex Mutex"
+    Symbol: g_sd_mutex
     Type: Mutex
     Memory Allocation: Static
     
