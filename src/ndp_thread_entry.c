@@ -143,7 +143,10 @@ void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
 /* pvParameters contains TaskHandle_t */
 void ndp_thread_entry(void *pvParameters)
 {
+	bool isRunning = false;
     int ret;
+    TickType_t duration = 0;
+
     uint8_t ndp_class_idx, ndp_nn_idx, sec_val;
     EventBits_t   evbits;
     uint32_t q_event, notifications;
@@ -252,7 +255,18 @@ void ndp_thread_entry(void *pvParameters)
 
 			switch (ndp_class_idx) {
 				case 0:
-				    /* Voice: OK-Syntiant; light Amber Led */
+				    /* Sound: out of water; light Amber Led */
+					if(isRunning)
+					{
+						current_stat.timestamp = xTaskGetTickCount();
+						duration = duration + (current_stat.timestamp - last_stat.timestamp);
+						printf("duration time =%d \n", duration);
+					}
+					else
+					{
+						isRunning = true;
+						printf("it's running!\n");
+					}
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
@@ -260,7 +274,10 @@ void ndp_thread_entry(void *pvParameters)
 					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 1:
-				    /* Voice: Up; light Cyan Led */
+					/* Sound: pump clogged; light Cyan Led */
+					isRunning = false;
+					duration = 0;
+
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
@@ -268,57 +285,32 @@ void ndp_thread_entry(void *pvParameters)
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 2:
-				    /* Voice: Down; light Magenta Led */
+				    /* Sound: pump off; light Magenta Led */
+					isRunning = false;
+					duration = 0;
 					current_stat.led = LED_COLOR_MAGENTA;
 					current_stat.timestamp = xTaskGetTickCount();
-
-					if (last_stat.led != LED_COLOR_MAGENTA)
+					q_event = led_event_color(ndp_class_idx);
+					xQueueSend(g_led_queue, (void *)&q_event, 0U );
+					send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
+					break;
+				case 3:
+				    /* Sound: pump on; light Red Led */
+					if(isRunning)
 					{
-						/* first receive 'Down'  keyword */
-						q_event = led_event_color(ndp_class_idx);
-						xQueueSend(g_led_queue, (void *)&q_event, 0U );
-						send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-	                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
+						current_stat.timestamp = xTaskGetTickCount();
+						duration = duration + (current_stat.timestamp - last_stat.timestamp);
+						printf("duration time =%d \n", duration);
 					}
 					else
 					{
-						/*Judging the received 'Down""Down' keyword*/
-						TickType_t duration = current_stat.timestamp - last_stat.timestamp;
-						printf("duration time =%d \n", duration);
-						if ( duration < pdMS_TO_TICKS(3600UL) )
-						{
-							/* valid, send led blink envent */
-							q_event =  LED_BLINK_DOUBLE_BLUE;
-							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							/* Send 'idle' and 'advstop' to bluetooth */
-							send_ble_update(ble_at_string[V_IDLE],1000,buf, sizeof(buf));
-							send_ble_update(ble_at_string[V_STOP],1000,buf, sizeof(buf));
-							/* clear led state */
-							current_stat.led = LED_EVENT_NONE;
-						}
-						else
-						{
-							/* invalid time */
-							q_event = led_event_color(ndp_class_idx);
-							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-						}
+						isRunning = true;
 					}
-					break;
-				case 3:
-				    /* Voice: Back; light Red Led */
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_BACK],1000,buf, sizeof(buf));
-                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
-					break;
-				case 4:
-				    /* Voice: Next; light Green Led */
-					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color(ndp_class_idx);
-					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_NEXT],1000,buf, sizeof(buf));
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				default :
