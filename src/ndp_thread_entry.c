@@ -105,7 +105,7 @@ void ndp_info_display(void)
 }
 
 // Helper function to create
-void enqueTelemetryJson(int inferenceIndex, const char* inferenceString, int pumpTime)
+void enqueTelemetryJson(int inferenceIndex, const char* inferenceString, long pumpTime)
 {
 #define MAX_TELEMETRY_LEN 256
 
@@ -116,7 +116,7 @@ void enqueTelemetryJson(int inferenceIndex, const char* inferenceString, int pum
     int telemetryMsgLen;
 
     // Create the JSON
-    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d, \"inferenceStr\": \"%s\", \"pumpTime\": %d}", msgCnt++, inferenceIndex, inferenceString, pumpTime);
+    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d, \"inferenceStr\": \"%s\", \"pumpTime\": %ld}", msgCnt++, inferenceIndex, inferenceString, pumpTime);
 
     // Allocate memory on the heap for the JSON string.
     // We allocate the memory here, then free the memory
@@ -278,25 +278,37 @@ void ndp_thread_entry(void *pvParameters)
 					break;
 				case 1:
 					/* Sound: pump clogged; light Cyan Led */
-					isRunning = false;
-					duration = 0;
-
+					if(isRunning)
+					{
+						isRunning = false;
+						duration = 0;
+					}
+					else
+					{
+						long pumpTime = duration;
+						enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], pumpTime);
+					}
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_UP],1000,buf, sizeof(buf));
-                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], duration);
 					break;
 				case 2:
 				    /* Sound: pump off; light Magenta Led */
-					isRunning = false;
-					duration = 0;
+					if(isRunning)
+					{
+						isRunning = false;
+						duration = 0;
+					}
+					else
+					{
+						long pumpTime = duration;
+						enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], pumpTime);
+					}
 					current_stat.led = LED_COLOR_MAGENTA;
-					current_stat.timestamp = xTaskGetTickCount();
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
 					send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], duration);
 					break;
 				case 3:
 				    /* Sound: pump on; light Red Led */
