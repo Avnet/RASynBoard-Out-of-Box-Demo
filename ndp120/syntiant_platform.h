@@ -95,7 +95,7 @@ enum {
     /**< input buffer water mark */
     NDP_CORE2_INTERRUPT_SPI_READ_FAILURE = 0x80,
     /**< spi read failure */
-    NDP_CORE2_INTERRUPT_EXTRACT_READY = 0x100,
+    NDP_CORE2_INTERRUPT_EXTRACT_READY = 0x400,
     /**< extract ready */
     NDP_CORE2_INTERRUPT_ALL = 0x1FF,
     NDP_CORE2_INTERRUPT_DEFAULT = 0x200
