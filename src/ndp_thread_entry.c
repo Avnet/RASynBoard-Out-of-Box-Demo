@@ -105,7 +105,7 @@ void ndp_info_display(void)
 }
 
 // Helper function to create
-void enqueTelemetryJson(int inferenceIndex, const char* inferenceString, long pumpTime)
+void enqueTelemetryJson(int inferenceIndex, const char* inferenceString, int pumpTime)
 {
 #define MAX_TELEMETRY_LEN 256
 
@@ -262,7 +262,7 @@ void ndp_thread_entry(void *pvParameters)
 						duration = duration + (current_stat.timestamp - last_stat.timestamp);
 
 						printf("duration time =%d \n", duration);
-						long pumpTime = (duration / 1000UL);
+						int pumpTime = (duration / 1000UL);
 						enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], pumpTime);
 					}
 					else
@@ -285,7 +285,7 @@ void ndp_thread_entry(void *pvParameters)
 					}
 					else
 					{
-						long pumpTime = duration;
+						int pumpTime = duration;
 						enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], pumpTime);
 					}
 					current_stat.led = LED_EVENT_NONE;
@@ -302,7 +302,7 @@ void ndp_thread_entry(void *pvParameters)
 					}
 					else
 					{
-						long pumpTime = duration;
+						int pumpTime = duration;
 						enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], pumpTime);
 					}
 					current_stat.led = LED_COLOR_MAGENTA;
@@ -317,7 +317,7 @@ void ndp_thread_entry(void *pvParameters)
 						current_stat.timestamp = xTaskGetTickCount();
 						duration = duration + (current_stat.timestamp - last_stat.timestamp);
 						printf("duration time =%d \n", duration);
-						long pumpTime = (duration / 1000UL);
+						int pumpTime = (duration / 1000UL);
 						enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], pumpTime);
 					}
 					else
