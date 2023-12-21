@@ -1018,8 +1018,11 @@ void wait_for_telemetry(void){
 
     while(pdTRUE){
 
-        xQueueReceive(g_telemetry_queue, &newMsg, portMAX_DELAY);
-        // printf("RX Telemetry from Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
+        // Just peek into the queue, this blocking call will return when an item has been
+        // added to the queue.  We don't want to pull the message from the queue until we have
+        // verified the MQTT connection.
+        xQueuePeek(g_telemetry_queue, &newMsg, portMAX_DELAY);
+        //printf("Peek at data from Telemetry Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
 
         // Verify we have a valid MQTT connection before sending telemetry
         memset(buf, '\0', ATBUF_SIZE);
@@ -1029,6 +1032,10 @@ void wait_for_telemetry(void){
                 return;
             }
         }
+
+        // Pull the data from the queue only after we verify we have a MQTT connection
+        xQueueReceive(g_telemetry_queue, &newMsg, portMAX_DELAY);
+        //printf("Pull data from Telemetry Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
 
         // Construct the IoTConnect telemetry
         memset(mqttPublishMessage,'\0' ,MQTT_MSG_SIZE);
