@@ -28,7 +28,7 @@ The OOB application will send JSON telemetry up to the configured cloud every ti
 
 Sending custom telemetry is a lot easier than you might think!
 
-If you just want to know how to add your own telemetry skip down to the **So you want to create a custom telemetry message?** section.  Otherwise, continue to learn how it all works in the OOB application.
+If you just want to know how to add your own telemetry skip down to the [So you want to create a custom telemetry message?](./OobDevelopmentNotes.md#so-you-want-to-create-a-custom-telemetry-message) section.  Otherwise, continue to learn how it all works in the OOB application.
 
 ## What is a telemetry message?
 
