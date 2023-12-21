@@ -8,9 +8,95 @@ I've tried to capture some common application tasks.  If I missed your specific 
 
 # Renesas e^2 studio
 
+Not yet documented
+
 # Threads
 
+Not yet documented
+
 # Inferencing Events
+
+Not yet documented
+
+# Modifying telemetry messages
+
+The OOB application will send JSON telemetry up to the configured cloud every time an inference event is detected.  This section of the document . . . 
+1. Explains what telemetry is
+1. Points the developer to the code where the telemetry messages are created
+1. Explains how the OOB application sends telemetry messages to the cloud
+1. Documents how to modify the application to send your own custom telemetry message to the cloud 
+
+Sending custom telemetry is a lot easier than you might think!
+
+If you just want to know how to add your own telemetry skip down to the **So you want to create a custom telemetry message?** section.  Otherwise, continue on to learn how it all works in the OOB application.
+
+## What is a telemetry message?
+
+Telemetry messages are valid JSON documents that represents whatever data the developer wants to send to the cloud.  This could be a simple ```{"key": value}``` pair, or a complex JSON document that includes JSON objects, JSON lists or any valid JSON.  Typically you don't need to pre-define the JSON on the cloud side, you can just send it up.  However, if you're going to do anything with your data once it's in the cloud, you must configure the cloud, or implement an application to know about your data.
+
+### Validate your JSON
+
+There will come a time when your application generates some JSON and things are not working correctly on the cloud side.  When this happens you should make sure the application is sending valid JSON.  My favorite tool to validate JSON is called [JSONLint](https://jsonlint.com/?code=).  This web page allows you to paste in your JSON text, hit the **Validate JSON** button and see the results.  If there is an error there will be text showing where the error was found.
+
+![](./assets/images/telemetry01.jpg "")
+
+![](./assets/images/telemetry02.jpg "")
+
+## Where does the OOB application generate a telemetry message?
+
+The OOB application generates telemetry every time the NDP120 detects an inference event.  The basic sequence of events is . . . 
+
+1. NDP120 detects an inference event
+    1. ```ndp_thread_entry.c::ndp_thread_entry()``` receives an event and the inference ID ```ndp_class_idx``` is used to pass control to the ```case``` statement responsible for processing the specific event.  
+    1. The data to send as telemetry is passed to ```enqueTelemetryJson()```
+
+![](./assets/images/telemetry03.jpg "")
+
+2. We generate the JSON string using ```snprintf()```.  Just like using ```printf()``` we can use different format specifiers and variables to populate the specifiers to construct the JSON string.  
+
+![](./assets/images/telemetry04.jpg "")
+
+**Note** that the quotes embedded in the JSON string are escaped i.e., ```\"```
+
+## Telemetry Queue
+
+The application implements a queue called ```g_telemetry_q``` to capture telemetry data.  The telemetry data is pulled from the queue only if the application is connected to the cloud solution.  This allows the application to generate telemetry data before the application is connected to the cloud and send the telemetry once the cloud connection is established.
+
+The ```enqueTelemetryJson()``` function . . . 
+
+1. Allocates heap memory for the JSON string
+1. Copies the JSON string into the heap memory
+1. Enqueues the heap pointer, not the actual JSON string
+
+![](./assets/images/telemetry05.jpg "")
+
+So now we have generated the JSON message, and saved a pointer to the message in the ```g_telemetry_q```
+
+## Dequeue the Telemetry Pointer and send it to the cloud
+
+The OOB AWS and IoTConnect on AWS implementations setup a MQTT connection for telemetry data.  The ```iotc_thread_entry.c``` file implements a simple state machine to establish and maintain the MQTT connection and once the connection is established, the thread pends on the ```g_telemetry_q``` queue waiting for data to send.
+
+The ```wait_for_telemetry()``` function . . .
+
+1. Pends on the queue waiting for a message
+1. Verifies that there is a MQTT connection
+1. Using ```snprintf()``` uses the JSON telemetry and prepends the DA16600 send MQTT AT command
+1. Sends the AT command along with the JSON to the DA16600 to send out
+1. Frees the heap memory
+
+![](./assets/images/telemetry06.jpg "")
+
+## So you want to create a custom telemetry message?
+Now that you understand how inference data is sent to the cloud you can modify the application to send any JSON data you like.  My recommended steps would be to . . . 
+
+1. Copy the enqueTelemetryJson() function
+    1. Rename it
+    1. Add arguments for the data you want to send
+    1. Modify the ``` snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d, \"inferenceStr\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);``` statement to construct the JSON you want to send
+
+![](./assets/images/telemetry07.jpg "")
+
+That should do it!  Now you can send your data to the cloud!
 
 # Application Configuration Items
 
@@ -123,11 +209,14 @@ I like to output the configuration items on startup to show the user the current
 
 ![](./assets/images/aws06.jpg "")
 
-
-# Cloud connectivity implementations
-
-# Modifying the hardware configuration
-
-
 # Areas for improvement
 
+## Low Power 
+
+We still need to dig deeper into the DA16600 low power modes.  The current implementation holds the DA16600 in reset unless there is an active cloud feature enabled or if BLE is enabled.
+
+## Add enqeue timestamps when sending telemetry
+
+The current telemetry implementation does not capture a timestamp for when the telemetry message was created.  This is usually not an issue, but if telemetry messages are not sent because of a network issue, then we really don't know when the data was captured.
+
+The IoTConnect implementation adds timestamps after the telemetry message is pulled from the g_telemetry_queue, but the timestamp does not identify when the data was generated.
