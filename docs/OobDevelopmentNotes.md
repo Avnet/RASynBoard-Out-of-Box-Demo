@@ -6,17 +6,17 @@ This document and images were written based on the V1.4.0 release.  However, all
 
 I've tried to capture some common application tasks.  If I missed your specific case, please open a [GitHub issue](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/issues) and I'll see what can be done to help.
 
-# Renesas e^2 studio
-
-Not yet documented
-
-# Threads
-
-Not yet documented
-
 # Inferencing Events
 
-Not yet documented
+One of the main features of the RASynBoard hardware and the OOB application is to capture ML inference events and process the events.  This section identifies the code that runs when an inference event is encountered.
+
+1. NDP120 detects an inference event
+    1. ```ndp_thread_entry.c::ndp_thread_entry()``` receives an event and the inference ID ```ndp_class_idx``` is used to pass control to the ```case``` statement responsible for processing the specific event.  
+
+The OOB implementation in this area is not very efficient, but it does make it easy to add code specific to the inference index.
+
+![](./assets/images/inferenceEvents01.jpg "")
+
 
 # Modifying telemetry messages
 
@@ -28,15 +28,19 @@ The OOB application will send JSON telemetry up to the configured cloud every ti
 
 Sending custom telemetry is a lot easier than you might think!
 
-If you just want to know how to add your own telemetry skip down to the **So you want to create a custom telemetry message?** section.  Otherwise, continue on to learn how it all works in the OOB application.
+If you just want to know how to add your own telemetry skip down to the **So you want to create a custom telemetry message?** section.  Otherwise, continue to learn how it all works in the OOB application.
 
 ## What is a telemetry message?
 
-Telemetry messages are valid JSON documents that represents whatever data the developer wants to send to the cloud.  This could be a simple ```{"key": value}``` pair, or a complex JSON document that includes JSON objects, JSON lists or any valid JSON.  Typically you don't need to pre-define the JSON on the cloud side, you can just send it up.  However, if you're going to do anything with your data once it's in the cloud, you must configure the cloud, or implement an application to know about your data.
+Telemetry messages are valid JSON documents that represents whatever data the developer wants to send to the cloud.  This could be a simple ```{"key": value}``` pair, or a complex JSON document that includes JSON objects, JSON lists or any valid JSON.  Typically, you don't need to pre-define the JSON on the cloud side, you can just send it up.  However, if you're going to do anything with your data once it's in the cloud, you must configure the cloud, or implement an application to know about your data.
+
+- AWS provides the [AWS IoT MQTT client](https://docs.aws.amazon.com/iot/latest/developerguide/view-mqtt-messages.html) to help you see the data ingested by the cloud.  See the [AWS IoT Core](./awsIoTCore.md) documentation to learn how to connect your device to AWS IoT Core and view incomming MQTT data.
+
+- IoTConnect provides a **Live Data** tab that will display incomming MQTT messages, however if you want to create a dynamic dashboard with the data, you'll need to create a device template that describes the data.  See the [IoTConnect](./IoTConnect.md) documentation to learn how to connect your device to IoTConnect and create a device template.
 
 ### Validate your JSON
 
-There will come a time when your application generates some JSON and things are not working correctly on the cloud side.  When this happens you should make sure the application is sending valid JSON.  My favorite tool to validate JSON is called [JSONLint](https://jsonlint.com/?code=).  This web page allows you to paste in your JSON text, hit the **Validate JSON** button and see the results.  If there is an error there will be text showing where the error was found.
+There will come a time when your application generates some JSON and things are not working correctly on the cloud side.  When this happens, you should make sure the application is sending valid JSON.  My favorite tool to validate JSON is called [JSONLint](https://jsonlint.com/?code=).  This web page allows you to paste in your JSON text, hit the **Validate JSON** button and see the results.  If there is an error, there will be text showing where the error was found.
 
 ![](./assets/images/telemetry01.jpg "")
 
@@ -102,7 +106,7 @@ That should do it!  Now you can send your data to the cloud!
 
 The OOB application leverages a config.ini text file located in the root directory of the microSD card for runtime configuration items.  By defining runtime configuration items, we don't need to rebuild the application to enable/disable any OOB features.  This section details how to add new configuration items to the config.ini file and where to add code in the application.
 
-For this example I'll be adding two new configuration items . . .
+For this example, I'll be adding two new configuration items . . .
 1. [AWS]->Endpoint
 1. [AWS]->Device_Unique_ID
 
@@ -215,8 +219,8 @@ I like to output the configuration items on startup to show the user the current
 
 We still need to dig deeper into the DA16600 low power modes.  The current implementation holds the DA16600 in reset unless there is an active cloud feature enabled or if BLE is enabled.
 
-## Add enqeue timestamps when sending telemetry
+## Add enqueue timestamps when sending telemetry
 
-The current telemetry implementation does not capture a timestamp for when the telemetry message was created.  This is usually not an issue, but if telemetry messages are not sent because of a network issue, then we really don't know when the data was captured.
+The current telemetry implementation does not capture a timestamp when the telemetry message was created.  This is usually not an issue, but if telemetry messages are not sent because of a network issue, then we really don't know when the data was captured.
 
 The IoTConnect implementation adds timestamps after the telemetry message is pulled from the g_telemetry_queue, but the timestamp does not identify when the data was generated.
