@@ -618,7 +618,7 @@ static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp,
          * FLASH is attched to NDP 
          */
 		SYNTIANT_TRACE("   Loading NDP120 images and Booting From SPI Flash\n");
-#if 1
+
 		/* set HOLD pin */
 		s = ndp_core2_platform_tiny_gpio_config(FLASH_PIN_HOLD, 
                 NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
@@ -626,6 +626,8 @@ static int do_binary_loading(struct syntiant_ndp120_tiny_device_s *ndp,
 			SYNTIANT_TRACE("      set HOLD pin failed %d\n", s);
 			return s;
 		}
+
+#if 1
         /* set MSSB1/GPIO1 pin */
         s = ndp_core2_platform_tiny_gpio_config(MSPI_IMU_SSB, 
                 NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, GPIO_LEVEL_HIGH);
@@ -1402,6 +1404,12 @@ int ndp_core2_platform_tiny_src_type(uint8_t *data, uint32_t *data_size)
 }
 #endif
 
+int ndp_core2_platfom_tiny_gpio_release(uint32_t gpio_num)
+{
+    struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
+    return syntiant_ndp120_tiny_gpio_release(ndpp, gpio_num);
+}
+
 int ndp_core2_platform_tiny_gpio_config(int gpio_num, uint32_t dir, uint32_t value)
 {
     int s;
@@ -1522,7 +1530,10 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
     }
 
     s =  syntiant_ndp120_tiny_poll(ndpp, &notifications, 1);
-    if (s) return SYNTIANT_NDP_ERROR_FAIL;
+    if (s) {
+        SYNTIANT_TRACE("ssensor_extract_data poll failed: %d\n", s);
+        return SYNTIANT_NDP_ERROR_FAIL;
+    }
 
     if (!(notifications & SYNTIANT_NDP120_NOTIFICATION_MATCH)) {
         return SYNTIANT_NDP_ERROR_DATA_REREAD;

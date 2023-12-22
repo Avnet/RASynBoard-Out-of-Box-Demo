@@ -1582,6 +1582,10 @@ int syntiant_ndp120_tiny_config_pdm_audio_params(
 int syntiant_ndp120_tiny_config_interrupts(struct
     syntiant_ndp120_tiny_device_s *ndp, uint32_t interrupt, uint32_t enable);
 
+int syntiant_ndp120_tiny_gpio_release(
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    uint32_t gpio_num);
+
 #ifdef __cplusplus
 }
 #endif

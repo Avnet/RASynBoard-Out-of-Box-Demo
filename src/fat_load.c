@@ -793,7 +793,7 @@ int get_print_console_type( void )
 
 /* Identify circular_motion mode based on the DNN file in the SD card
    or the setting value stored in the Flash */
-int motion_to_disable(void)
+int motion_running(void)
 {
 	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
 	{

@@ -13,7 +13,7 @@
 #define   AUDIO_REC_BUFFER_SIZE            2048
 #define   AUDIO_REC_FILE_NAME_PREFIX    "ndp_audio_record_"
 
-#define   IMU_REC_BYTES_PER_SEC          100
+#define   IMU_REC_BYTES_PER_SEC          200
 #define   IMU_REC_BUFFER_SIZE            256
 #define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_"
 
@@ -79,28 +79,15 @@ static int imu_record_operation(int isstart)
         s = ndp_core2_platform_tiny_config_interrupts(
                     NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
         if (s) {
-            printf("enable xtract interrupt failed: %d\n", s);
-            return s;
-        }
-
-        /* enable sensor */
-        s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
-        if (s) {
-            printf("enable sensor[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            printf("enable extract interrupt failed: %d\n", s);
             return s;
         }
     }
     else {
-        s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
-        if (s) {
-            printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
-            return s;
-        }
-
         s = ndp_core2_platform_tiny_config_interrupts(
                     NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
         if (s) {
-            printf("disable xtract interrupt failed: %d\n", s);
+            printf("disable extract interrupt failed: %d\n", s);
             return s;
         }
 
@@ -239,10 +226,27 @@ static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, in
 
 static void audio_record_operation(int isstart)
 {
+    int s;
     if (isstart) {
         ndp_irq_disable();
+
+        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+            if (s){
+                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                            NDP_CORE2_FEATURE_PDM, s);
+            }
+        }
     }
     else {
+        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+            if (s){
+                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                            NDP_CORE2_FEATURE_NONE, s);
+            }
+        }
+
         ndp_irq_enable();
     }
 }

@@ -169,6 +169,6 @@ int get_dec_inshift_offset( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
-int motion_to_disable(void);
+int motion_running(void);
 
 #endif /* FAT_LOAD_H_ */

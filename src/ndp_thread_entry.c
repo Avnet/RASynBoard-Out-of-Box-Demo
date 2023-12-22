@@ -159,6 +159,26 @@ void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
     return;
 }
 
+int bff_reinit_imu(void)
+{
+    int s;
+    
+    s = ndp_core2_platfom_tiny_gpio_release(MSPI_IMU_SSB);
+    if (s) {
+        printf("release gpio%d failed: %d\n", MSPI_IMU_SSB, s);
+        return s;
+    }
+
+    s = ndp_core2_platform_tiny_dsp_restart();
+    if (s) {
+        printf("restart DSP failed: %d\n", IMU_SENSOR_INDEX, s);
+        return s;
+    }
+    vTaskDelay (pdMS_TO_TICKS(1000UL));
+
+    return s;
+}
+
 /* NDP Thread entry function */
 /* pvParameters contains TaskHandle_t */
 void ndp_thread_entry(void *pvParameters)
@@ -230,7 +250,9 @@ void ndp_thread_entry(void *pvParameters)
         }
     }
 
-    if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
+    ndp_info_display();
+
+    if (motion_running() == CIRCULAR_MOTION_DISABLE) {
         set_decimation_inshift();
 
         ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
@@ -239,10 +261,14 @@ void ndp_thread_entry(void *pvParameters)
                         NDP_CORE2_FEATURE_PDM, ret);
         }
     }
-
-    ndp_info_display();
-
-    if (motion_to_disable() != CIRCULAR_MOTION_DISABLE) {
+    else {
+        if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
+            ret = bff_reinit_imu();
+            if (ret) {
+                printf("bff reinit IMU failed: %d\n", ret);
+            }
+        }
+        
 	    ndp_print_imu();
 
         ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
@@ -369,18 +395,21 @@ void ndp_thread_entry(void *pvParameters)
 			{
 				usb_disable();
 				printf ("\nBegin to program the spi flash ..... \n");
+                ndp_irq_disable();
 				turn_led(BSP_LEDRED, BSP_LEDON);
-            
-                ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
-                if (ret) {
-                    printf("Feature set NONE failed: %d\n", ret);
-                    break;
+                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+                    if (ret) {
+                        printf("Feature set NONE failed: %d\n", ret);
+                        break;
+                    }
                 }
-
-                ret = ndp_core2_platform_tiny_halt_mcu();
-                if (ret) {
-                    printf("Halt MCU failed: %d\n", ret);
-                    break;
+                else {
+                    ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+                    if (ret) {
+                        printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
+                        break;
+                    }
                 }
 
 				ndp_flash_init();
@@ -402,6 +431,27 @@ void ndp_thread_entry(void *pvParameters)
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
 				printf ("Finished programming!\n\n");
 				usb_enable();
+            
+                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+                    if (ret) {
+                        printf("Feature set NONE failed: %d\n", ret);
+                        break;
+                    }
+                }
+                else {
+                    ret = bff_reinit_imu();
+                    if (ret) {
+                        printf("bff reinit IMU failed: %d\n", ret);
+                    }
+
+                    ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+                    if (ret) {
+                        printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
+                        break;
+                    }
+                }
+                ndp_irq_enable();
 			}
 			else
 			{

@@ -209,6 +209,7 @@ extern int ndp_core2_platform_tiny_extract_stop(void);
 extern int ndp_core2_platform_tiny_src_type(uint8_t *data, uint32_t *data_size);
 #endif //EXCLUDE_TINY_EXTRACTION
 
+extern int ndp_core2_platfom_tiny_gpio_release(uint32_t gpio_num);
 extern int ndp_core2_platform_tiny_gpio_config(int gpio_num, 
         uint32_t dir, uint32_t value);
 extern int ndp_core2_platform_tiny_audio_config_get(uint8_t aud_id, uint8_t mic_id, 
