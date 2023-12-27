@@ -349,7 +349,6 @@ uint32_t remove_file(char * file_name)
     return res;
 }
 
-#if 1
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
 {
     FRESULT res;
@@ -489,118 +488,6 @@ void write_extraction_file_end(void)
         fatfs_mounted = 0;
     }
 }
-#else
-
-uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
-{
-    FRESULT res;
-    FIL fil;
-    char path[64];
-    uint32_t bw;
-
-    sprintf(path, "0:/%s", file_name);
-
-    res = f_mount(&fatfs_obj, "", 1);
-    if(res != FR_OK){
-        printf("f_mount fail %d\r\n",res);
-        return res;
-    }
-
-	if ( header == 1 ) {
-		/* create a new file */
-		res = f_open(&fil, path, FA_CREATE_ALWAYS | FA_WRITE);
-	} else {
-		/* append data to file */
-		res = f_open(&fil, path, FA_OPEN_APPEND | FA_WRITE);
-	}
-	if(res != FR_OK){
-		printf("f_open fail %d\r\n",res);
-		return res;
-	}
-
-    res = f_write(&fil, buff, len, &bw);
-    if(res != FR_OK){
-        printf("f_write fail %d\r\n",res);
-        return res;
-    }
-
-    res =  f_close(&fil);
-    if(res != FR_OK){
-        printf("f_close fail %d\r\n",res);
-    }
-
-    res = f_mount(NULL, "", 0);
-    if(res != FR_OK){
-        printf("f_mount umount fail %d\r\n",res);
-    }
-    return bw;
-}
-
-uint32_t write_sensor_file(char * file_name, uint32_t sample_size, 
-        int16_t *acc_samples, int header)
-{
-    FRESULT res;
-    FIL fil;
-    char path[64];
-    char buff[128];
-    uint32_t buff_len;
-    uint32_t bw;
-
-    sprintf(path, "0:/%s", file_name);
-
-    res = f_mount(&fatfs_obj, "", 1);
-    if(res != FR_OK){
-        printf("f_mount fail %d\r\n",res);
-        return res;
-    }
-
-	if ( header == 1 ) {
-		/* create a new file */
-		res = f_open(&fil, path, FA_CREATE_ALWAYS | FA_WRITE);
-	} else {
-		/* append data to file */
-		res = f_open(&fil, path, FA_OPEN_APPEND | FA_WRITE);
-	}
-	if(res != FR_OK){
-		printf("f_open fail %d\r\n",res);
-		return res;
-	}
-
-	if ( header == 1 ) {
-		strcpy(buff, "Acc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
-		buff_len = strlen(buff);
-	}
-    else {
-        uint32_t buff_offset = 0;
-
-        for (int i = 0; i < sample_size / 2; i++) {
-			buff_offset += snprintf(&buff[buff_offset], 128,
-                    "%d,", acc_samples[i]);
-        }
-		buff_offset --; //Truncate the last comma in each line
-		buff_offset += snprintf(&buff[buff_offset], 128,"\r\n");
-
-        buff_len = buff_offset;
-    }
-
-    res = f_write(&fil, buff, buff_len, &bw);
-    if(res != FR_OK){
-        printf("f_write fail %d\r\n",res);
-        return res;
-    }
-
-    res =  f_close(&fil);
-    if(res != FR_OK){
-        printf("f_close fail %d\r\n",res);
-    }
-
-    res = f_mount(NULL, "", 0);
-    if(res != FR_OK){
-        printf("f_mount umount fail %d\r\n",res);
-    }
-    return bw;
-}
-#endif
 
 static uint32_t read_config_file( void )
 {

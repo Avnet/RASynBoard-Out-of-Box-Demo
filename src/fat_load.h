@@ -127,10 +127,8 @@ struct config_ini_items {
 	// AWS configuration items
 	char aws_endpoint[AWS_ENDPOINT_STRING_SIZE];/** [AWS]-->Endpoint **/
 	char aws_device_id[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->Device_Unique_ID **/
-  char aws_pub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Pub_Topic **/
-  char aws_sub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Sub_Topic **/
-	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
-	char ntp_time_server[32];   /** [WIFI]-->NTP_Time_Server **/
+	char aws_pub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Pub_Topic **/
+	char aws_sub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Sub_Topic **/
 	int dec_inshift_value;
 	int dec_inshift_offset;
 };
