@@ -444,10 +444,10 @@ int ndp_flash_program_all_fw(void)
 	char flash_file_name[] = "temp_flash.bin";
 
     device_id = ndp_flash_get_deviceid();
-    printf("FLASH device_id: 0x%x\n", device_id);
+//    printf("FLASH device_id: 0x%x\n", device_id);
 
     jedec_id = ndp_flash_get_JEDEC_ID();
-    printf("FLASH jedec_id: 0x%x\n", jedec_id);
+//    printf("FLASH jedec_id: 0x%x\n", jedec_id);
 
 	printf("FLASH chip erase ...\n");
 	ret = ndp_flash_chip_erase();
@@ -455,7 +455,7 @@ int ndp_flash_program_all_fw(void)
 
     printf("FLASH programming starts ...\n");
 	//concatenate files
-	printf("concatenate synpkg files\n");
+	printf("Concatenate synpkg files\n");
 	cat_file(mcu_file_name, flash_file_name, 0);
 	cat_file(dsp_file_name, flash_file_name, 1);
 	cat_file(model_file_name, flash_file_name, 1);
@@ -465,7 +465,7 @@ int ndp_flash_program_all_fw(void)
     if (ret) return ret;
 
 	//remove file
-	printf("remove %s \n", flash_file_name);
+	printf("Remove %s \n", flash_file_name);
 	remove_file(flash_file_name);
 
 	ret = ndp_flash_program_infos();

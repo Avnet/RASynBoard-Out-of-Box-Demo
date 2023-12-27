@@ -478,7 +478,7 @@ void ndp_record_thread_entry(void *pvParameters)
                         if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
                             printf("...100%% ");
                             fflush(stdin);
-                            printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count);
+                            printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count-1);
                             if (is_imu_data_to_file()) {
                                 printf(" and saved to %s", cb_sensor_arg.file_name);
                             }
