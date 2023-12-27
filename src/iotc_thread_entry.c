@@ -71,7 +71,7 @@ bool reestablish_mqtt_conn(void);
 
 
 /* IoTC Thread entry function */
-void iotc_thread_entry(void *pvParameters)
+__attribute__ ((optimize(0))) void iotc_thread_entry(void *pvParameters)
 {
 
     FSP_PARAMETER_NOT_USED (pvParameters);
@@ -158,7 +158,7 @@ void iotc_thread_entry(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-void init_da16600(void){
+__attribute__ ((optimize(0))) void init_da16600(void){
 
     char atcmd[64] = {'\0'};
     static int failCnt = 0;
@@ -248,7 +248,7 @@ void init_da16600(void){
     currentState = LOAD_CERTS;
 }
 
-fsp_err_t loadAWS_certificates(int certId)
+__attribute__ ((optimize(0))) fsp_err_t loadAWS_certificates(int certId)
 {
     fsp_err_t err;
 
@@ -340,7 +340,7 @@ fsp_err_t loadAWS_certificates(int certId)
     return FSP_SUCCESS;
 }
 
-void load_certs(){
+__attribute__ ((optimize(0))) void load_certs() {
 
     static int failCnt = 0;
 
@@ -422,8 +422,8 @@ void load_certs(){
     currentState = SETUP_NETWORK;
 }
 
-void setup_network(void){
-
+__attribute__ ((optimize(0))) void setup_network(void)
+{
     // Calculate the length of a return string where no address' are defined
     // We'll use this to determine if we have an IP address
     size_t nwipReturnStringLen = strlen("0,0.0.0.0,0.0.0.0,0.0.0.0");
@@ -595,7 +595,7 @@ void setup_network(void){
     }
 }
 
-void run_discovery(void)
+__attribute__ ((optimize(0))) void run_discovery(void)
 {
     EventBits_t   evbits;
 
@@ -678,7 +678,7 @@ void run_discovery(void)
     return;
 }
 
-void get_identity(void)
+__attribute__ ((optimize(0))) void get_identity(void)
 {
 
 #define FINAL_IDENTITY_SIZE 256
@@ -801,7 +801,7 @@ void get_identity(void)
 
 }
 
-void setup_mqtt(void)
+__attribute__ ((optimize(0))) void setup_mqtt(void)
 {
 
     char atCmdBuffer[256] = {'\0'};
@@ -932,7 +932,7 @@ void printHeapSize(const char* ref)
     printf("%s: %d\n",ref, myHeap.xAvailableHeapSpaceInBytes);
 }
 
-void buildTelemetry(char* newTelemetry, char* awsTelemetry)
+__attribute__ ((optimize(0))) void buildTelemetry(char* newTelemetry, char* awsTelemetry)
 {
 
 #define TIME_BUF_SIZE 32
@@ -1003,8 +1003,8 @@ void buildTelemetry(char* newTelemetry, char* awsTelemetry)
     }
 }
 
-void wait_for_telemetry(void){
-
+__attribute__ ((optimize(0))) void wait_for_telemetry(void)
+{
     telemetryQueueMsg_t newMsg;
 
     // Declare the message buffer that will contain the AT command + the
@@ -1062,8 +1062,8 @@ void wait_for_telemetry(void){
 // We call this function if we had previously established the TLS MQTT connection, then we lost it.
 // Maybe we lost the wifi connection, maybe we put the device into a low power state.  Anyway, the DA16600 has
 // all the details it needs to reestablish the network and mqtt connection, we just need to let it do its thing.
-bool reestablish_mqtt_conn(void){
-
+__attribute__ ((optimize(0))) bool reestablish_mqtt_conn(void)
+{
     iotc_print("Reestablishing MQTT connection\n");
     int timeoutCnt = 0;
 
@@ -1101,8 +1101,8 @@ bool reestablish_mqtt_conn(void){
     return true;
 }
 
-void failure_state(void){
-
+__attribute__ ((optimize(0))) void failure_state(void)
+{
     iotc_print("IoTConnect: Enter FAILURE_STATE\n");
     printf("ERROR: Fatal error encountered, stopping thread!\n");
 
