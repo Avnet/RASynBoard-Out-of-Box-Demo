@@ -642,6 +642,8 @@ static uint32_t read_config_file( void )
 						model_file_name, sizeof(model_file_name), inifile);
 	ini_gets(section, "Button_shift", "audio", \
 						config_items.button_switch, sizeof(config_items.button_switch), inifile);
+	config_items.dec_inshift_value = ini_getl(section, "DECIMATION_INSHIFT_VALUE", DEC_INSHIFT_VALUE_DEFAULT, inifile);
+    config_items.dec_inshift_offset = ini_getl(section, "DECIMATION_INSHIFT_OFFSET", DEC_INSHIFT_OFFSET_DEFAULT, inifile);
 
 	/* Get led color according according to voice command */
 	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
@@ -823,7 +825,7 @@ int get_print_console_type( void )
 
 /* Identify circular_motion mode based on the DNN file in the SD card
    or the setting value stored in the Flash */
-int motion_to_disable(void)
+int motion_running(void)
 {
 	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
 	{
@@ -1144,6 +1146,17 @@ char* get_ntp_time_server( void ){
 
     return config_items.ntp_time_server;
 }
+
+int get_dec_inshift_value( void )
+{
+    return config_items.dec_inshift_value;
+}
+
+int get_dec_inshift_offset( void )
+{
+    return config_items.dec_inshift_offset;
+}
+
 char* get_aws_endpoint( void ){
     return config_items.aws_endpoint;
 }
@@ -1161,4 +1174,3 @@ char* get_aws_pub_topic( void )
 {
     return config_items.aws_pub_topic;
 }
-

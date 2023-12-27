@@ -104,6 +104,32 @@ Each ```[Function_x]``` block defines a description, and the three required ndp1
 
 ![](./assets/images/ndpConfig.jpg "")
 
+### Audio Input Level Control
+There are two optional ndp120 configuration items that are included to help fine tune audio input levels.  These items are not required as each model defines the values.  If an audio model is performing poorly in a noisy environment you can adjust the input gain at the microphone by adjusting the decimation_inshift value.  Note these items should be located within the ```Function_X``` block associated with one of the ML models.
+
+**Note**: These values should not be changed unless you know what you're doing.  You can easily negatively impact your audio inference performance by using incorrect values.
+
+**Decimation_inshift**: The decimation_inshift configuration value is used to modify the PDM to PCM conversion filter. It essentially will shift the PCM output values by the given amount. Each step in decimation_inshift will affect a 6dB change in gain one way or another. Decreasing decimation_inshift by 1 causes a -6dB attenuation, and conversely increasing decimation_inshift by 1 causes a +6dB gain.
+
+There are two different ways to redefine the decimation_inshift vaules at startup.  These two settings are mutually exclusive with ```DECIMATION_INSHIFT_VALUE``` having precedence if both are defined.
+
+- ```DECIMATION_INSHIFT_VALUE```
+  - This setting will force the decimation_inshift value to the value defined in the config.ini file
+  - The setting allows configuration values from 7 to 13.  If the configuration defines values outside this range, then the value will be forced to the lower or upper limit depending on the requested value.
+
+**Note** The example shown below forces the decimation_inshift value to 10
+
+![](./assets/images/decimationInshift01.jpg "")
+
+- ```DECIMATION_INSHIFT_OFFSET```
+  - This setting uses the decimation_inshift value defined in the currently loaded model and applies the requested offset to determine the new decimation_inshift value.
+  - After applying the requested offset the final value is verified against the allowed decimation_inshift range of 7 to 13.  If the configuration defines values outside this range, then the value will be forced to the lower or upper limit depending on the requested value.
+
+**Note** The example shown below adjusts the default model ```decimation_inshift``` by -1.  So if the original value was 11, it will be set to 10 at startup.
+
+![](./assets/images/decimationInshift02.jpg "")
+
+
 ## LED control
 The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the ndp120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
 

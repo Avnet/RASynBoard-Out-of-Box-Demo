@@ -28,7 +28,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v103**
+ 	** SDK: v105 **
 */
 
 #ifndef _SYNTIANT_UTIL_H_
@@ -48,9 +48,13 @@ struct ndp120_tiny_handle_t {
     int spifd;
     void *io_handle;
     uint32_t notification_save;
+#ifdef INFERENCE_MCU_NO_TOUCH
+    int mcu_no_touch;
+#endif
 };
 
 extern int syntiant_tiny_io_init(void *d, int spi_default_speed);
+extern int syntiant_tiny_spi_speed(void *d, uint32_t spi_speed);
 extern int syntiant_tiny_mbwait(void *d);
 extern int syntiant_tiny_transfer(void *d, int mcu, uint32_t addr, 
                     void *out, void *in, unsigned int count);

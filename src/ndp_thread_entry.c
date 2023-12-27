@@ -55,6 +55,26 @@ static char label_data[NDP120_MCU_LABELS_MAX_LEN] = "";
 static void send_ble_update(char* ,int ,char*, int);
 extern void printConfg(void);
 
+static void set_decimation_inshift( void );
+
+
+#define   IMU_SENSOR_INDEX         0
+#define   IMU_SENSOR_MSSB          1
+#define   IMU_FLASH_MSSB           0
+#define   GPIO_LEVEL_LOW           0
+#define   GPIO_LEVEL_HIGH          1
+
+void ndp_print_imu(void)
+{
+    uint8_t imu_val = 0;
+    uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
+
+    ndp_core2_platform_tiny_mspi_config();
+    ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &reg, 0);
+    ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 1, &imu_val, 1);
+    printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
+}
+
 void ndp_info_display(void)
 {
     int s, total_nn, total_labels;
@@ -139,11 +159,31 @@ void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
     return;
 }
 
+int bff_reinit_imu(void)
+{
+    int s;
+    
+    s = ndp_core2_platfom_tiny_gpio_release(MSPI_IMU_SSB);
+    if (s) {
+        printf("release gpio%d failed: %d\n", MSPI_IMU_SSB, s);
+        return s;
+    }
+
+    s = ndp_core2_platform_tiny_dsp_restart();
+    if (s) {
+        printf("restart DSP failed: %d\n", IMU_SENSOR_INDEX, s);
+        return s;
+    }
+    vTaskDelay (pdMS_TO_TICKS(1000UL));
+
+    return s;
+}
+
 /* NDP Thread entry function */
 /* pvParameters contains TaskHandle_t */
 void ndp_thread_entry(void *pvParameters)
 {
-    int ret;
+    int ret, fatal_error;
     uint8_t ndp_class_idx, ndp_nn_idx, sec_val;
     EventBits_t   evbits;
     uint32_t q_event, notifications;
@@ -178,6 +218,7 @@ void ndp_thread_entry(void *pvParameters)
 
     /* Delay 100 ms */
     R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
+
     /* read config info of ndp firmwares */
     get_synpkg_config_info();
 
@@ -185,6 +226,7 @@ void ndp_thread_entry(void *pvParameters)
     {
         ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
     }
+
     /* Start NDP120 program */
     ret = ndp_core2_platform_tiny_start(1, 1, ndp_boot_mode);
     if(ret == 0) {
@@ -194,19 +236,13 @@ void ndp_thread_entry(void *pvParameters)
         printf("ndp_core2_platform_tiny_start failed %d\r\n", ret);
     }
 
-    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
-    if (ret){
-        printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                       NDP_CORE2_FEATURE_PDM, ret);
-    }
-
     if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
     // read back info from FLASH
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
             mode_circular_motion = flash_data.ndp_mode_motion;
-	    memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
-	}
+	        memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
+	    }
         
         // Output the current configuration for the user
         if (get_print_console_type() != CONSOLE_USB_CDC) {
@@ -216,10 +252,31 @@ void ndp_thread_entry(void *pvParameters)
 
     ndp_info_display();
 
-    if (motion_to_disable() == CIRCULAR_MOTION_DISABLE) {
-        ret = ndp_core2_platform_tiny_sensor_ctl(0, 0);
-        if (!ret){
-            printf("disable sensor[0] functionality\n");
+    if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+        set_decimation_inshift();
+
+        ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+        if (ret){
+            printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                        NDP_CORE2_FEATURE_PDM, ret);
+        }
+    }
+    else {
+        if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
+            ret = bff_reinit_imu();
+            if (ret) {
+                printf("bff reinit IMU failed: %d\n", ret);
+            }
+        }
+        
+	    ndp_print_imu();
+
+        ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+        if (ret) {
+            printf("Enable sensor[%d] icm-42670 failed: %d\n", IMU_SENSOR_INDEX, ret);
+        }
+        else {
+            printf("Enable sensor[%d] icm-42670 done\n", IMU_SENSOR_INDEX);
         }
     }
 
@@ -241,7 +298,11 @@ void ndp_thread_entry(void *pvParameters)
 		if( evbits & EVENT_BIT_VOICE ) 
 		{
 			xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-			ndp_core2_platform_tiny_poll(&notifications, 1);
+			ndp_core2_platform_tiny_poll(&notifications, 1, &fatal_error);
+            if (fatal_error) {
+                printf("\nNDP Fatal Error!!!\n\n");
+            }
+
 			ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
             if (!ret) {
                 printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
@@ -334,7 +395,23 @@ void ndp_thread_entry(void *pvParameters)
 			{
 				usb_disable();
 				printf ("\nBegin to program the spi flash ..... \n");
+                ndp_irq_disable();
 				turn_led(BSP_LEDRED, BSP_LEDON);
+                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+                    if (ret) {
+                        printf("Feature set NONE failed: %d\n", ret);
+                        break;
+                    }
+                }
+                else {
+                    ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+                    if (ret) {
+                        printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
+                        break;
+                    }
+                }
+
 				ndp_flash_init();
 				ndp_flash_program_all_fw();
 
@@ -354,6 +431,27 @@ void ndp_thread_entry(void *pvParameters)
 				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
 				printf ("Finished programming!\n\n");
 				usb_enable();
+            
+                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+                    if (ret) {
+                        printf("Feature set NONE failed: %d\n", ret);
+                        break;
+                    }
+                }
+                else {
+                    ret = bff_reinit_imu();
+                    if (ret) {
+                        printf("bff reinit IMU failed: %d\n", ret);
+                    }
+
+                    ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+                    if (ret) {
+                        printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
+                        break;
+                    }
+                }
+                ndp_irq_enable();
 			}
 			else
 			{
@@ -370,5 +468,83 @@ static void send_ble_update(char* ble_string ,int timeout ,char* buf, int buf_si
     if(BLE_ENABLE == get_ble_mode()){
         rm_atcmd_send(ble_string ,timeout, buf, buf_size);
     }
+}
+
+static void set_decimation_inshift( void ){
+
+#define INSHIFT_AUDIO_ID 0
+#define INSHIFT_SINGLE_MIC_ID 0
+#define INSHIFT_DUAL_MIC_ID 1
+
+    int decimation_inshift_mic0_read_value = 0;
+    int decimation_inshift_mic1_read_value = 0;
+    int decimation_inshift_calculated_value = 0;
+
+    int decimation_inshift_value_mic0 = get_dec_inshift_value();
+    int decimation_inshift_offset = get_dec_inshift_offset();
+
+    // Read the decimation_inshift values for both mics
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &decimation_inshift_mic0_read_value);
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &decimation_inshift_mic1_read_value);
+
+    printf("\n-------------------------------------\n");
+    printf("*** Decimation Inshift Details ***\n");
+    printf("-------------------------------------\n");
+    printf("Model Decimation Inshift Mic0: %d\n", decimation_inshift_mic0_read_value);
+    printf("Model Decimation Inshift Mic1: %d\n", decimation_inshift_mic1_read_value);
+    printf("-------------------------------------\n");
+
+    // Catch the case where we don't make any changes; just bail out.
+    if((decimation_inshift_value_mic0 == DEC_INSHIFT_VALUE_DEFAULT) &&
+       (decimation_inshift_offset == DEC_INSHIFT_OFFSET_DEFAULT )){
+        return;
+    }
+
+    // Check the configuration
+    if(decimation_inshift_value_mic0 != DEC_INSHIFT_VALUE_DEFAULT){
+
+        printf("DECIMATION_INSHIFT_VALUE     : %d\n", decimation_inshift_value_mic0);
+        decimation_inshift_calculated_value = decimation_inshift_value_mic0;
+
+    }
+    else { // User did not define a custom decimation_inshift value, apply the offset.  Note the default
+           // value for the offset is zero.  So we can safely apply this offset without any validation.  We'll
+           // verify the final value below before applying them to the NDP120.
+
+        printf("DECIMATION_INSHIFT_OFFSET    : %d\n", decimation_inshift_offset);
+        decimation_inshift_calculated_value = decimation_inshift_mic0_read_value + decimation_inshift_offset;
+
+    }
+    printf("-------------------------------------\n");
+
+    // Check for invalid low value
+    if(decimation_inshift_calculated_value < DEC_INSHIFT_VALUE_MIN ){
+
+        printf("Warning calculated value %d is below the min allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MIN);
+        decimation_inshift_calculated_value = DEC_INSHIFT_VALUE_MIN;
+    }
+
+    // Check for invalid low value
+    else if(decimation_inshift_calculated_value > DEC_INSHIFT_VALUE_MAX){
+
+        printf("Warning calculated value %d is above max allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MAX);
+        decimation_inshift_calculated_value = DEC_INSHIFT_VALUE_MAX;
+    }
+
+    printf("Setting new value to %d\n", decimation_inshift_calculated_value);
+    printf("-------------------------------------\n");
+
+    // Write the new value(s) into the NDP120
+    ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, &decimation_inshift_calculated_value);
+    printf("Final Decimation Inshift Mic0: %d\n", decimation_inshift_calculated_value);
+
+
+    // Only update the mic1 value if one was set in the model
+    if(0 != decimation_inshift_mic1_read_value){
+        ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, &decimation_inshift_calculated_value);
+        printf("Final Decimation Inshift Mic1: %d\n", decimation_inshift_calculated_value);
+    }
+
+    printf("-------------------------------------\n\n");
 }
 
