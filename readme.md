@@ -14,6 +14,7 @@ Please follow the links below to learn more about the Avnet RASynBoard Out-of-Bo
 - [Edge Impulse Data Forwarder instructions](./docs/EdgeImpulseDataForwarder.md): Details on using the Edge Impulse Data Forwarder CLI tool to stream 6-Axis IMU data directly into your Edge Impulse ML project
 - [Edge Impulse Uploader instructions](./docs/EdgeImpulseUploader.md): Details on using the Edge Impulse Uploader CLI tool to upload audio (\*.wav) or 6-Axis IMU data (\*.csv) data files directly into your Edge Impulse ML project
 - [Avnet IoTConnect Configuration](./docs/IoTConnect.md):  Details to connect your RASynBoard to Avnet's IoTConnect on AWS cloud solution
+- [AWS IoT Core Configuration](./docs/awsIoTCore.md):  Details to connect your RASynBoard to AWS IoT Core
 - [Wi-Fi Configuration](./docs/WiFiSetup.md):  Details on how to configure the OOB application to connect to your Wi-Fi network. 
 - [Out-of-Box Development Notes](./docs/OobDevelopmentNotes.md): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applications.
 - [Add a Temperature and Humidity Sensor to the OOB Application](./docs/addTempHumiditySensor.md): Details on how to add the [Renesas HS300X temperature and humidity sensor](https://www.renesas.com/us/en/products/sensor-products/humidity-sensors/us082-hs3001evz-relative-humidity-sensor-pmod-board-renesas-quick-connect-iot) to the OOB application.

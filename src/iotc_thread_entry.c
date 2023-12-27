@@ -15,14 +15,13 @@
 #define MAX_RETRIES 5
 #define OUTPUT_MQTT_DEBUG
 
-#define MY_CHAR_ARRAY_SIZE 64
 #define IDENTITY_URL_SIZE 128
 #define JSON_STRING_SIZE 2048
 
 // Local globals
 char *buf;
 char identityURL[IDENTITY_URL_SIZE];
-char hostnameString[MY_CHAR_ARRAY_SIZE] = {'\0'};
+char hostnameString[128] = {'\0'};
 char pubTopicString[MY_CHAR_ARRAY_SIZE] = {'\0'};
 char subTopicString[MY_CHAR_ARRAY_SIZE] = {'\0'};
 
@@ -579,13 +578,21 @@ void setup_network(void){
             // We got through each step without errors, clear the static error count
             // and set the next state;
             failCnt = 0;
-            currentState = DISCOVERY;
+
+            // If we're connected to IoTConnect transition to the Discovery State
+            if(get_target_cloud() == CLOUD_IOTCONNECT){
+
+                currentState = DISCOVERY;
+            }
+            // If we're connected to AWS, then go to the setup mqtt state
+            else if (get_target_cloud() == CLOUD_AWS) {
+                currentState = SETUP_MQTT;
+            }
             networkState = NETWORK_CONFIGURE;
             return;
         default:
             break;
     }
-
 }
 
 void run_discovery(void)
@@ -662,7 +669,7 @@ void run_discovery(void)
     //iotc_print("BASE URL: %s\n\r",baseURL);
 
     // Use the base URL and the device ID (UID) to construct the Identity URL
-    sprintf(identityURL, "%s%s%s", baseURL,"/uid/", get_iotc_uid());
+    sprintf(identityURL, "%s%s%s", baseURL,"/uid/", get_device_uid());
 
     //iotc_print("IDENTITY URL: %s\n\r",identityURL);
 
@@ -804,6 +811,20 @@ void setup_mqtt(void)
 
     iotc_print("IoTConnect-state: SETUP_MQTT\n");
 
+    // If we're connected to AWS then setup all the MQTT strings
+    if(get_target_cloud() == CLOUD_AWS){
+
+        // Update the global strings with values pulled from the JSON. We'll use these each time we send telemetry.
+        strncpy(hostnameString, get_aws_endpoint(), AWS_ENDPOINT_STRING_SIZE-1);
+        strncpy(pubTopicString, get_aws_pub_topic(), MY_CHAR_ARRAY_SIZE-1);
+        strncpy(subTopicString, get_aws_sub_topic(), MY_CHAR_ARRAY_SIZE-1);
+
+        iotc_print("  Host: %s\n",hostnameString);
+        iotc_print("  PUBT: %s\n",pubTopicString);
+        iotc_print("  SUBT: %s\n",subTopicString);
+    }
+
+
     // Check to see if we're stuck trying to connect
     if(MAX_RETRIES == failCnt){
         currentState = SETUP_NETWORK;
@@ -821,7 +842,7 @@ void setup_mqtt(void)
     // Set the MQTT Client ID
     memset(buf, '\0', ATBUF_SIZE);
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
-    snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_iotc_uid());
+    snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_device_uid());
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
         failCnt++;
         return;
@@ -890,8 +911,16 @@ void setup_mqtt(void)
     }
     while(buf[0] !='1');
 
+    if(get_target_cloud() == CLOUD_IOTCONNECT){
 
-    iotc_print("INFO: MQTT Connection established to IoTConnect on AWS!\n");
+        iotc_print("INFO: MQTT Connection established to IoTConnect on AWS!\n");
+
+    }
+    else if(get_target_cloud() == CLOUD_AWS){
+
+        iotc_print("INFO: MQTT Connection established to AWS!\n");
+    }
+
     currentState = WAIT_FOR_TELEMETRY_DATA;
     return;
 }
@@ -903,7 +932,7 @@ void printHeapSize(const char* ref)
     printf("%s: %d\n",ref, myHeap.xAvailableHeapSpaceInBytes);
 }
 
-void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
+void buildTelemetry(char* newTelemetry, char* awsTelemetry)
 {
 
 #define TIME_BUF_SIZE 32
@@ -920,47 +949,58 @@ void buildAWSTelemetry(char* newTelemetry, char* awsTelemetry)
     }
     iotc_print("%s\n", newTelemetry);
 
-    // Get the current time to include in the telemetry message
-    do
-    {
-        memset(buf, '\0', ATBUF_SIZE);
-        err = rm_atcmd_check_value("AT+TIME=?",1000,buf,sizeof(buf));
-        //iotc_print("TIMEIS: %s\n",buf);
+    // If we're sending data to AWS directly, just copy the incomming string
+    if(get_target_cloud() == CLOUD_AWS){
 
-    } while ( err != FSP_SUCCESS );
+        strcpy(awsTelemetry, newTelemetry);
 
-    for ( int i=0; i <= (int)strlen(buf); i++)
-        if (buf[1] == ':')
+    }
+    // If we're sending data to IoTConnect, then we need to add the IoTConnect wrapper data to the incomming JSON
+    else if(get_target_cloud() == CLOUD_IOTCONNECT){
+
+
+        // Get the current time to include in the telemetry message
+        do
         {
-         position = i;
-         break;
-        }
+            memset(buf, '\0', ATBUF_SIZE);
+            err = rm_atcmd_check_value("AT+TIME=?",1000,buf,sizeof(buf));
+            //iotc_print("TIMEIS: %s\n",buf);
 
-    for ( int j = position ; j <= (int)strlen(buf);j++)
-        timeBuf[j]=buf[j];
+        } while ( err != FSP_SUCCESS );
 
-    //iotc_print("TIMEBUF: %s\n", timeBuf);
+        for ( int i=0; i <= (int)strlen(buf); i++)
+            if (buf[1] == ':')
+            {
+             position = i;
+             break;
+            }
 
-    for  ( int i=0; i <= (int)strlen(timeBuf);i++)
-        if (timeBuf[i] == ',')
-            timeBuf[i] = 'T';
+        for ( int j = position ; j <= (int)strlen(buf);j++)
+            timeBuf[j]=buf[j];
 
-    strcat(timeBuf, ".000Z");
+        //iotc_print("TIMEBUF: %s\n", timeBuf);
 
-    cJSON *root;
-    cJSON *fmt;
-    cJSON *thm;
+        for  ( int i=0; i <= (int)strlen(timeBuf);i++)
+            if (timeBuf[i] == ',')
+                timeBuf[i] = 'T';
 
-    root = cJSON_CreateObject();
-    cJSON_AddStringToObject(root, "dt", timeBuf);
-    cJSON_AddItemToObject(root, "d", fmt = cJSON_CreateArray());
-    cJSON_AddItemToArray(fmt, thm = cJSON_CreateObject());
-    cJSON_AddStringToObject(thm, "dt", timeBuf);
-    cJSON_AddItemToObject(thm, "d", userTelemetry);
-    char *JSONString =  cJSON_PrintUnformatted(root);
-    strcpy(awsTelemetry, JSONString);
-    vPortFree(JSONString);
-    cJSON_Delete(root);
+        strcat(timeBuf, ".000Z");
+
+        cJSON *root;
+        cJSON *fmt;
+        cJSON *thm;
+
+        root = cJSON_CreateObject();
+        cJSON_AddStringToObject(root, "dt", timeBuf);
+        cJSON_AddItemToObject(root, "d", fmt = cJSON_CreateArray());
+        cJSON_AddItemToArray(fmt, thm = cJSON_CreateObject());
+        cJSON_AddStringToObject(thm, "dt", timeBuf);
+        cJSON_AddItemToObject(thm, "d", userTelemetry);
+        char *JSONString =  cJSON_PrintUnformatted(root);
+        strcpy(awsTelemetry, JSONString);
+        vPortFree(JSONString);
+        cJSON_Delete(root);
+    }
 }
 
 void wait_for_telemetry(void){
@@ -978,8 +1018,11 @@ void wait_for_telemetry(void){
 
     while(pdTRUE){
 
-        xQueueReceive(g_telemetry_queue, &newMsg, portMAX_DELAY);
-        // printf("RX Telemetry from Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
+        // Just peek into the queue, this blocking call will return when an item has been
+        // added to the queue.  We don't want to pull the message from the queue until we have
+        // verified the MQTT connection.
+        xQueuePeek(g_telemetry_queue, &newMsg, portMAX_DELAY);
+        //printf("Peek at data from Telemetry Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
 
         // Verify we have a valid MQTT connection before sending telemetry
         memset(buf, '\0', ATBUF_SIZE);
@@ -990,10 +1033,15 @@ void wait_for_telemetry(void){
             }
         }
 
+        // Pull the data from the queue only after we verify we have a MQTT connection
+        xQueueReceive(g_telemetry_queue, &newMsg, portMAX_DELAY);
+        //printf("Pull data from Telemetry Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
+
         // Construct the IoTConnect telemetry
         memset(mqttPublishMessage,'\0' ,MQTT_MSG_SIZE);
         memset(mqttJson, '\0', MQTT_JSON_SIZE);
-        buildAWSTelemetry(newMsg.msgPtr, mqttJson);
+
+        buildTelemetry(newMsg.msgPtr, mqttJson);
         snprintf(mqttPublishMessage, sizeof(mqttPublishMessage), "AT+NWMQMSG='%s'",mqttJson);
 
         // Send the message
