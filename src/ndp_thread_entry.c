@@ -483,22 +483,19 @@ static void set_decimation_inshift( void ){
     int decimation_inshift_value_mic0 = get_dec_inshift_value();
     int decimation_inshift_offset = get_dec_inshift_offset();
 
-    // Read the decimation_inshift values for both mics
-    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &decimation_inshift_mic0_read_value);
-    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &decimation_inshift_mic1_read_value);
-
-    printf("\n-------------------------------------\n");
-    printf("*** Decimation Inshift Details ***\n");
-    printf("-------------------------------------\n");
-    printf("Model Decimation Inshift Mic0: %d\n", decimation_inshift_mic0_read_value);
-    printf("Model Decimation Inshift Mic1: %d\n", decimation_inshift_mic1_read_value);
-    printf("-------------------------------------\n");
-
     // Catch the case where we don't make any changes; just bail out.
     if((decimation_inshift_value_mic0 == DEC_INSHIFT_VALUE_DEFAULT) &&
        (decimation_inshift_offset == DEC_INSHIFT_OFFSET_DEFAULT )){
         return;
     }
+
+    // Read the decimation_inshift values for both mics
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &decimation_inshift_mic0_read_value);
+    ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &decimation_inshift_mic1_read_value);
+
+    printf("/n   Decimation Inshift Details\n");
+    printf("    Model Decimation Inshift Mic0: %d\n", decimation_inshift_mic0_read_value);
+    printf("    Model Decimation Inshift Mic1: %d\n", decimation_inshift_mic1_read_value);
 
     // Check the configuration
     if(decimation_inshift_value_mic0 != DEC_INSHIFT_VALUE_DEFAULT){
@@ -515,7 +512,6 @@ static void set_decimation_inshift( void ){
         decimation_inshift_calculated_value = decimation_inshift_mic0_read_value + decimation_inshift_offset;
 
     }
-    printf("-------------------------------------\n");
 
     // Check for invalid low value
     if(decimation_inshift_calculated_value < DEC_INSHIFT_VALUE_MIN ){
@@ -532,7 +528,6 @@ static void set_decimation_inshift( void ){
     }
 
     printf("Setting new value to %d\n", decimation_inshift_calculated_value);
-    printf("-------------------------------------\n");
 
     // Write the new value(s) into the NDP120
     ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, &decimation_inshift_calculated_value);
@@ -545,6 +540,6 @@ static void set_decimation_inshift( void ){
         printf("Final Decimation Inshift Mic1: %d\n", decimation_inshift_calculated_value);
     }
 
-    printf("-------------------------------------\n\n");
+    printf("\n");
 }
 
