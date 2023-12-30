@@ -5,9 +5,9 @@ The Avnet Out-of-Box (OOB) application was developed by [Avnet](https://www.avne
 This section outlines the major features of the Avnet RASynBoard OOB application.  See the OOB Feature Configuration section for details on each feature's configuration options and other important feature details.
 
 ## Machine Learning (ML) inferencing/feature detection
-One of the main hardware features of the RASynBoard is the [Syntiant ndp120](https://www.syntiant.com/ndp120) Nerual Decision Processor.  The ndp120 is a low-power, always-on Audio and Sensor-Fusion device.  The OOB application allows the user to develop and deploy custom ML models without having to modify any source code.
+One of the main hardware features of the RASynBoard is the [Syntiant ndp120](https://www.syntiant.com/ndp120) Neural Decision Processor.  The NDP120 is a low-power, always-on Audio and Sensor-Fusion AI-processing device.  The OOB application allows the user to develop and deploy custom ML models without having to modify any source code.
 
-When the ndp120 detects a ML feature in the data it interrupts the RA6 MCU and passes inference data to the OOB application.  The OOB application may perform the following actions for each feature detection event.
+When the NDP120 detects a ML feature in the data it interrupts the RA6 MCU and passes inference data to the OOB application.  The OOB application may perform the following actions for each feature detection event.
 
 1. Illuminate the RGB LED for 500ms with the color associated with the inferencing index 0, 1, 2, . . . (see the ```[LED]``` section below)
 1. Optionally send a BLE broadcast message containing the inference information if enabled (see the ```[BLE Mode]``` section below)
@@ -84,28 +84,28 @@ The application will output the current configuration.
 
 ![](./assets/images/configOutput.jpg "")
 
-## ndp120 Configuration
-The ndp120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the \*.synpkg files.  These files are usually delivered together and should only be used together. New model files and ndp120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the ndp120 files in the root directory of the microSD card.
+## NDP120 Configuration
+The NDP120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the \*.synpkg files.  These files are usually delivered together and should only be used together. New model files and NDP120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the NDP120 files in the root directory of the microSD card.
 
-There are two areas in the config.ini file to configure which ndp120 files are loaded to the ndp120 at startup.
+There are two areas in the config.ini file to configure which NDP120 files are loaded to the NDP120 at startup.
 
 1. ```[NDP Firmware]-->Mode=x```
     
-Use the Mode setting to identify which ```Function_x``` block the application will use when loading the ndp120 firmware images.  The current application identifies 3 Function blocks, however the application is written so that additional Function blocks can be added without having to modify the application.
+Use the Mode setting to identify which ```Function_x``` block the application will use when loading the NDP120 firmware images.  The current application identifies 3 Function blocks, however the application is written so that additional Function blocks can be added without having to modify the application.
 
 2. ```[Function_x]``` blocks
 
-Each ```[Function_x]``` block defines a description, and the three required ndp120 images
+Each ```[Function_x]``` block defines a description, and the three required NDP120 images
 - ```Description="New Description"```: The description string is output to debug when the models are loaded.  This helps verify that the correct ```[Function_x]``` block is loaded
 
-- ```MCU``` refers to the ARM-M0 firmware that runs on the ndp120.  This firmware manages the devices and data flow.
-- ```DSP``` refers to the dsp firmware that runs on the ndp120.  This firmware does data pre-processing plus other functions.
+- ```MCU``` refers to the ARM-M0 firmware that runs on the NDP120.  This firmware manages the devices and data flow.
+- ```DSP``` refers to the dsp firmware that runs on the NDP120.  This firmware does data pre-processing plus other functions.
 - ```DNN``` refers to the Nerual Network Parameters and ML model.  This firmware implements the ML model.
 
 ![](./assets/images/ndpConfig.jpg "")
 
 ## LED control
-The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the ndp120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
+The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the NDP120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
 
 ![](./assets/images/ledConfig.jpg "")
 
