@@ -25,7 +25,7 @@
 #define BUILD_VERSION "0"
 
 #else
-#define BUILD_VERSION "Engineering Build"
+#define BUILD_VERSION "Eng-PreRelease"
 #endif
 #define DOT "."
 
