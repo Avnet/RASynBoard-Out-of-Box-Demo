@@ -1,0 +1,273 @@
+{
+    "code": "RASy15",
+    "name": "RASyOobV15",
+    "authType": 2,
+    "attributes": [
+        {
+            "name": "msgCount",
+            "type": "INTEGER"
+        },
+        {
+            "name": "modeDescription",
+            "type": "STRING",
+            "description": "Model description"
+        },
+        {
+            "name": "networkNum",
+            "type": "INTEGER",
+            "description": "Network number for the current motel"
+        },
+        {
+            "name": "numLabels",
+            "type": "INTEGER",
+            "description": "The total number of labels implemented in the current ML model"
+        },
+        {
+            "name": "label_0",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_2",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_3",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_4",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_5",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_6",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_7",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_8",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_9",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "InferenceString",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        }
+    ],
+    "settings": [
+        {
+            "name": "testShadow",
+            "type": "INTEGER",
+            "localName": "testInt",
+            "defaultValue": "0",
+            "isReadOnly": false
+        },
+        {
+            "name": "testBool",
+            "type": "BOOLEAN",
+            "localName": "testBool",
+            "defaultValue": "True",
+            "isReadOnly": false
+        }
+    ],
+    "commands": [
+        {
+            "name": "LedCmd",
+            "command": "led led",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        }
+    ],
+    "messageVersion": "2.1",
+    "msgCode": "XG4EC0J",
+    "greenGrass": "0",
+    "wireless": "0",
+    "properties": {
+        "description": null,
+        "dataFrequency": "15",
+        "fileSupport": false
+    },
+    "_meta": {
+        "version": "2.0"
+    }
+}

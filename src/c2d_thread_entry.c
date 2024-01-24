@@ -23,7 +23,7 @@ void c2d_thread_entry(void *pvParameters)
     {
 
         // Incomming message looks like . . .
-        // "AT+NWMQMSG='{\"msgCount\": 0, \"inferenceIdx\": 0, \"inferenceStr\": \"NN0:ok-syntiant\"}'\r\r\nOK\r\n\n", '\0'
+        // "AT+NWMQMSG='{\"msgCount\": 0, \"infIdx\": 0, \"inferenceStr\": \"NN0:ok-syntiant\"}'\r\r\nOK\r\n\n", '\0'
 
         // Pull the data from the queue
         xQueueReceive(g_c2d_queue, &newMsg, portMAX_DELAY);
