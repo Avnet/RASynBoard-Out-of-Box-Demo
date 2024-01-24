@@ -17,6 +17,7 @@
 
 #ifndef IPADDR_LEN
 #define IPADDR_LEN       16
+#define LOCAL_BUF_SIZE   256
 #endif
 
 typedef enum

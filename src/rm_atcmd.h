@@ -33,8 +33,13 @@ extern char httpsBuffer[HTTPS_BUFFER_SIZE];
 #define  EVENT_BIT_EXTENDED_MSG    (1 << 0)
 
 
-extern int temperature;
-extern int pressure;
+// Define the struct we use to send cloud to devices messages to the c2d thread
+struct c2dQueueMsg {
+    int msgLen;
+    char* msgPtr;
+};
+typedef struct c2dQueueMsg c2dQueueMsg_t;
+
 
 fsp_err_t loadAWS_certificates(int);
 
