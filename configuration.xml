@@ -481,13 +481,19 @@
     <object id="rtos.awsfreertos.object.queue.1405447123">
       <property id="rtos.awsfreertos.object.queue.symbol" value="g_telemetry_queue"/>
       <property id="rtos.awsfreertos.object.queue.item_size" value="8"/>
-      <property id="rtos.awsfreertos.object.queue.queue_length" value="128"/>
+      <property id="rtos.awsfreertos.object.queue.queue_length" value="64"/>
       <property id="rtos.awsfreertos.object.queue.allocation" value="rtos.awsfreertos.object.queue.allocation.static"/>
     </object>
     <object id="rtos.awsfreertos.object.mutex.1817494091">
       <property id="rtos.awsfreertos.object.mutex.symbol" value="g_sd_mutex"/>
       <property id="rtos.awsfreertos.object.mutex.type" value="rtos.awsfreertos.object.mutex.type.mutex"/>
       <property id="rtos.awsfreertos.object.mutex.allocation" value="rtos.awsfreertos.object.mutex.allocation.static"/>
+    </object>
+    <object id="rtos.awsfreertos.object.queue.1377776525">
+      <property id="rtos.awsfreertos.object.queue.symbol" value="g_c2d_queue"/>
+      <property id="rtos.awsfreertos.object.queue.item_size" value="8"/>
+      <property id="rtos.awsfreertos.object.queue.queue_length" value="32"/>
+      <property id="rtos.awsfreertos.object.queue.allocation" value="rtos.awsfreertos.object.queue.allocation.static"/>
     </object>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
@@ -556,6 +562,15 @@
       <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
       <property id="rtos.awsfreertos.thread.secure_context" value="rtos.awsfreertos.thread.secure_context.enable"/>
     </context>
+    <context id="rtos.awsfreertos.thread.521284349">
+      <property id="_symbol" value="c2d_thread"/>
+      <property id="rtos.awsfreertos.thread.name" value="C2D Thread"/>
+      <property id="rtos.awsfreertos.thread.stack" value="1024"/>
+      <property id="rtos.awsfreertos.thread.priority" value="1"/>
+      <property id="rtos.awsfreertos.thread.context" value="NULL"/>
+      <property id="rtos.awsfreertos.thread.allocation" value="rtos.awsfreertos.thread.allocation.static"/>
+      <property id="rtos.awsfreertos.thread.secure_context" value="rtos.awsfreertos.thread.secure_context.enable"/>
+    </context>
     <config id="config.driver.lpm">
       <property id="config.driver.lpm.param_checking_enable" value="config.driver.lpm.param_checking_enable.bsp"/>
       <property id="config.driver.lpm.standby_limit" value="config.driver.lpm.standby_limit.disabled"/>
@@ -619,7 +634,7 @@
       <property id="config.awsfreertos.thread.configidle_should_yield" value="config.awsfreertos.thread.configidle_should_yield.enabled"/>
       <property id="config.awsfreertos.thread.configuse_task_notifications" value="config.awsfreertos.thread.configuse_task_notifications.enabled"/>
       <property id="config.awsfreertos.thread.configuse_mutexes" value="config.awsfreertos.thread.configuse_mutexes.enabled"/>
-      <property id="config.awsfreertos.thread.configuse_recursive_mutexes" value="config.awsfreertos.thread.configuse_recursive_mutexes.disabled"/>
+      <property id="config.awsfreertos.thread.configuse_recursive_mutexes" value="config.awsfreertos.thread.configuse_recursive_mutexes.enabled"/>
       <property id="config.awsfreertos.thread.configuse_counting_semaphores" value="config.awsfreertos.thread.configuse_counting_semaphores.enabled"/>
       <property id="config.awsfreertos.thread.configcheck_for_stack_overflow" value="config.awsfreertos.thread.configcheck_for_stack_overflow.disabled"/>
       <property id="config.awsfreertos.thread.configqueue_registry_size" value="10"/>
