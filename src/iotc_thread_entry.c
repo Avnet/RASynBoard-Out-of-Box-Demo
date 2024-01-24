@@ -190,11 +190,11 @@ __attribute__ ((optimize(0))) void init_da16600(void){
 
     // AT command initialize
     memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("ATZ",1000,buf,sizeof(buf));
+    rm_atcmd_send("ATZ",1000,buf,ATBUF_SIZE);
 
     // Command Echo
     memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("ATE",1000,buf,sizeof(buf));
+    rm_atcmd_send("ATE",1000,buf,ATBUF_SIZE);
 
     // Check to see if we're configured to connect to one of the supported Cloud Solutions.
     // If not, then reset the DA16600 to factory defaults so any previous configurations are
@@ -206,7 +206,7 @@ __attribute__ ((optimize(0))) void init_da16600(void){
         // command will also blow away our BLE advertisement setting, so we do this operation
         // before determining if we're going to set a custom advertisement name.
         memset(buf, '\0', ATBUF_SIZE);
-        rm_atcmd_send("ATF", 5000,buf, sizeof(buf));
+        rm_atcmd_send("ATF", 5000,buf, ATBUF_SIZE);
 
         // Delay to allow the DA16600 to reset
         vTaskDelay(1000);
@@ -223,12 +223,12 @@ __attribute__ ((optimize(0))) void init_da16600(void){
             // Set the BLE advertisement name based on the config.ini entry
             memset(buf, '\0', ATBUF_SIZE);
             snprintf(atcmd, sizeof(atcmd), "AT+BLENAME=%s", get_ble_name());
-            rm_atcmd_send(atcmd,5000,buf,sizeof(buf));
+            rm_atcmd_send(atcmd,5000,buf,ATBUF_SIZE);
         }
     }
     else{
         // Disable all BLE advertising
-        rm_atcmd_send("AT+ADVSTOP", 5000,buf, sizeof(buf));
+        rm_atcmd_send("AT+ADVSTOP", 5000,buf, ATBUF_SIZE);
     }
 
     // Check one more time if we have a cloud configuration.  If not, then
@@ -353,7 +353,7 @@ __attribute__ ((optimize(0))) void load_certs() {
 
         // Check the certificate status, should return 7
         memset(buf, '\0', ATBUF_SIZE);
-        if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWCCRT",5000,buf,sizeof(buf))){
+        if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWCCRT",5000,buf,ATBUF_SIZE)){
             failCnt++;
             return;
         }
@@ -405,7 +405,7 @@ __attribute__ ((optimize(0))) void load_certs() {
 
     // Check the certificate status, should return 7
     memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWCCRT",5000,buf,sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWCCRT",5000,buf,ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -430,7 +430,6 @@ __attribute__ ((optimize(0))) void setup_network(void)
 
     static int failCnt = 0;
     static int level2FailCnt = 0;
-    char atcmd[256]={'\0'};
     static int networkState = NETWORK_CONFIGURE;
     int loopCnt = 0;
 
@@ -473,30 +472,31 @@ __attribute__ ((optimize(0))) void setup_network(void)
                 // * 4 == WPA+WPA2
                 // * 1 == Key Index
                 // * SSID password from configuration
-                snprintf(atcmd, sizeof(atcmd), "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
-                rm_atcmd_check_ok(atcmd, 10000);
+                memset(buf, '\0', ATBUF_SIZE);
+                snprintf(buf, ATBUF_SIZE, "AT+WFJAP=%s,%d,%d,%s", get_wifi_ap(), 4, 1, get_wifi_pw());
+                rm_atcmd_check_ok(buf, 10000);
 
             }
 
             // Set WiFi mode to Station mode
             memset(buf, '\0', ATBUF_SIZE);
-            rm_atcmd_send("AT+WFMODE=0",1000,buf,sizeof(buf));
+            rm_atcmd_send("AT+WFMODE=0",1000,buf,ATBUF_SIZE);
 
             // Set the two letter Wi-Fi country code: https://www.iso.org/obp/ui/#search
             memset(buf, '\0', ATBUF_SIZE);
-            snprintf(atcmd, sizeof(atcmd), "AT+WFCC=%s", get_wifi_cc());
-            rm_atcmd_send(atcmd,1000,buf,sizeof(buf));
+            snprintf(buf, ATBUF_SIZE, "AT+WFCC=%s", get_wifi_cc());
+            rm_atcmd_send(buf,1000,buf,ATBUF_SIZE);
 
             // Start the DHCP Client
             memset(buf, '\0', ATBUF_SIZE);
-            rm_atcmd_send("AT+NWDHC=1",5000,buf,sizeof(buf));
+            rm_atcmd_send("AT+NWDHC=1",5000,buf,ATBUF_SIZE);
 
             // Set the time server FQDN based on the config.ini entry
-            memset(atcmd, '\0', ATCMD_SIZE);
-            snprintf(atcmd, sizeof(atcmd), "AT+NWSNTP=1,%s,60", get_ntp_time_server());
+            memset(buf, '\0', ATBUF_SIZE);
+            snprintf(buf, ATBUF_SIZE, "AT+NWSNTP=1,%s,60", get_ntp_time_server());
 
             // Start the SNTP client
-            rm_atcmd_check_ok(atcmd,2000);
+            rm_atcmd_check_ok(buf,2000);
 
             // Transition to the next state
             networkState = NETWORK_WAIT_FOR_IP;
@@ -512,7 +512,7 @@ __attribute__ ((optimize(0))) void setup_network(void)
 
                 // Read the network IP address
                 memset(buf, '\0', ATBUF_SIZE);
-                if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,sizeof(buf))){
+                if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,ATBUF_SIZE)){
                     // 0,192.168.0.143,255.255.255.0,192.168.0.1",
                     failCnt++;
                     return;
@@ -563,7 +563,7 @@ __attribute__ ((optimize(0))) void setup_network(void)
 
                 // Get the current GMT time from the time server
                 memset(buf, '\0', ATBUF_SIZE);
-                if(FSP_SUCCESS != rm_atcmd_check_value("AT+TIME=?",1000,buf,sizeof(buf))){
+                if(FSP_SUCCESS != rm_atcmd_check_value("AT+TIME=?",1000,buf,ATBUF_SIZE)){
                     failCnt++;
                     return;
                 }
@@ -604,12 +604,14 @@ __attribute__ ((optimize(0))) void run_discovery(void)
 
     iotc_print("IoTConnect-state: RUN_DISCOVERY\n");
 
+    // Prepare the memory that will recieve the Https response
+    memset(httpsBuffer,'\0',HTTPS_BUFFER_SIZE);  
+    
     // Build the discovery command using the configured IoTConnect CPID and env strings
-    memset(httpsBuffer,'\0',sizeof(httpsBuffer));
     snprintf(jsonString, JSON_STRING_SIZE, discoveryString,  get_iotc_cpid(), get_iotc_env());
 
     memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_send(jsonString, 5000, buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send(jsonString, 5000, buf, ATBUF_SIZE)){
         return;
     }
 
@@ -696,13 +698,15 @@ __attribute__ ((optimize(0))) void get_identity(void)
         return;
     }
 
+    // Prepare the memory that will receive the htpps response
+    memset(httpsBuffer,0,HTTPS_BUFFER_SIZE);
+
     // Update the identify URL to include the get command
-    memset(httpsBuffer,0,sizeof(httpsBuffer));
     sprintf(finalIdentityURL, "%s%s%s", "AT+NWHTCH=",identityURL,",get");
 
     // Send the updated identityURL message up to IoTConnect
     memset(buf, '\0', ATBUF_SIZE);
-    if (FSP_SUCCESS != rm_atcmd_send(finalIdentityURL, 5000,buf, sizeof(buf)))
+    if (FSP_SUCCESS != rm_atcmd_send(finalIdentityURL, 5000,buf, ATBUF_SIZE))
     {
 
         iotc_print("ERROR: Failed to pull Identity from IoTConnect, trying again . . .\n");
@@ -717,7 +721,6 @@ __attribute__ ((optimize(0))) void get_identity(void)
 
         iotc_print("WARNING: Timeout waiting for identity response from IoTConnect, retrying . . .\n");
         return;
-//        currentState = SETUP_NETWORK;
     }
 
     // Pull the JSON from httpsBuffer
@@ -834,7 +837,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
 
     // Disable the MQTT client while we setup the connection details
     memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=0", 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=0", 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -843,7 +846,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
     memset(buf, '\0', ATBUF_SIZE);
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_device_uid());
-    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -853,7 +856,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQBR=%s,8883",hostnameString);
 
-    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -863,7 +866,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQTS=1,%s",subTopicString);
 
-    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -873,21 +876,21 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQTP=%s",pubTopicString);
 
-    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
 
     // Enable the MQTT over TLS function
     memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLS=1", 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLS=1", 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
 
     // All the MQTT configuration items have been sent, enable the MQTT client!
     memset(buf, '\0', ATBUF_SIZE);
-    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=1", 1000,buf, sizeof(buf))){
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCL=1", 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -898,7 +901,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
         vTaskDelay(3000);
 
         memset(buf, '\0', ATBUF_SIZE);
-        rm_atcmd_check_value("AT+NWMQCL",5000,buf,sizeof(buf));
+        rm_atcmd_check_value("AT+NWMQCL",5000,buf,ATBUF_SIZE);
 
         // If we have to wait too long for the MQTT connect, exit to try again.
         if(++timeoutCnt >= MAX_TIMEOUTS){
@@ -944,7 +947,6 @@ __attribute__ ((optimize(0))) void buildTelemetry(char* newTelemetry, char* awsT
     cJSON *userTelemetry = cJSON_Parse(newTelemetry);
     if (userTelemetry == NULL) {
                 iotc_print("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
-                cJSON_Delete(userTelemetry);
                 return;
     }
     iotc_print("%s\n", newTelemetry);
@@ -953,6 +955,9 @@ __attribute__ ((optimize(0))) void buildTelemetry(char* newTelemetry, char* awsT
     if(get_target_cloud() == CLOUD_AWS){
 
         strcpy(awsTelemetry, newTelemetry);
+
+        // Delete the memory consumed by the userTelemetry cJSON item
+        cJSON_Delete(userTelemetry);
 
     }
     // If we're sending data to IoTConnect, then we need to add the IoTConnect wrapper data to the incomming JSON
@@ -963,7 +968,7 @@ __attribute__ ((optimize(0))) void buildTelemetry(char* newTelemetry, char* awsT
         do
         {
             memset(buf, '\0', ATBUF_SIZE);
-            err = rm_atcmd_check_value("AT+TIME=?",1000,buf,sizeof(buf));
+            err = rm_atcmd_check_value("AT+TIME=?",1000,buf,ATBUF_SIZE);
             //iotc_print("TIMEIS: %s\n",buf);
 
         } while ( err != FSP_SUCCESS );
@@ -1013,6 +1018,7 @@ __attribute__ ((optimize(0))) void wait_for_telemetry(void)
 #define MQTT_MSG_SIZE 512
     char mqttPublishMessage[MQTT_MSG_SIZE] = {'\0'};
     char mqttJson[MQTT_JSON_SIZE] = {'\0'};
+//    fsp_err_t err = FSP_SUCCESS;
 
     iotc_print("Waiting for Telemery data!\n");
 
@@ -1024,9 +1030,10 @@ __attribute__ ((optimize(0))) void wait_for_telemetry(void)
         xQueuePeek(g_telemetry_queue, &newMsg, portMAX_DELAY);
         //printf("Peek at data from Telemetry Queue: %d bytes--> %s\n", newMsg.msgSize, newMsg.msgPtr);
 
+
         // Verify we have a valid MQTT connection before sending telemetry
         memset(buf, '\0', ATBUF_SIZE);
-        rm_atcmd_check_value("AT+NWMQCL",5000,buf,sizeof(buf));
+        rm_atcmd_check_value("AT+NWMQCL",5000,buf,ATBUF_SIZE);
         if(buf[0] != '1'){
             if(!reestablish_mqtt_conn()){
                 return;
@@ -1046,13 +1053,10 @@ __attribute__ ((optimize(0))) void wait_for_telemetry(void)
 
         // Send the message
         memset(buf, '\0', ATBUF_SIZE);
-        if(FSP_SUCCESS != rm_atcmd_send(mqttPublishMessage, 2000,buf, sizeof(buf))){
-            currentState = DISCOVERY;
-            return;
-        }
+        rm_atcmd_send(mqttPublishMessage, 2000,buf, ATBUF_SIZE);
 
         // Delay for a short period in case we found the queue with many messages
-        vTaskDelay(100);
+        vTaskDelay(200);
 
         // Free the memory that held the incoming JSON.
         vPortFree((void*) newMsg.msgPtr);
@@ -1069,17 +1073,17 @@ __attribute__ ((optimize(0))) bool reestablish_mqtt_conn(void)
 
     // AT command initialize
     memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("ATZ",1000,buf,sizeof(buf));
+    rm_atcmd_send("ATZ",1000,buf,ATBUF_SIZE);
 
     // Command Echo
     memset(buf, '\0', ATBUF_SIZE);
-    rm_atcmd_send("ATE",1000,buf,sizeof(buf));
+    rm_atcmd_send("ATE",1000,buf,ATBUF_SIZE);
 
     // spin here until we have a valid MQTT connection
     do{
 
         memset(buf, '\0', ATBUF_SIZE);
-        rm_atcmd_check_value("AT+NWMQCL",2000,buf,sizeof(buf));
+        rm_atcmd_check_value("AT+NWMQCL",2000,buf,ATBUF_SIZE);
 
 //        iotc_print("Check for MQTT connection\n");
         vTaskDelay(1000);

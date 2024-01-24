@@ -256,6 +256,7 @@ static void atcmd_thread_entry(void *pvParameters)
     uint32_t               bytes = 0;
     uint32_t               last_bytes = 0;
     char                   buf[ATBUF_SIZE];
+    c2dQueueMsg_t newC2dMsg;
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 
@@ -288,7 +289,7 @@ WAIT4_NEWDATA:
         /* No new data arrive in 10ms, start parser arrive data now */
 
         bytes = bytes>ATBUF_SIZE ? ATBUF_SIZE : bytes;
-        memset(buf, 0, sizeof(buf));
+        memset(buf, 0, ATBUF_SIZE);
         xStreamBufferReceive(g_atcmd_ctx.xUartRxBuffer, buf, bytes, pdMS_TO_TICKS(50));
 
 #if 0 /* Don't care this event */
@@ -302,19 +303,35 @@ WAIT4_NEWDATA:
         /* got https response with some data */
         if( parser_async_message(buf, "\r\n+NWHTCDATA:", TYPE_EVENT) )
         {
-            memset(httpsBuffer,0,sizeof(httpsBuffer));
-            memcpy(httpsBuffer,buf,sizeof(buf));
+            memset(httpsBuffer,0,HTTPS_BUFFER_SIZE);
+            memcpy(httpsBuffer,buf,ATBUF_SIZE);
             xEventGroupSetBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG);
             vTaskDelay(10);
         }
 
+        // Process new Cloud to Device (c2d) message
         if( parser_async_message(buf, "\r\n+NWMQMSG:", TYPE_EVENT) )
         {
-            memset(httpsBuffer,0,sizeof(httpsBuffer));
-            memcpy(httpsBuffer,buf,sizeof(buf));
-            xEventGroupSetBits(g_https_extended_msg_event_group, EVENT_BIT_EXTENDED_MSG);
-            printf("GOT C2D MESSAGE: %s\r\n",httpsBuffer);
+
+//            printf("RX C2D Message\n");
+
+            memset(httpsBuffer,0,HTTPS_BUFFER_SIZE);
+            memcpy(httpsBuffer,buf,strlen(buf));
+
+            // Populate new queue node
+            newC2dMsg.msgLen = strlen(httpsBuffer);
+            newC2dMsg.msgPtr = pvPortMalloc(newC2dMsg.msgLen);
+
+            // Verify we got memory from the heap
+            if(NULL != newC2dMsg.msgPtr){
+
+                // Copy the topic String to the heap memory and enqueu the new node
+                strncpy(newC2dMsg.msgPtr, httpsBuffer, newC2dMsg.msgLen);
+                xQueueSend(g_c2d_queue, (void *)&newC2dMsg, 0U);
+            }
+
             vTaskDelay(10);
+
         }
 
         /* WiFi disconnect: +WFDAP:0,DEAUTH */

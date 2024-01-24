@@ -317,7 +317,7 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
+					send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, ATBUF_SIZE);
 					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 1:
@@ -325,7 +325,7 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_UP],1000,buf, sizeof(buf));
+					send_ble_update(ble_at_string[V_UP],1000,buf, ATBUF_SIZE);
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 2:
@@ -338,8 +338,9 @@ void ndp_thread_entry(void *pvParameters)
 						/* first receive 'Down'  keyword */
 						q_event = led_event_color(ndp_class_idx);
 						xQueueSend(g_led_queue, (void *)&q_event, 0U );
-						send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+						send_ble_update(ble_at_string[V_DOWN],1000,buf, ATBUF_SIZE);
 	                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
+
 					}
 					else
 					{
@@ -352,8 +353,8 @@ void ndp_thread_entry(void *pvParameters)
 							q_event =  LED_BLINK_DOUBLE_BLUE;
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
 							/* Send 'idle' and 'advstop' to bluetooth */
-							send_ble_update(ble_at_string[V_IDLE],1000,buf, sizeof(buf));
-							send_ble_update(ble_at_string[V_STOP],1000,buf, sizeof(buf));
+							send_ble_update(ble_at_string[V_IDLE],1000,buf, ATBUF_SIZE);
+							send_ble_update(ble_at_string[V_STOP],1000,buf, ATBUF_SIZE);
 							/* clear led state */
 							current_stat.led = LED_EVENT_NONE;
 						}
@@ -362,7 +363,7 @@ void ndp_thread_entry(void *pvParameters)
 							/* invalid time */
 							q_event = led_event_color(ndp_class_idx);
 							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+							send_ble_update(ble_at_string[V_DOWN],1000,buf, ATBUF_SIZE);
 						}
 					}
 					break;
@@ -371,7 +372,7 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_BACK],1000,buf, sizeof(buf));
+					send_ble_update(ble_at_string[V_BACK],1000,buf, ATBUF_SIZE);
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				case 4:
@@ -379,7 +380,7 @@ void ndp_thread_entry(void *pvParameters)
 					current_stat.led = LED_EVENT_NONE;
 					q_event = led_event_color(ndp_class_idx);
 					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_NEXT],1000,buf, sizeof(buf));
+					send_ble_update(ble_at_string[V_NEXT],1000,buf, ATBUF_SIZE);
                     enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
 					break;
 				default :
@@ -493,14 +494,14 @@ static void set_decimation_inshift( void ){
     ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, 0, &decimation_inshift_mic0_read_value);
     ndp_core2_platform_tiny_audio_config_get(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, 0, &decimation_inshift_mic1_read_value);
 
-    printf("/n   Decimation Inshift Details\n");
+    printf("\nDecimation Inshift Details from model\n");
     printf("    Model Decimation Inshift Mic0: %d\n", decimation_inshift_mic0_read_value);
     printf("    Model Decimation Inshift Mic1: %d\n", decimation_inshift_mic1_read_value);
 
     // Check the configuration
     if(decimation_inshift_value_mic0 != DEC_INSHIFT_VALUE_DEFAULT){
 
-        printf("DECIMATION_INSHIFT_VALUE     : %d\n", decimation_inshift_value_mic0);
+        printf("      New DECIMATION_INSHIFT_VALUE : %d\n", decimation_inshift_value_mic0);
         decimation_inshift_calculated_value = decimation_inshift_value_mic0;
 
     }
@@ -508,7 +509,7 @@ static void set_decimation_inshift( void ){
            // value for the offset is zero.  So we can safely apply this offset without any validation.  We'll
            // verify the final value below before applying them to the NDP120.
 
-        printf("DECIMATION_INSHIFT_OFFSET    : %d\n", decimation_inshift_offset);
+        printf("      New DECIMATION_INSHIFT_OFFSET: %d\n", decimation_inshift_offset);
         decimation_inshift_calculated_value = decimation_inshift_mic0_read_value + decimation_inshift_offset;
 
     }
@@ -516,28 +517,26 @@ static void set_decimation_inshift( void ){
     // Check for invalid low value
     if(decimation_inshift_calculated_value < DEC_INSHIFT_VALUE_MIN ){
 
-        printf("Warning calculated value %d is below the min allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MIN);
+        printf("    Warning calculated value %d is below the min allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MIN);
         decimation_inshift_calculated_value = DEC_INSHIFT_VALUE_MIN;
     }
 
     // Check for invalid low value
     else if(decimation_inshift_calculated_value > DEC_INSHIFT_VALUE_MAX){
 
-        printf("Warning calculated value %d is above max allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MAX);
+        printf("    Warning calculated value %d is above max allowed value of %d\n", decimation_inshift_calculated_value, DEC_INSHIFT_VALUE_MAX);
         decimation_inshift_calculated_value = DEC_INSHIFT_VALUE_MAX;
     }
 
-    printf("Setting new value to %d\n", decimation_inshift_calculated_value);
-
     // Write the new value(s) into the NDP120
     ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_SINGLE_MIC_ID, &decimation_inshift_calculated_value);
-    printf("Final Decimation Inshift Mic0: %d\n", decimation_inshift_calculated_value);
+    printf("      Final Decimation Inshift Mic0: %d\n", decimation_inshift_calculated_value);
 
 
     // Only update the mic1 value if one was set in the model
     if(0 != decimation_inshift_mic1_read_value){
         ndp_core2_platform_tiny_audio_config_set(INSHIFT_AUDIO_ID, INSHIFT_DUAL_MIC_ID, &decimation_inshift_calculated_value);
-        printf("Final Decimation Inshift Mic1: %d\n", decimation_inshift_calculated_value);
+        printf("      Final Decimation Inshift Mic1: %d\n", decimation_inshift_calculated_value);
     }
 
     printf("\n");

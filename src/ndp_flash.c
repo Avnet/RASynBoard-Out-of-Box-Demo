@@ -439,14 +439,14 @@ int ndp_flash_program_infos(void)
 int ndp_flash_program_all_fw(void)
 {
     int ret;
-    uint16_t device_id;
-    uint32_t jedec_id;
+//    uint16_t device_id;
+//    uint32_t jedec_id;
 	char flash_file_name[] = "temp_flash.bin";
 
-    device_id = ndp_flash_get_deviceid();
+//    device_id = ndp_flash_get_deviceid();
 //    printf("FLASH device_id: 0x%x\n", device_id);
 
-    jedec_id = ndp_flash_get_JEDEC_ID();
+//    jedec_id = ndp_flash_get_JEDEC_ID();
 //    printf("FLASH jedec_id: 0x%x\n", jedec_id);
 
 	printf("FLASH chip erase ...\n");
