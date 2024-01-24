@@ -944,7 +944,6 @@ __attribute__ ((optimize(0))) void buildTelemetry(char* newTelemetry, char* awsT
     cJSON *userTelemetry = cJSON_Parse(newTelemetry);
     if (userTelemetry == NULL) {
                 iotc_print("ERROR: Not able to parse passed in JSON: %s\n", newTelemetry);
-                cJSON_Delete(userTelemetry);
                 return;
     }
     iotc_print("%s\n", newTelemetry);
@@ -953,6 +952,9 @@ __attribute__ ((optimize(0))) void buildTelemetry(char* newTelemetry, char* awsT
     if(get_target_cloud() == CLOUD_AWS){
 
         strcpy(awsTelemetry, newTelemetry);
+
+        // Delete the memory consumed by the userTelemetry cJSON item
+        cJSON_Delete(userTelemetry);
 
     }
     // If we're sending data to IoTConnect, then we need to add the IoTConnect wrapper data to the incomming JSON
