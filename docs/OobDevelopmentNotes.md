@@ -2,7 +2,7 @@
 
 This document captures some common development activities around modifying the Avnet RASynBoard Out-of-Box (OOB) application.  The OOB application is a good starting point to develop custom ML at the Edge applications for your ML based solutions. 
 
-This document and images were written based on the V1.4.0 release.  However, all the concepts will remain relavant as the OOB application is further improved.  If the line numbers in the current release are different than my images, just search the file to find the new locations.
+This document and images were written based on the V1.4.0 release.  However, all the concepts will remain relevant as the OOB application is further improved.  If the line numbers in the current release are different than my images, just search the file to find the new locations.
 
 I've tried to capture some common application tasks.  If I missed your specific case, please open a [GitHub issue](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/issues) and I'll see what can be done to help.
 
@@ -20,7 +20,7 @@ The OOB implementation in this area is not very efficient, but it does make it e
 
 # Modifying telemetry messages
 
-The OOB application will send JSON telemetry up to the configured cloud every time an inference event is detected.  This section of the document . . . 
+If the application is configured to connect to either [AWS IoT Core](./awsIoTCore.md) or [Avnet's IoTConnect on AWS](IoTConnect.md) the OOB application will send JSON telemetry up to the configured cloud every time an inference event is detected.  This section of the document . . . 
 1. Explains what telemetry is
 1. Points the developer to the code where the telemetry messages are created
 1. Explains how the OOB application sends telemetry messages to the cloud
@@ -34,9 +34,9 @@ If you just want to know how to add your own telemetry skip down to the [So you 
 
 Telemetry messages are valid JSON documents that represents whatever data the developer wants to send to the cloud.  This could be a simple ```{"key": value}``` pair, or a complex JSON document that includes JSON objects, JSON lists or any valid JSON.  Typically, you don't need to pre-define the JSON on the cloud side, you can just send it up.  However, if you're going to do anything with your data once it's in the cloud, you must configure the cloud, or implement an application to know about your data.
 
-- AWS provides the [AWS IoT MQTT client](https://docs.aws.amazon.com/iot/latest/developerguide/view-mqtt-messages.html) to help you see the data ingested by the cloud.  See the [AWS IoT Core](./awsIoTCore.md) documentation to learn how to connect your device to AWS IoT Core and view incomming MQTT data.
+- AWS provides the [AWS IoT MQTT client](https://docs.aws.amazon.com/iot/latest/developerguide/view-mqtt-messages.html) to help you see the data ingested by the cloud.  See the [AWS IoT Core](./awsIoTCore.md) documentation to learn how to connect your device to AWS IoT Core and view incoming MQTT data.
 
-- IoTConnect provides a **Live Data** tab that will display incomming MQTT messages, however if you want to create a dynamic dashboard with the data, you'll need to create a device template that describes the data.  See the [IoTConnect](./IoTConnect.md) documentation to learn how to connect your device to IoTConnect and create a device template.
+- IoTConnect provides a **Live Data** tab that will display incoming MQTT messages, however if you want to create a dynamic dashboard with the data, you'll need to create a device template that describes the data.  See the [IoTConnect](./IoTConnect.md) documentation to learn how to connect your device to IoTConnect and create a device template.
 
 ### Validate your JSON
 
@@ -52,7 +52,7 @@ The OOB application generates telemetry every time the NDP120 detects an inferen
 
 1. NDP120 detects an inference event
     1. ```ndp_thread_entry.c::ndp_thread_entry()``` receives an event and the inference ID ```ndp_class_idx``` is used to pass control to the ```case``` statement responsible for processing the specific event.  
-    1. The data to send as telemetry is passed to ```enqueTelemetryJson()```
+    1. The data to send as telemetry is passed to ```enqueInferenceData()```
 
 ![](./assets/images/telemetry03.jpg "")
 
@@ -66,7 +66,7 @@ The OOB application generates telemetry every time the NDP120 detects an inferen
 
 The application implements a queue called ```g_telemetry_q``` to capture telemetry data.  The telemetry data is pulled from the queue only if the application is connected to the cloud solution.  This allows the application to generate telemetry data before the application is connected to the cloud and send the telemetry once the cloud connection is established.
 
-The ```enqueTelemetryJson()``` function . . . 
+The ```enqueInferenceData()``` function . . . 
 
 1. Allocates heap memory for the JSON string
 1. Copies the JSON string into the heap memory
@@ -93,10 +93,19 @@ The ```wait_for_telemetry()``` function . . .
 ## So you want to create a custom telemetry message?
 Now that you understand how inference data is sent to the cloud you can modify the application to send any JSON data you like.  My recommended steps would be to . . . 
 
-1. Copy the enqueTelemetryJson() function
+1. Copy the enqueInferenceData() function
     1. Rename it
     1. Add arguments for the data you want to send
-    1. Modify the ``` snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d, \"inferenceStr\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);``` statement to construct the JSON you want to send
+    1. Modify the ```snprintf()``` statement to construct the JSON you want to send 
+
+  ```c
+  snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d,\"inferenceStr\":\"%s\", \"%s\": \
+    {\"infCnt\": %d}}", \
+    msgCnt++, inferenceIndex,\
+    inferenceData[networkNum][inferenceIndex].infStr,\
+    inferenceData[networkNum][inferenceIndex].objKey,\
+    inferenceData[networkNum][inferenceIndex].inferenceCnt);\
+  ```               
 
 ![](./assets/images/telemetry07.jpg "")
 

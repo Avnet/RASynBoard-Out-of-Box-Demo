@@ -13,7 +13,7 @@
 #include "common_data.h"
 #define MY_CHAR_ARRAY_SIZE 64
 #define AWS_ENDPOINT_STRING_SIZE 128
-
+#define MODE_DESCRIPTION_LEN 64
 
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
@@ -131,6 +131,8 @@ struct config_ini_items {
 	char aws_sub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Sub_Topic **/
 	int dec_inshift_value;
 	int dec_inshift_offset;
+
+    char mode_description[MODE_DESCRIPTION_LEN];
 };
 
 extern struct config_ini_items config_items;
@@ -181,6 +183,7 @@ char* get_aws_endpoint( void );
 char* get_aws_deviceId( void );
 char* get_aws_sub_topic( void );
 char* get_aws_pub_topic( void );
+char* get_mode_description( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

@@ -519,7 +519,7 @@ static uint32_t read_config_file( void )
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
 	sprintf(section, "Function_%d", mode);
 
-	ini_gets(section, "Description", NULL, mode_description, sizeof(mode_description), inifile);
+    ini_gets(section, "Description", NULL, config_items.mode_description, sizeof(config_items.mode_description), inifile);
 
 	ini_gets(section, "MCU", MCU_FILE_NAME, \
 						mcu_file_name, sizeof(mcu_file_name), inifile);
@@ -788,7 +788,7 @@ void printConfg(void)
     printf("Release Date       : %s\n\n", RELEASE_DATE);
     printf("Features enabled in config.ini file:\n");
 
-    printf("\n  Operation mode=%d selected: %s\r\n", mode, mode_description);
+    printf("\n  Operation mode=%d selected: %s\r\n", mode, config_items.mode_description);
 
     // Output recording feature driven by Low Power Mode Selection
     if(config_items.low_power_mode == DOWN_DOWN_LP_MODE){
@@ -1060,4 +1060,10 @@ char* get_aws_sub_topic( void )
 char* get_aws_pub_topic( void )
 {
     return config_items.aws_pub_topic;
+}
+
+
+char* get_mode_description( void )
+{
+    return config_items.mode_description;
 }

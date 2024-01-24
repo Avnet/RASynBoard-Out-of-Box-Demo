@@ -15,12 +15,28 @@
 #include "iotc_thread_entry.h"
 
 #define led_event_color(x)	(config_items.led_event_color[x])
+#define SYNTIANT_NDP120_MAX_CLASSES     32
+#define SYNTIANT_NDP120_MAX_NNETWORKS   4
+#define NDP120_MCU_LABELS_MAX_LEN       (0x200)
+#define MAX_DYNAMIC_KEYS 10
+#define MAX_SUPPORTED_LABEL_LEN 32
+#define LABEL_KEY_LEN 16
+#define MAX_TELEMETRY_LEN 256
 
 typedef struct blink_msg
 {
     int led;
 	TickType_t  timestamp;
 } blink_msg_t;
+
+// Define the struct we use to track inference data for any model that's loaded
+typedef struct inferenceData {
+    char objKey[LABEL_KEY_LEN];
+    int networkNumber;
+    int inferenceIndex;
+    char infStr[MAX_SUPPORTED_LABEL_LEN];
+    int inferenceCnt;
+} inferenceData_t;
 
 enum at_cmd_voice{
     V_WAKEUP = 0,
@@ -41,6 +57,13 @@ static char ble_at_string[][36] = {
      "AT+BLETX={\"Action\":\"Idle\"}\r\n",
      "AT+ADVSTOP\r\n",
 };
+
+// Structure to hold inference data and inference counts
+static inferenceData_t inferenceData[SYNTIANT_NDP120_MAX_NNETWORKS][SYNTIANT_NDP120_MAX_CLASSES];
+
+static int total_nn = 0;
+static int num_labels = 0;
+
 
 #define SYNTIANT_NDP120_MAX_CLASSES     32
 #define SYNTIANT_NDP120_MAX_NNETWORKS   4
@@ -64,6 +87,97 @@ static void set_decimation_inshift( void );
 #define   GPIO_LEVEL_LOW           0
 #define   GPIO_LEVEL_HIGH          1
 
+// Takes a JSON string and adds it to the telemetry queue
+bool enqueTelemetryJSON(char* telemetryToSend)
+{
+
+     int telemetryMsgLen;
+     char* telemetryPtr;
+     telemetryQueueMsg_t newMsg;
+
+    // Allocate memory on the heap for the JSON string.
+    // We allocate the memory here, then free the memory
+    // when the message is pulled from the queue
+    telemetryMsgLen = strlen(telemetryToSend);
+    telemetryPtr = pvPortMalloc(telemetryMsgLen+1);
+    memcpy(telemetryPtr, 0, telemetryMsgLen+1);
+
+    // Verify we have memory for the message
+    if(NULL == telemetryPtr){
+        return false;
+    }
+
+    // Copy the incoming telemetry to the heap memory
+    strcpy(telemetryPtr, telemetryToSend);
+
+    // Populate the queue data structure, and enqueue the message
+    newMsg.msgSize = telemetryMsgLen;
+    newMsg.msgPtr = telemetryPtr;
+    xQueueSend(g_telemetry_queue, (void *)&newMsg, 0U);
+    return true;
+}
+
+
+/* We call this function on startup to report the model details as telemetry and to initialize the
+ * data structure that tracks the current models inference data
+ *
+ * {
+ *   "modeDescription": "5-keywords Single Mic",
+ *   "numNetworks": 1,
+ *   "numLabels": 6
+ * }
+ *
+ * For each label in the model we send telemetry similar to . . .
+ * {
+ *   "label_0": {
+ *       "infIdx": 0,
+ *       "inferenceStr": "NN0:ok-syntiant",
+ *       "inferenceCnt": 0,
+ *       "networkNum": 0
+ *   }
+ * }
+ *
+ */
+void ndp_send_model_telemetry(void)
+{
+    // If we're not connecting to a cloud provider, then just exit
+    if(CLOUD_NONE == get_target_cloud()){
+        return;
+    }
+
+    char dynamicKey[LABEL_KEY_LEN];
+    char telemetryMsg[MAX_TELEMETRY_LEN] = {'\0'};
+
+    // Create JSON message and send it
+    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"modeDescription\":\"%s\",\"numNetworks\":%d,\"numLabels\":%d}",
+                                                 get_mode_description(), total_nn, num_labels);
+    enqueTelemetryJSON(telemetryMsg);
+
+    // For each network and label, init the data structure and send the object up as telemetry
+    for(int networkNum = 0; networkNum < total_nn; networkNum++){
+        for( int labelNum = 0; labelNum < num_labels; labelNum++){
+
+            // Construct the object key
+            snprintf(dynamicKey, LABEL_KEY_LEN, "label_%d", labelNum);
+
+            // Init the inference data structure
+            strncpy(inferenceData[networkNum][labelNum].objKey, dynamicKey, LABEL_KEY_LEN);
+            inferenceData[networkNum][labelNum].inferenceCnt = 0;
+            inferenceData[networkNum][labelNum].inferenceIndex = labelNum;
+            strncpy(inferenceData[networkNum][labelNum].infStr, (char*)labels_per_network[networkNum][labelNum], MAX_SUPPORTED_LABEL_LEN);
+            inferenceData[networkNum][labelNum].networkNumber = networkNum;
+
+            // Create the inference JSON
+            snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"%s\":{\"infIdx\": %d,\"infStr\":\"%s\",\"infCnt\": %d}}",
+                                                         dynamicKey, labelNum, inferenceData[networkNum][labelNum].infStr, 0);
+            enqueTelemetryJSON(telemetryMsg);
+        }
+
+    vTaskDelay (pdMS_TO_TICKS(10000UL));
+    }
+
+    return;
+}
 void ndp_print_imu(void)
 {
     uint8_t imu_val = 0;
@@ -77,8 +191,8 @@ void ndp_print_imu(void)
 
 void ndp_info_display(void)
 {
-    int s, total_nn, total_labels;
-    int j, class_num, nn_num, prev_nn_num, num_labels, labels_len;
+    int s, total_labels;
+    int j, class_num, nn_num, prev_nn_num, labels_len;
     char *label_string;
 
     s = ndp_core2_platform_tiny_get_info(&total_nn, &total_labels, 
@@ -124,38 +238,29 @@ void ndp_info_display(void)
     }
 }
 
-// Helper function to create
-void enqueTelemetryJson(int inferenceIndex, const char* inferenceString)
+// Helper function to create telemetry messages
+__attribute__ ((optimize(0))) void enqueInferenceData(int networkNum, int inferenceIndex)
 {
-#define MAX_TELEMETRY_LEN 256
 
-    static int msgCnt = 0;
-    char telemetryMsg[MAX_TELEMETRY_LEN] = {'\0'};
-    telemetryQueueMsg_t newMsg;
-    char* telemetryPtr;
-    int telemetryMsgLen;
-
-    // Create the JSON
-    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d, \"inferenceStr\": \"%s\"}", msgCnt++, inferenceIndex, inferenceString);
-
-    // Allocate memory on the heap for the JSON string.
-    // We allocate the memory here, then free the memory
-    // when the message is pulled from the queue
-    telemetryMsgLen = strlen(telemetryMsg);
-    telemetryPtr = pvPortMalloc(telemetryMsgLen);
-
-    // Verify we have memory for the message
-    if(NULL == telemetryPtr){
+    // If we're not connecting to a cloud provider, then just exit
+    if(CLOUD_NONE == get_target_cloud()){
         return;
     }
 
-    // Copy the incomming telemetry to the heap memory
-    strncpy(telemetryPtr, telemetryMsg, telemetryMsgLen+1);
-    
-    // Populate the queue data structure, and enqueue the message 
-    newMsg.msgSize = telemetryMsgLen;
-    newMsg.msgPtr = telemetryPtr;
-    xQueueSend(g_telemetry_queue, (void *)&newMsg, 0U);
+    static int msgCnt = 0;
+    char telemetryMsg[MAX_TELEMETRY_LEN] = {'\0'};
+
+    // Increment the inference counter for this index
+    inferenceData[networkNum][inferenceIndex].inferenceCnt++;
+
+    // Create the inference JSON
+    snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d,\"inferenceStr\":\"%s\", \"%s\":{\"infCnt\": %d}}",
+                                                 msgCnt++, inferenceIndex,
+                                                 inferenceData[networkNum][inferenceIndex].infStr,
+                                                 inferenceData[networkNum][inferenceIndex].objKey,
+                                                 inferenceData[networkNum][inferenceIndex].inferenceCnt);
+    enqueTelemetryJSON(telemetryMsg);
+
     return;
 }
 
@@ -234,6 +339,8 @@ void ndp_thread_entry(void *pvParameters)
         xSemaphoreGive(g_binary_semaphore);
     } else {
         printf("ndp_core2_platform_tiny_start failed %d\r\n", ret);
+        printf("See http://avnet.me/RASynErrNDP120FailedToLoad for potential solutions\n\n");
+        vTaskDelete(NULL);
     }
 
     if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
@@ -251,6 +358,9 @@ void ndp_thread_entry(void *pvParameters)
     }
 
     ndp_info_display();
+
+    // Init the inference data structure and send up initial telemetry
+    ndp_send_model_telemetry();
 
     if (motion_running() == CIRCULAR_MOTION_DISABLE) {
         set_decimation_inshift();
@@ -293,111 +403,96 @@ void ndp_thread_entry(void *pvParameters)
     while (1)
     {
         /* Wait until NDP recognized voice keywords */
-		evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH, 
+     	evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH, 
             pdTRUE, pdFALSE , portMAX_DELAY);
-		if( evbits & EVENT_BIT_VOICE ) 
-		{
-			xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-			ndp_core2_platform_tiny_poll(&notifications, 1, &fatal_error);
+     
+        if( evbits & EVENT_BIT_VOICE )
+        {
+            xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+            ndp_core2_platform_tiny_poll(&notifications, 1, &fatal_error);
             if (fatal_error) {
                 printf("\nNDP Fatal Error!!!\n\n");
             }
 
-			ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
+            ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
             if (!ret) {
                 printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
                     ndp_nn_idx, ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], 
                     (sec_val>0)?"with":"without");
             }
-			xSemaphoreGive(g_ndp_mutex);
+            xSemaphoreGive(g_ndp_mutex);
 
-			switch (ndp_class_idx) {
-				case 0:
-				    /* Voice: OK-Syntiant; light Amber Led */
-					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color(ndp_class_idx);
-					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, ATBUF_SIZE);
-					enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
-					break;
-				case 1:
-				    /* Voice: Up; light Cyan Led */
-					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color(ndp_class_idx);
-					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_UP],1000,buf, ATBUF_SIZE);
-                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
-					break;
-				case 2:
-				    /* Voice: Down; light Magenta Led */
-					current_stat.led = LED_COLOR_MAGENTA;
-					current_stat.timestamp = xTaskGetTickCount();
+            switch (ndp_class_idx) {
+                case 0:
+                case 1:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                case 8:
+                case 9:
+                    /* Voice: OK-Syntiant; light Amber Led */
+                    current_stat.led = LED_EVENT_NONE;
+                    q_event = led_event_color(ndp_class_idx);
+                    xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                    send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
+                    enqueInferenceData(0, ndp_class_idx);
+                    break;
+                case 2:
+                    /* Voice: Down; light Magenta Led */
+                    current_stat.led = LED_COLOR_MAGENTA;
+                    current_stat.timestamp = xTaskGetTickCount();
 
-					if (last_stat.led != LED_COLOR_MAGENTA)
-					{
-						/* first receive 'Down'  keyword */
-						q_event = led_event_color(ndp_class_idx);
-						xQueueSend(g_led_queue, (void *)&q_event, 0U );
-						send_ble_update(ble_at_string[V_DOWN],1000,buf, ATBUF_SIZE);
-	                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
-
-					}
-					else
-					{
-						/*Judging the received 'Down""Down' keyword*/
-						TickType_t duration = current_stat.timestamp - last_stat.timestamp;
-						printf("duration time =%d \n", duration);
-						if ( duration < pdMS_TO_TICKS(3600UL) )
-						{
-							/* valid, send led blink envent */
-							q_event =  LED_BLINK_DOUBLE_BLUE;
-							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							/* Send 'idle' and 'advstop' to bluetooth */
-							send_ble_update(ble_at_string[V_IDLE],1000,buf, ATBUF_SIZE);
-							send_ble_update(ble_at_string[V_STOP],1000,buf, ATBUF_SIZE);
-							/* clear led state */
-							current_stat.led = LED_EVENT_NONE;
-						}
-						else
-						{
-							/* invalid time */
-							q_event = led_event_color(ndp_class_idx);
-							xQueueSend(g_led_queue, (void *)&q_event, 0U );
-							send_ble_update(ble_at_string[V_DOWN],1000,buf, ATBUF_SIZE);
-						}
-					}
-					break;
-				case 3:
-				    /* Voice: Back; light Red Led */
-					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color(ndp_class_idx);
-					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_BACK],1000,buf, ATBUF_SIZE);
-                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
-					break;
-				case 4:
-				    /* Voice: Next; light Green Led */
-					current_stat.led = LED_EVENT_NONE;
-					q_event = led_event_color(ndp_class_idx);
-					xQueueSend(g_led_queue, (void *)&q_event, 0U );
-					send_ble_update(ble_at_string[V_NEXT],1000,buf, ATBUF_SIZE);
-                    enqueTelemetryJson(ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx]);
-					break;
-				default :
-					break;
-			}
-			xSemaphoreGive(g_binary_semaphore);
-			/* Store the led state */
-			memcpy(&last_stat, &current_stat, sizeof(blink_msg_t));
-		}
-		else if( evbits & EVENT_BIT_FLASH )
-		{
-			if ( 0 == check_sdcard_env())
-			{
-				usb_disable();
-				printf ("\nBegin to program the spi flash ..... \n");
+                    if (last_stat.led != LED_COLOR_MAGENTA)
+                    {
+                        /* first receive 'Down'  keyword */
+                        q_event = led_event_color(ndp_class_idx);
+                        xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                        send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+                        enqueInferenceData(0, ndp_class_idx);
+                    }
+                    else
+                    {
+                        /*Judging the received 'Down""Down' keyword*/
+                        TickType_t duration = current_stat.timestamp - last_stat.timestamp;
+                        printf("duration time =%d \n", duration);
+                        if ( duration < pdMS_TO_TICKS(3600UL) )
+                        {
+                            /* valid, send led blink envent */
+                            q_event =  LED_BLINK_DOUBLE_BLUE;
+                            xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                            /* Send 'idle' and 'advstop' to bluetooth */
+                            send_ble_update(ble_at_string[V_IDLE],1000,buf, sizeof(buf));
+                            send_ble_update(ble_at_string[V_STOP],1000,buf, sizeof(buf));
+                            /* clear led state */
+                            current_stat.led = LED_EVENT_NONE;
+                        }
+                        else
+                        {
+                            /* invalid time */
+                            q_event = led_event_color(ndp_class_idx);
+                            xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                            send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+                            enqueInferenceData(0, ndp_class_idx);
+                        }
+                    }
+                    break;
+                default :
+                    break;
+            }
+            xSemaphoreGive(g_binary_semaphore);
+            /* Store the led state */
+            memcpy(&last_stat, &current_stat, sizeof(blink_msg_t));
+        }
+        else if( evbits & EVENT_BIT_FLASH )
+        {
+            if ( 0 == check_sdcard_env())
+            {
+                usb_disable();
+                printf ("\nBegin to program the spi flash ..... \n");
                 ndp_irq_disable();
-				turn_led(BSP_LEDRED, BSP_LEDON);
+                turn_led(BSP_LEDRED, BSP_LEDON);
                 if (motion_running() == CIRCULAR_MOTION_DISABLE) {
                     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
                     if (ret) {
@@ -413,11 +508,11 @@ void ndp_thread_entry(void *pvParameters)
                     }
                 }
 
-				ndp_flash_init();
-				ndp_flash_program_all_fw();
+                ndp_flash_init();
+                ndp_flash_program_all_fw();
 
-				turn_led(BSP_LEDRED, BSP_LEDOFF);
-				turn_led(BSP_LEDGREEN, BSP_LEDON);
+                turn_led(BSP_LEDRED, BSP_LEDOFF);
+                turn_led(BSP_LEDGREEN, BSP_LEDON);
 #ifdef  FLASH_READBACK_CHECK
                 for(int i=0; i<3000 ; i++)
                 {
@@ -428,10 +523,10 @@ void ndp_thread_entry(void *pvParameters)
                     write_wav_file("readback_flash.bin", pdata,  256, i+1);
                 }
 #endif
-				vTaskDelay (100);
-				turn_led(BSP_LEDGREEN, BSP_LEDOFF);
-				printf ("Finished programming!\n\n");
-				usb_enable();
+                vTaskDelay (100);
+                turn_led(BSP_LEDGREEN, BSP_LEDOFF);
+                printf ("Finished programming!\n\n");
+                usb_enable();
             
                 if (motion_running() == CIRCULAR_MOTION_DISABLE) {
                     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
@@ -453,12 +548,12 @@ void ndp_thread_entry(void *pvParameters)
                     }
                 }
                 ndp_irq_enable();
-			}
-			else
-			{
-			    printf("Cannot find sdcard or firmware files !");
-			}
-		}
+            }
+            else
+            {
+                printf("Cannot find sdcard or firmware files !");
+            }
+        }
         vTaskDelay (5);
     }
 }
