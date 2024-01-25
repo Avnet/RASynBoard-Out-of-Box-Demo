@@ -340,6 +340,10 @@ void ndp_thread_entry(void *pvParameters)
     } else {
         printf("ndp_core2_platform_tiny_start failed %d\r\n", ret);
         printf("See http://avnet.me/RASynErrNDP120FailedToLoad for potential solutions\n\n");
+
+        /* Start USB thread to enable CDC serial communication and MSC mass storage function */
+        start_usb_pcdc_thread();
+
         vTaskDelete(NULL);
     }
 

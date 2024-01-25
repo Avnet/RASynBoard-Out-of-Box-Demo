@@ -1,6 +1,6 @@
 # RASynBoard Video Series
 
-This document provides links to short videos designed to help users get the most out of the Avnet RASynBoard Out of Box example application.
+This document provides links to videos designed to help users get the most out of the Avnet RASynBoard Out of Box example application.
 
 ## Getting Started
 This video walks through the [Getting Started Guide](RASyBoardGettingStarted.md) and reviews the process of cloning the OOB repo, building the application, loading it onto the RASynBoard and running the application using the Renesas e^2 studio debugger.  Common issues are reviewed along with details on how to overcome them.
@@ -73,3 +73,37 @@ This video walks through adding the RASynBoard to IoTConnect on AWS.  We'll down
     - 13:20: Exercise the application and confirm Device to Cloud (D2C) messages
     - 16:19: **Bonus Materials** Create a custom  IoTConnect dashboard in under 10 minutes!
 - [Documentation Link](./IoTConnect.md)
+
+# Avnet ML Workshop recordings
+
+## 1/17/24 ML Workshop full recording
+On 1/17/2024 Avnet hosted a webinar on [Element14.com](http://element14.com)
+- [Link to full recorded webinar (60 min)](https://community.element14.com/learn/events/c/e/1695)
+    - Click on the "Watch On-Demand" link to see the full video
+
+## 1/17/24 ML Workshop Lab1
+This video was recorded for an Avnet hosted ML webinar shows how to create a new ML model for the RASynBoard in [Edge Impulse](https://edgeimpulse.com)
+- [Video Link (17 minutes)](http://avnet.me/RASynMlWorkshopLab1Video)
+    - 0:40: Connect the RASynBoard to Edge Impulse using the Edge Impulse Daemon
+    - 2:40: Capture audio data to Edge Impulse
+    - 4:00: Break 5 seconds of audio into 4 1-second clips
+    - 5:20: Review the Impulse (model processing and learning blocks)
+    - 6:45: Review the Syntiant processing block
+    - 8:00: Review the classifier learning block/Train the model
+    - 10:42: Run the test dataset through the model in Edge Impulse
+    - 11:50: Deploy the model
+    - 14:00: Move the model to the RASynBoard and test
+
+## 1/17/24 ML Workshop Lab2
+This video was recorded for an Avnet hosted ML webinar shows how to exercise a RASynBoard OOB release
+- [Video Link (26 minutes)](http://avnet.me/RASynMlWorkshopLab2Video)
+    - 1:40: Flash the Avnet Out-of-Box application onto the RASynBoard
+    - 4:15: Reconfigure the device to auto-boot and review the config.ini file changes to load the 5-keyword ML model
+    - 6:00: Exercise the 5-keyword model
+    - 7:00 Use the "down" "down" command to put the device into low-power mode
+    - 8:35: Record and playback audio to/from the microSD card
+    - 10:40: Change the model and exercise the circular motion model
+    - 12:02: Configure the device to connect to AWS
+    - 18:19: Configure the device to connect to Avnet's IoT Connect
+    - 20:50: Flash the NDP120 images and the configuration to SPI flash
+    - 24:24: Run the model on the core board only powered from a battery
