@@ -22,6 +22,12 @@ This video reviews the different ways the user can view application debug inform
 - [Video Link (5 minutes)](http://avnet.me/RASynUnderstandingDebugVideo)
 - [Documentation Link](./ApplicationUserGuide.md/#debug-print)
 
+## Troubleshooting issues with the e^2 debugger
+This video captures common issues the developer may encounter when trying to use the Renesas e^2 debugger with the RASynBoard OOB application
+- [Video Link (7 min)](http://avnet.me/RASynDebuggerIssuesVideo)
+- [Documentation Link - Setting up the debugger](./RASyBoardGettingStarted.md#debug-the-project)
+- [Documentation Link - Troubleshooting debugger issues](./RASynTroubleshootingGuide.md#debugger-fails-to-load-the-first-time-after-building-a-new-oob-application)
+ 
 ## Changing ML models
 This video shows the user how to select different ML models that are included with the OOB releases.  Additionally, the details shown here can help users define custom deployment using their own custom ML models designed in [Edge Impulse Studio](http://edgeimpulse.com).
 - [Video Link (3 minutes)](http://avnet.me/RASynChangingMlModelsVideo)

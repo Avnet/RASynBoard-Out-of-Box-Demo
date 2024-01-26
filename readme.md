@@ -10,6 +10,8 @@ Please follow the links below to learn more about the Avnet RASynBoard Out-of-Bo
 
 - [Getting Started](./docs/RASyBoardGettingStarted.md): All the details you need to clone, build, load and debug the application on your RASynBoard development kit
     - [Video walkthrough (23 minutes)](http://avnet.me/RASynGettingStartedVideo)
+- [RASynBoard Troublshooting guide](./docs/RASynTroubleshootingGuide.md)
+    - Document to address common issues encountered when running and debugging the OOB application
 - [Using RASynBoard Releases](./docs/UsingRASynbBoardReleases.md): Details on loading one of the OOB releases onto your RASynBoard if you don't want to build the application yourself
     - [Video walkthrough (11 minutes)](http://avnet.me/RASynUsingReleasesVideo)
 - [Application User Guide](./docs/ApplicationUserGuide.md): Details on all the application features and configuration options

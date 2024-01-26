@@ -344,6 +344,7 @@ void ndp_thread_entry(void *pvParameters)
         /* Start USB thread to enable CDC serial communication and MSC mass storage function */
         start_usb_pcdc_thread();
 
+        // Kill this thread since the NDP120 is out of service
         vTaskDelete(NULL);
     }
 
