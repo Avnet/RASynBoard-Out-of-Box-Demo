@@ -5,7 +5,7 @@ The Avnet Out-of-Box (OOB) application was developed by [Avnet](https://www.avne
 This section outlines the major features of the Avnet RASynBoard OOB application.  See the OOB Feature Configuration section for details on each feature's configuration options and other important feature details.
 
 ## Machine Learning (ML) inferencing/feature detection
-One of the main hardware features of the RASynBoard is the [Syntiant NDP120](https://www.syntiant.com/ndp120) Neural Decision Processor.  The NDP120 is a low-power, always-on Audio and Sensor-Fusion AI-processing device.  The OOB application allows the user to develop and deploy custom ML models without having to modify any source code.
+One of the main hardware features of the RASynBoard is the [Syntiant ndp120](https://www.syntiant.com/ndp120) Neural Decision Processor.  The NDP120 is a low-power, always-on Audio and Sensor-Fusion AI-processing device.  The OOB application allows the user to develop and deploy custom ML models without having to modify any source code.
 
 When the NDP120 detects a ML feature in the data it interrupts the RA6 MCU and passes inference data to the OOB application.  The OOB application may perform the following actions for each feature detection event.
 
