@@ -109,7 +109,7 @@ static int do_pre_test(void)
         SYNTIANT_TRACE("read spi:0x00(chip_id) failed\n");
         return s;
     }
-    SYNTIANT_TRACE("read spi:0x20(chip_id): 0x%x\n", u8_val);
+    //SYNTIANT_TRACE("read spi:0x20(chip_id): 0x%x\n", u8_val);
 
     /*********** SPI MEM ***********/
     u8_val = 0xAB;
@@ -118,14 +118,14 @@ static int do_pre_test(void)
         SYNTIANT_TRACE("write spi:0x20 failed\n");
         return s;
     }
-	SYNTIANT_TRACE("write spi:0x20: 0x%x\n", u8_val);
+	//SYNTIANT_TRACE("write spi:0x20: 0x%x\n", u8_val);
 
     s = syntiant_tiny_transfer(&ndp120->ndp_handle, 0, 0x20, NULL, &u8_val, 1);
     if(s) {
         SYNTIANT_TRACE("read spi:0x20 failed\n");
         return s;
     }
-    SYNTIANT_TRACE("read spi:0x20: 0x%x\n", u8_val);
+    //SYNTIANT_TRACE("read spi:0x20: 0x%x\n", u8_val);
    
     return 0;
 }
@@ -1572,7 +1572,7 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
             sensor_data_cb(saved_size, data_buffer, sensor_arg);
         }
     } else {
-        SYNTIANT_TRACE("Not a sensor event %d\n", event_type);
+        // SYNTIANT_TRACE("Not a sensor event %d\n", event_type);
     }
 
     return s;

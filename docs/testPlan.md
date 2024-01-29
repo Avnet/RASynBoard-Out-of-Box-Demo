@@ -61,3 +61,5 @@ This document captures the minimal test plan to complete before releasing new co
    1. Speak one of the 5-keywords and verify that the device enters low-power mode after each keyword is detected      
 1. Test the BLE enable feature
 1. Test the IoTConnect feature 
+1. Test the AWS IoT Core feature
+1. Test all the models delivered with the release
