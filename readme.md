@@ -9,13 +9,24 @@ The Out-of-Box (OOB) application's goal is to "Provide a working example applica
 Please follow the links below to learn more about the Avnet RASynBoard Out-of-Box application
 
 - [Getting Started](./docs/RASyBoardGettingStarted.md): All the details you need to clone, build, load and debug the application on your RASynBoard development kit
+    - [Video walkthrough (23 minutes)](http://avnet.me/RASynGettingStartedVideo)
+- [RASynBoard Troublshooting guide](./docs/RASynTroubleshootingGuide.md)
+    - Document to address common issues encountered when running and debugging the OOB application
 - [Using RASynBoard Releases](./docs/UsingRASynbBoardReleases.md): Details on loading one of the OOB releases onto your RASynBoard if you don't want to build the application yourself
+    - [Video walkthrough (11 minutes)](http://avnet.me/RASynUsingReleasesVideo)
 - [Application User Guide](./docs/ApplicationUserGuide.md): Details on all the application features and configuration options
 - [Edge Impulse Data Forwarder instructions](./docs/EdgeImpulseDataForwarder.md): Details on using the Edge Impulse Data Forwarder CLI tool to stream 6-Axis IMU data directly into your Edge Impulse ML project
 - [Edge Impulse Uploader instructions](./docs/EdgeImpulseUploader.md): Details on using the Edge Impulse Uploader CLI tool to upload audio (\*.wav) or 6-Axis IMU data (\*.csv) data files directly into your Edge Impulse ML project
 - [Avnet IoTConnect Configuration](./docs/IoTConnect.md):  Details to connect your RASynBoard to Avnet's IoTConnect on AWS cloud solution
+    - [Video walkthrough (25 minutes)](http://avnet.me/IoTConnectOnAWS)
+- [AWS IoT Core Configuration](./docs/awsIoTCore.md):  Details to connect your RASynBoard to AWS IoT Core
+    - [Video walkthrough (18 minutes)](http://avnet.me/RASynAwsIotCore)
 - [Wi-Fi Configuration](./docs/WiFiSetup.md):  Details on how to configure the OOB application to connect to your Wi-Fi network. 
+    - [Video turorial (9 minutes)](http://avnet.me/RASynWiFi)
 - [Out-of-Box Development Notes](./docs/OobDevelopmentNotes.md): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applications.
+- [Add a Temperature and Humidity Sensor to the OOB Application](./docs/addTempHumiditySensor.md): Details on how to add the [Renesas HS300X temperature and humidity sensor](https://www.renesas.com/us/en/products/sensor-products/humidity-sensors/us082-hs3001evz-relative-humidity-sensor-pmod-board-renesas-quick-connect-iot) to the OOB application.
+- [RASynBoard Video Series](./docs/RASnyVideoSeries.md)
+    - Collection of short videos to help users get started with the RASynBoard OOB application
 
 # Out-of-Box Releases
 As Avnet adds features and bug fixes to the OOB application we push out releases.  Each release:

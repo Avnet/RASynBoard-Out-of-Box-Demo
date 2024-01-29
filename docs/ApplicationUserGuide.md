@@ -9,14 +9,12 @@ One of the main hardware features of the RASynBoard is the [Syntiant ndp120](htt
 
 When the NDP120 detects a ML feature in the data it interrupts the RA6 MCU and passes inference data to the OOB application.  The OOB application may perform the following actions for each feature detection event.
 
-1. Illuminate the RGB LED for 500ms with the color associated with the inferencing index 0, 1, 2, . . . (see the ```[LED]``` section below)
-1. Optionally send a BLE broadcast message containing the inference information if enabled (see the ```[BLE Mode]``` section below)
-1. Optionally send a MQTT telemetry message to the target cloud implementation if enabled (see the ```[Cloud Connectivity]``` section below).
+1. Illuminate the RGB LED for 500ms with the color associated with the inferencing index 0, 1, 2, . . . (see the [```LED```](#led-control) section below)
+1. Optionally send a BLE broadcast message containing the inference information if enabled (see the [```BLE Mode```](#ble-mode) section below)
+1. Optionally send a MQTT telemetry message to the target cloud implementation if enabled (see the [```Cloud Connectivity```](#cloud-connectivity-1) section below).
 
 ## Data Collection for Developing/Testing New ML Models
-Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse can generate the \*.syspkg files that can be used on the RASynBoard with the OOB application.
-
-**Note: RASynBoard Edge Impulse support has been released!
+Avnet, Syntiant, Renesas and Edge Impulse have all worked together to enable RASynBoard ML model development in [Edge Impulse Studio](https://www.edgeimpulse.com/).  Edge Impulse Studio is a free on-line toolkit that enables data ingestion from development boards that can be used to develop/test/deploy ML models.  Additionally, Edge Impulse directly supports the RASynBoard and can generate the *.syspkg files that can be used on the RASynBoard with the OOB application.
 
 The OOB application also implements multiple ways to collect data from the on-board sensors
 1. Audio data can be recorded to the microSD card
@@ -75,7 +73,7 @@ When using the I/O board with a microSD card, the user can access the file syste
 **Note: The on-board E2-Light debugger interface is only available from the USB-C connector on the I/O board.  It's okay to use both USB-C interfaces at the same time.  One to access the microSD card (core board connector) and one to use the built in E2-Light interface (I/O board connector)**
 
 ## Cloud Connectivity
-The OOB application currently supports connecting to the Avnet IoTConnect Cloud Solution implemented on AWS.  Future releases will support AWS IoT Core devices and Azure IoT devices.  See the ```[Cloud Connectivity]``` section below for details.
+The OOB application currently supports connecting to the Avnet IoTConnect Cloud Solution implemented on AWS.  Future releases will support AWS IoT Core devices and Azure IoT devices.  See the [```Cloud Connectivity```](#cloud-connectivity-1) section below for details.
 
 # OOB Feature Configuration
 The OOB features are configured by editing the config.ini file located on the microSD card.  When the application starts the config.ini file is read and the application features are configured.  Additionally, the config.ini file is read by the OOB application if the microSD card is removed and re-inserted into the I/O board.
@@ -85,7 +83,9 @@ The application will output the current configuration.
 ![](./assets/images/configOutput.jpg "")
 
 ## NDP120 Configuration
-The NDP120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the \*.synpkg files.  These files are usually delivered together and should only be used together. New model files and NDP120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the NDP120 files in the root directory of the microSD card.
+The NDP120 is configured by identifying the firmware images that will be loaded onto the device.  There are three images referred to as the *.synpkg files.  These files are usually delivered together and should only be used together. New model files and NDP120 firmware can be copied to the microSD card and configured using the config.ini file.  The application looks for the NDP120 files in the root directory of the microSD card.
+
+- [Video Link (3 minutes)](http://avnet.me/RASynChangingMlModelsVideo)
 
 There are two areas in the config.ini file to configure which NDP120 files are loaded to the NDP120 at startup.
 
@@ -104,13 +104,45 @@ Each ```[Function_x]``` block defines a description, and the three required NDP1
 
 ![](./assets/images/ndpConfig.jpg "")
 
+[](#audio-input-level-control)
+
+### Audio Input Level Control
+There are two optional NDP120 configuration items that are included to help fine tune audio input levels.  These items are not required as each model defines the values.  If an audio model is performing poorly in a noisy environment you can adjust the input gain at the microphone by adjusting the decimation_inshift value.  Note these items should be located within the ```Function_X``` block associated with one of the ML models.
+
+**Note**: These values should not be changed unless you know what you're doing.  You can easily negatively impact your audio inference performance by using incorrect values.
+
+**Decimation_inshift**: The decimation_inshift configuration value is used to modify the PDM to PCM conversion filter. It essentially will shift the PCM output values by the given amount. Each step in decimation_inshift will affect a 6dB change in gain one way or another. Decreasing decimation_inshift by 1 causes a -6dB attenuation, and conversely increasing decimation_inshift by 1 causes a +6dB gain.
+
+There are two different ways to redefine the decimation_inshift vaules at startup.  These two settings are mutually exclusive with ```DECIMATION_INSHIFT_VALUE``` having precedence if both are defined.
+
+- ```DECIMATION_INSHIFT_VALUE```
+  - This setting will force the decimation_inshift value to the value defined in the config.ini file
+  - The setting allows configuration values from 7 to 13.  If the configuration defines values outside this range, then the value will be forced to the lower or upper limit depending on the requested value.
+
+**Note** The example shown below forces the decimation_inshift value to 10
+
+![](./assets/images/decimationInshift01.jpg "")
+
+- ```DECIMATION_INSHIFT_OFFSET```
+  - This setting uses the decimation_inshift value defined in the currently loaded model and applies the requested offset to determine the new decimation_inshift value.
+  - After applying the requested offset the final value is verified against the allowed decimation_inshift range of 7 to 13.  If the configuration defines values outside this range, then the value will be forced to the lower or upper limit depending on the requested value.
+
+**Note** The example shown below adjusts the default model ```decimation_inshift``` by -1.  So if the original value was 11, it will be set to 10 at startup.
+
+![](./assets/images/decimationInshift02.jpg "")
+
+
 ## LED control
 The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the NDP120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
+
+- [Video Link (3 minutes)](http://avnet.me/RASynChangeLedColorsVideo)
 
 ![](./assets/images/ledConfig.jpg "")
 
 ## Debug Print
 The application can be configured to output debug messages to either the UART exposed on the PMOD connector (I/O Board), or the USB-C UART on the core board (the smaller board).  
+
+- [Video Link (5 minutes)](http://avnet.me/RASynUnderstandingDebugVideo)
 
 1. ```[Debug Print]-->Port=x```
 
@@ -124,6 +156,11 @@ The application can be configured to output debug messages to either the UART ex
 
 ## Recording Period
 The application can record audio or IMU data.
+
+- [Video Link (11 minutes)](http://avnet.me/RASynRecordingTrainingDataVideo)
+    - 1:10: Capture audio data to the microSD card
+    - 4:50: Capture IMU data to the microSD card
+    - 9:30: Stream IMU data to the debug UART
 
 1.```[Recording Period]-->Recording_Period``` defines how long the application collects/records data in units of seconds.
  
@@ -152,12 +189,15 @@ The OOB application can capture 6-Axis IMU data either to a \*.csv file on the m
 
 ## BLE Mode
 
-The application can broadcast inference results over BLE that can be displayed on a user interface.  Avnet has a python application that can be used to display the BLE messages.  [Demo GUI Repo](https://github.com/Avnet/Rasynboard_ew23_demo_GUI_qt) (This repo is currently private, we're working on making it public (AAGBT-83))
+The application can broadcast inference results over BLE that can be displayed on a user interface.  Avnet has a python application that can be used to display the BLE messages.  [Demo GUI Repo](https://github.com/Avnet/Rasynboard_ew23_demo_GUI_qt)
 
 ```[BLE Mode]-->BLE_Enabled=x```
 
 - ```[BLE Mode]-->BLE_Enabled=0```: Disable the BLE functionality (default)
 - ```[BLE Mode]-->BLE_Enabled=1```: Enable the BLE functionality
+
+```[BLE Mode]-->BLE_Name```     : Set a custom name for BLE connectivity  
+- If this item is not defined, the DA16600 will auto generate a unique BLE name in the format ```DA16600-xxxx``` where the last 4-characters are randomly generated
 
 ![](./assets/images/bleConfig.jpg "")
 
@@ -170,18 +210,23 @@ There are multiple configuration items required to establish an MQTT connection.
 
 ### WiFi Access Point Credentials
 
+- [Video Link (9 minutes)](http://avnet.me/RASynWiFi)
+
 1. ```[WIFI]-->Access_Point=<Your AP SSID Here>```: Used to set your WiFi access point SSID
 1. ```[WIFI]-->Access_Point_Password=<Your AP Password Here>```: Used to set your WiFi Access Point password 
 
 ![](./assets/images/wifiConfig.jpg "")
 
 ### WiFi Access Point Configuration Source
-Sometimes the user may want to dynamically change the WiFi Acess point configuration.  For instance when deploying a solution on the core board only, it may be necessary to change the WiFi credentials when moving the device to a new location.  
+Sometimes the user may want to dynamically change the WiFi access point configuration.  For instance when deploying a solution on the core board only, it may be necessary to change the WiFi credentials when moving the device to a new location.  
 
-1. ```[WIFI]-->Use_Config_AP_Details=0```: Don't use the config.ini WiFi configuration.  This assumes that the user will use the free Renesas Wi-Fi Provisioning Tool avalible from your mobile device's App store
+1. ```[WIFI]-->Use_Config_AP_Details=0```: Don't use the config.ini WiFi configuration.  This assumes that the user will use the free Renesas Wi-Fi Provisioning Tool available from your mobile device's App store
 1. ```[WIFI]-->Use_Config_AP_Details=1```: Use the config.ini wifi access point configuration
 
 ![](./assets/images/wifi_use_config_details.jpg "")
+
+### WiFi Time Server
+The application will use the time server at pool.ntp.org by default.  If you need to use another time server, you can define a new server by using the ```[WIFI]-->NTP_Time_Server``` configuration item.
 
 ### Target Cloud Provider
 The application currently only supports IoTConnect on AWS, however we have feature enhancement tickets written to add AWS and Azure implementations.  The ```[Cloud Connectivity]-->Target_Cloud``` configuration item is used to define which service the device should connect to.  
@@ -205,8 +250,43 @@ Please see the [IoTConnect](./IoTConnect.md) document for details on how to . . 
 3. Provision a new device on IoTConnect
 4. Where to find the configuration details documented below
 
-- ```[IoTConnect]-->Device_Unique_ID=<your device id here>```: Enter the Unique Device ID as defined in your IoTConnect account. - ```[IoTConnect]-->CPID=<your IoTConnect company ID here>```: Enter the 32 character company ID
-- ```[IoTConnect]-->Environment=<your IoTConnect environment varaible```: Enter the environment here i.e., poc, prod
+- ```[IoTConnect]-->Device_Unique_ID=<your device id here>```
+- ```[IoTConnect]-->CPID=<your IoTConnect company ID here>```
+- ```[IoTConnect]-->Environment=<your IoTConnect environment variable```
 
 ![](./assets/images/iotConnectConfig.jpg "")
 
+- [Video Link (25 minutes)](http://avnet.me/IoTConnectOnAWS)
+    - 2:10: Review the IoTConnect device template
+    - 5:10: Create a new device
+    - 6:48: Download device certificate and keys 
+    - 7:58: Configure the OOB application to connect to our new Thing
+    - 10:14: Setting up a WiFi connection 
+    - 11:30: Fix the certificate configuration 
+    - 13:20: Exercise the application and confirm Device to Cloud (D2C) messages
+    - 16:19: **Bonus Materials** Create a custom  IoTConnect dashboard in under 10 minutes!
+
+### AWS IoT Core
+Please see the [AWS IoT Core](./awsIoTCore.md) document for details on how to . . .
+1. Add a new AWS IoT Core Thing
+1. Download the device certificates and keys
+1. Configure the OOB application to connect to your new Thing
+1. Load X.509 certificates to your device
+1. Setup a WiFi connection
+1. Exercise the application and view Device to Cloud (D2C) and Cloud to Device (C2D) data transfers
+
+- ```[AWS]-->Endpoint=<your AWS endpoint string here>```
+- ```[AWS]-->Device_Unique_ID=<your AWS Unique Device ID string here>```
+- ```[AWS]-->MQTT_Pub_Topic=<your AWS publish topic here>```
+- ```[AWS]-->MQTT_Sub_Topic=<your AWS subscribe topic here>```
+
+![](./assets/images/iotCoreConfiguration.jpg "")
+
+- [Video Link (18 minutes)](http://avnet.me/RASynAwsIotCore)
+    - 1:50: Add a new AWS IoT Core Thing 
+    - 4:53: Download device certificate and keys 
+    - 7:30: Verify the hardware configuration is set to autoboot and microSD card access is available 
+    - 8:36: Configure the OOB application to connect to our new Thing
+    - 11:30: Loading X.509 certificates to the device 
+    - 12:36: Setting up a WiFi connection 
+    - 13:30: Exercise the application and confirm Device to Cloud (D2C) and Cloud to Device (C2D) data transfer

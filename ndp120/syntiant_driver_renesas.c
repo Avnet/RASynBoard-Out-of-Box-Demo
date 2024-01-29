@@ -25,6 +25,13 @@ int syntiant_ndp_spi_init(void *d, int spi_default_speed, int spi_read_delay)
     return s;
 }
 
+int syntiant_ndp_spi_speed(int spifd, uint32_t spi_speed)
+{
+    (void)spifd;
+    (void)spi_speed;
+    return 0;
+}
+
 static int syntiant_ndp_spi_read(uint8_t spi_cmd, uint8_t *read_buff, int count)
 {
     int s = 0;

@@ -13,7 +13,7 @@
 #define   AUDIO_REC_BUFFER_SIZE            2048
 #define   AUDIO_REC_FILE_NAME_PREFIX    "ndp_audio_record_"
 
-#define   IMU_REC_BYTES_PER_SEC          100
+#define   IMU_REC_BYTES_PER_SEC          200
 #define   IMU_REC_BUFFER_SIZE            256
 #define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_"
 
@@ -76,17 +76,18 @@ static int imu_record_operation(int isstart)
     if (isstart) {
         ndp_irq_disable();
 
-        /* enable sensor */
-        s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
         if (s) {
-            printf("enable sensor[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            printf("enable extract interrupt failed: %d\n", s);
             return s;
         }
     }
     else {
-        s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
         if (s) {
-            printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            printf("disable extract interrupt failed: %d\n", s);
             return s;
         }
 
@@ -225,10 +226,27 @@ static void create_wav_header(struct wav_header_s *wav_hdr, int sample_bytes, in
 
 static void audio_record_operation(int isstart)
 {
+    int s;
     if (isstart) {
         ndp_irq_disable();
+
+        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+            if (s){
+                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                            NDP_CORE2_FEATURE_PDM, s);
+            }
+        }
     }
     else {
+        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+            if (s){
+                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                            NDP_CORE2_FEATURE_NONE, s);
+            }
+        }
+
         ndp_irq_enable();
     }
 }
@@ -325,22 +343,6 @@ process_out:
     return s;
 }
 
-void ndp_print_imu(void)
-{
-    uint8_t imu_val = 0;
-    uint8_t reg = 0x75 | 0x80 ; /*WHO_AM_I*/
-
-    /* set MSSB0/GPIO0 pin */
-    ndp_core2_platform_tiny_gpio_config(0, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 1);
-    /* reset MSSB1/GPIO1 pin */
-    ndp_core2_platform_tiny_gpio_config(1, NDP_CORE2_CONFIG_VALUE_GPIO_DIR_OUT, 0);
-
-    //ndp_core2_platform_tiny_mspi_config();
-    ndp_core2_platform_tiny_mspi_write(1, 1, &reg, 0);
-    ndp_core2_platform_tiny_mspi_read(1, 1, &imu_val, 1);
-    printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
-}
-
 static void check_record_file_name(char *fname, int *findex)
 {
     char valid_filename[32] = {0};
@@ -381,11 +383,9 @@ void ndp_record_thread_entry(void *pvParameters)
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 	/* Start recording after 6 seconds */
-	vTaskDelay (pdMS_TO_TICKS(3000UL));
+	vTaskDelay (pdMS_TO_TICKS(1000UL));
 	printf("Record_thread running\n");
 
-	//ndp_print_imu();
-   
 	if (SDCARD_IN_SLOT != get_sdcard_slot_status()) {
 	    printf("Cannot find sdcard to save record data, exit Record_thread! \n");
 	    vTaskDelete(NULL);
@@ -478,7 +478,7 @@ void ndp_record_thread_entry(void *pvParameters)
                         if ((!s) || (s == NDP_CORE2_ERROR_DATA_REREAD)) {
                             printf("...100%% ");
                             fflush(stdin);
-                            printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count);
+                            printf("\nimu_record done got %d data_sets", cb_sensor_arg.sets_count-1);
                             if (is_imu_data_to_file()) {
                                 printf(" and saved to %s", cb_sensor_arg.file_name);
                             }

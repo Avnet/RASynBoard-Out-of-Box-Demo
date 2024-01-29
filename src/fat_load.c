@@ -48,6 +48,12 @@ struct config_ini_items config_items ={  /* default settings */
 		.iotc_uid = {0},
 		.iotc_cpid = {0},
 		.iotc_env = {0},
+	    .ble_name = {0},
+	    .ntp_time_server = {0},
+	    .aws_endpoint = {0},
+	    .aws_device_id = {0},
+	    .aws_pub_topic = {0},
+	    .aws_sub_topic = {0},
 };
 
 /* Local global variables */
@@ -343,7 +349,6 @@ uint32_t remove_file(char * file_name)
     return res;
 }
 
-#if 1
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
 {
     FRESULT res;
@@ -483,118 +488,6 @@ void write_extraction_file_end(void)
         fatfs_mounted = 0;
     }
 }
-#else
-
-uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header)
-{
-    FRESULT res;
-    FIL fil;
-    char path[64];
-    uint32_t bw;
-
-    sprintf(path, "0:/%s", file_name);
-
-    res = f_mount(&fatfs_obj, "", 1);
-    if(res != FR_OK){
-        printf("f_mount fail %d\r\n",res);
-        return res;
-    }
-
-	if ( header == 1 ) {
-		/* create a new file */
-		res = f_open(&fil, path, FA_CREATE_ALWAYS | FA_WRITE);
-	} else {
-		/* append data to file */
-		res = f_open(&fil, path, FA_OPEN_APPEND | FA_WRITE);
-	}
-	if(res != FR_OK){
-		printf("f_open fail %d\r\n",res);
-		return res;
-	}
-
-    res = f_write(&fil, buff, len, &bw);
-    if(res != FR_OK){
-        printf("f_write fail %d\r\n",res);
-        return res;
-    }
-
-    res =  f_close(&fil);
-    if(res != FR_OK){
-        printf("f_close fail %d\r\n",res);
-    }
-
-    res = f_mount(NULL, "", 0);
-    if(res != FR_OK){
-        printf("f_mount umount fail %d\r\n",res);
-    }
-    return bw;
-}
-
-uint32_t write_sensor_file(char * file_name, uint32_t sample_size, 
-        int16_t *acc_samples, int header)
-{
-    FRESULT res;
-    FIL fil;
-    char path[64];
-    char buff[128];
-    uint32_t buff_len;
-    uint32_t bw;
-
-    sprintf(path, "0:/%s", file_name);
-
-    res = f_mount(&fatfs_obj, "", 1);
-    if(res != FR_OK){
-        printf("f_mount fail %d\r\n",res);
-        return res;
-    }
-
-	if ( header == 1 ) {
-		/* create a new file */
-		res = f_open(&fil, path, FA_CREATE_ALWAYS | FA_WRITE);
-	} else {
-		/* append data to file */
-		res = f_open(&fil, path, FA_OPEN_APPEND | FA_WRITE);
-	}
-	if(res != FR_OK){
-		printf("f_open fail %d\r\n",res);
-		return res;
-	}
-
-	if ( header == 1 ) {
-		strcpy(buff, "Acc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
-		buff_len = strlen(buff);
-	}
-    else {
-        uint32_t buff_offset = 0;
-
-        for (int i = 0; i < sample_size / 2; i++) {
-			buff_offset += snprintf(&buff[buff_offset], 128,
-                    "%d,", acc_samples[i]);
-        }
-		buff_offset --; //Truncate the last comma in each line
-		buff_offset += snprintf(&buff[buff_offset], 128,"\r\n");
-
-        buff_len = buff_offset;
-    }
-
-    res = f_write(&fil, buff, buff_len, &bw);
-    if(res != FR_OK){
-        printf("f_write fail %d\r\n",res);
-        return res;
-    }
-
-    res =  f_close(&fil);
-    if(res != FR_OK){
-        printf("f_close fail %d\r\n",res);
-    }
-
-    res = f_mount(NULL, "", 0);
-    if(res != FR_OK){
-        printf("f_mount umount fail %d\r\n",res);
-    }
-    return bw;
-}
-#endif
 
 static uint32_t read_config_file( void )
 {
@@ -626,7 +519,7 @@ static uint32_t read_config_file( void )
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
 	sprintf(section, "Function_%d", mode);
 
-	ini_gets(section, "Description", NULL, mode_description, sizeof(mode_description), inifile);
+    ini_gets(section, "Description", NULL, config_items.mode_description, sizeof(config_items.mode_description), inifile);
 
 	ini_gets(section, "MCU", MCU_FILE_NAME, \
 						mcu_file_name, sizeof(mcu_file_name), inifile);
@@ -636,6 +529,8 @@ static uint32_t read_config_file( void )
 						model_file_name, sizeof(model_file_name), inifile);
 	ini_gets(section, "Button_shift", "audio", \
 						config_items.button_switch, sizeof(config_items.button_switch), inifile);
+	config_items.dec_inshift_value = ini_getl(section, "DECIMATION_INSHIFT_VALUE", DEC_INSHIFT_VALUE_DEFAULT, inifile);
+    config_items.dec_inshift_offset = ini_getl(section, "DECIMATION_INSHIFT_OFFSET", DEC_INSHIFT_OFFSET_DEFAULT, inifile);
 
 	/* Get led color according according to voice command */
 	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
@@ -692,18 +587,47 @@ static uint32_t read_config_file( void )
     ini_gets("WIFI", "Country_Code", "US", \
                         config_items.wifi_cc, sizeof(config_items.wifi_cc), inifile);
 
-    // IoTConnect configuration
-    ini_gets("IoTConnect", "CPID", "Undefined", \
-                        config_items.iotc_cpid, sizeof(config_items.iotc_cpid), inifile);
-
-    ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
-                        config_items.iotc_uid, sizeof(config_items.iotc_uid), inifile);
-
-    ini_gets("IoTConnect", "Environment", "Undefined", \
-                        config_items.iotc_env, sizeof(config_items.iotc_env), inifile);
+    ini_gets("WIFI", "NTP_Time_Server", "pool.ntp.org", \
+                        config_items.ntp_time_server, sizeof(config_items.ntp_time_server), inifile);
 
     config_items.target_cloud = ini_getl("Cloud Connectivity", "Target_Cloud", CLOUD_NONE, inifile);
 
+    // Only read the configuration items needed for the current cloud configuration
+    switch(config_items.target_cloud){
+        case CLOUD_IOTCONNECT:
+            // IoTConnect configuration
+            ini_gets("IoTConnect", "CPID", "Undefined", \
+                                config_items.iotc_cpid, sizeof(config_items.iotc_cpid), inifile);
+
+            ini_gets("IoTConnect", "Device_Unique_ID", "Undefined", \
+                                config_items.iotc_uid, sizeof(config_items.iotc_uid), inifile);
+
+            ini_gets("IoTConnect", "Environment", "Undefined", \
+                                config_items.iotc_env, sizeof(config_items.iotc_env), inifile);
+
+            break;
+        case CLOUD_AWS:
+            // AWS configuration items
+            ini_gets("AWS", "Endpoint", "Undefined", \
+                                config_items.aws_endpoint, sizeof(config_items.aws_endpoint), inifile);
+
+            ini_gets("AWS", "Device_Unique_ID", "Undefined", \
+                                config_items.aws_device_id, sizeof(config_items.aws_device_id), inifile);
+
+            ini_gets("AWS", "MQTT_Pub_Topic", "Undefined", \
+                                config_items.aws_pub_topic, sizeof(config_items.aws_pub_topic), inifile);
+
+            ini_gets("AWS", "MQTT_Sub_Topic", "Undefined", \
+                                config_items.aws_sub_topic, sizeof(config_items.aws_sub_topic), inifile);
+
+            break;
+        case CLOUD_AZURE:
+            break;
+        default:
+            break;
+    }
+
+    // Certificate config items
     config_items.cert_location = ini_getl("Certs", "Cert_Location", LOAD_CERTS_USE_DA16600_CERTS, inifile);
 
     ini_gets("Certs", "Root_CA_Filename", "Undefined", \
@@ -788,7 +712,7 @@ int get_print_console_type( void )
 
 /* Identify circular_motion mode based on the DNN file in the SD card
    or the setting value stored in the Flash */
-int motion_to_disable(void)
+int motion_running(void)
 {
 	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
 	{
@@ -864,7 +788,7 @@ void printConfg(void)
     printf("Release Date       : %s\n\n", RELEASE_DATE);
     printf("Features enabled in config.ini file:\n");
 
-    printf("\n  Operation mode=%d selected: %s\r\n", mode, mode_description);
+    printf("\n  Operation mode=%d selected: %s\r\n", mode, config_items.mode_description);
 
     // Output recording feature driven by Low Power Mode Selection
     if(config_items.low_power_mode == DOWN_DOWN_LP_MODE){
@@ -915,7 +839,11 @@ void printConfg(void)
 						6, config_items.iotc_cpid, 6, &(config_items.iotc_cpid[26]));
                 break;
             case CLOUD_AWS:
-                printf("AWS <currently not supported>\n");
+                printf("AWS IoT Core\n");
+                printf("    Device Unique ID: %s\n", config_items.aws_device_id);
+                printf("    Endpoint        : %s\n", config_items.aws_endpoint);
+                printf("    Pub Topic       : %s\n", config_items.aws_pub_topic);
+                printf("    Sub Topic       : %s\n", config_items.aws_sub_topic);
                 break;
             case CLOUD_AZURE:
                 printf("Azure <currently not supported>\n");
@@ -948,11 +876,13 @@ void printConfg(void)
 
             printf("    Access Point (SSID)  : %s\n", config_items.wifi_ap_name);
             printf("    Access Point password: %s\n", config_items.wifi_passwd);
-            printf("    Country Code         : %s\n\n", config_items.wifi_cc);
+            printf("    Country Code         : %s\n", config_items.wifi_cc);
         }
         else{
             printf("    Please use the Renesas Wi-Fi Provisioning Tool from your app store to \nconfigure the Wi-Fi network.\n");
         }
+        printf("    NTP Time Server      : %s\n\n", config_items.ntp_time_server);
+
     }
 }
 
@@ -1058,7 +988,7 @@ char* get_wifi_cc( void ){
     return config_items.wifi_cc;
 }
 
-char* get_iotc_uid( void )
+char* get_device_uid( void )
 {
     return config_items.iotc_uid;
 }
@@ -1099,3 +1029,41 @@ char* get_certificate_file_name(int certID){
     }
 }
 
+char* get_ntp_time_server( void ){
+
+    return config_items.ntp_time_server;
+}
+
+int get_dec_inshift_value( void )
+{
+    return config_items.dec_inshift_value;
+}
+
+int get_dec_inshift_offset( void )
+{
+    return config_items.dec_inshift_offset;
+}
+
+char* get_aws_endpoint( void ){
+    return config_items.aws_endpoint;
+}
+
+char* get_aws_deviceId( void ){
+    return config_items.aws_device_id;
+}
+
+char* get_aws_sub_topic( void )
+{
+    return config_items.aws_sub_topic;
+}
+
+char* get_aws_pub_topic( void )
+{
+    return config_items.aws_pub_topic;
+}
+
+
+char* get_mode_description( void )
+{
+    return config_items.mode_description;
+}

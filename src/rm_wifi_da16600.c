@@ -58,17 +58,17 @@ fsp_err_t rm_wifi_da16600_deinit(void)
 fsp_err_t rm_wifi_da16600_echo_enable(void)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
 
     /* Don't know it's echo on/off now */
-    rm_atcmd_send("ATE", 500, buf, sizeof(buf));
+    rm_atcmd_send("ATE", 500, buf, LOCAL_BUF_SIZE);
 
     err = rm_atcmd_check_ok("AT", 500);
     if( FSP_SUCCESS == err )
         return FSP_SUCCESS;
 
     /* Try again */
-    rm_atcmd_send("ATE", 500, buf, sizeof(buf));
+    rm_atcmd_send("ATE", 500, buf, LOCAL_BUF_SIZE);
 
     err = rm_atcmd_check_ok("AT", 500);
     if( FSP_SUCCESS == err )
@@ -112,7 +112,7 @@ void rm_wifi_da16600_print_netinfo(da16600_netinfo_t info)
 fsp_err_t rm_wifi_da16600_print_hwinfo(void)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     da16600_hwinfo_t   hwinfo;
 
     memset(&hwinfo, 0, sizeof(hwinfo));
@@ -120,28 +120,28 @@ fsp_err_t rm_wifi_da16600_print_hwinfo(void)
     /*+----------------------+
      *| Parser Hardware info |
      *+----------------------+*/
-    err = rm_atcmd_check_value("AT+CHIPNAME", 500, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+CHIPNAME", 500, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS == err )
     {
         strncpy(hwinfo.chipname, buf, sizeof(hwinfo.chipname));
         hwinfo.chipname[sizeof(hwinfo.chipname)-1] = '\0'; /* To remove the noisy warning */
     }
 
-    err = rm_atcmd_check_value("AT+SDKVER", 500, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+SDKVER", 500, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS == err )
     {
         strncpy(hwinfo.sdkver, buf, sizeof(hwinfo.sdkver));
         hwinfo.sdkver[sizeof(hwinfo.sdkver)-1] = '\0'; /* To remove the noisy warning */
     }
 
-    err = rm_atcmd_check_value("AT+VER", 500, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+VER", 500, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS == err )
     {
         strncpy(hwinfo.swver, buf, sizeof(hwinfo.swver));
         hwinfo.swver[sizeof(hwinfo.swver)-1] = '\0'; /* To remove the noisy warning */
     }
 
-    err = rm_atcmd_check_value("AT+WFMAC=?", 500, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+WFMAC=?", 500, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS == err )
     {
         strncpy(hwinfo.macaddr, buf, sizeof(hwinfo.macaddr));
@@ -164,14 +164,14 @@ fsp_err_t rm_wifi_da16600_print_hwinfo(void)
 fsp_err_t rm_wifi_da16600_get_netinfo(da16600_netinfo_t *info)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     char              *ptr, *end;
     size_t             len;
 
     /*+---------------------+
      *|  Parser WiFi Status |
      *+---------------------+*/
-    err = rm_atcmd_check_value("AT+WFSTAT", 1000, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+WFSTAT", 1000, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS == err )
     {
         if( !strncmp(buf, "softap", 6) )
@@ -223,12 +223,12 @@ cleanup:
 fsp_err_t rm_wifi_da16600_set_workmode(da16600_workmode_t mode)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     char               atcmd[256]={'\0'};
 
     wifi_print("Set WiFi module to %s mode now.\r\n", MODE_STATION==mode?"Station":"AP");
 
-    err = rm_atcmd_check_value("AT+WFMODE=?", 1000, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+WFMODE=?", 1000, buf, LOCAL_BUF_SIZE);
     if( err )
     {
         wifi_print("%s() AT command failed, err=%d\r\n", __func__, err);
@@ -267,9 +267,9 @@ fsp_err_t parser_macaddr(char *buf, uint8_t *macaddr, int size)
 fsp_err_t rm_wifi_da16600_get_macaddr(uint8_t * macaddr)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
 
-    err = rm_atcmd_check_value("AT+WFMAC=?", 1000, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+WFMAC=?", 1000, buf, LOCAL_BUF_SIZE);
     if( err )
     {
         return err;
@@ -293,7 +293,7 @@ fsp_err_t rm_wifi_da16600_scan(WIFIScanResult_t *results, uint32_t maxNetworks)
     char               sec[64];
     char               ssid[64];
 
-    err = rm_atcmd_check_value("AT+WFSCAN", 10000, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+WFSCAN", 10000, buf, 1024);
     if( err )
     {
         return err;
@@ -438,11 +438,11 @@ fsp_err_t rm_wifi_da16600_set_ipaddr(char *ipaddr, char *netmask, char *gateway)
 fsp_err_t rm_wifi_da16600_get_ipaddr(char *ipaddr, char *netmask, char *gateway)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     int                i;
     char              *ptr, *end;
 
-    err = rm_atcmd_check_value("AT+NWIP=?", 3000, buf, sizeof(buf));
+    err = rm_atcmd_check_value("AT+NWIP=?", 3000, buf, LOCAL_BUF_SIZE);
     if( err )
     {
         return err;
@@ -537,11 +537,11 @@ fsp_err_t rm_wifi_da16600_set_dns(char *dns1, char *dns2)
 fsp_err_t rm_wifi_da16600_dns_query(const char *domain, char *ipaddr)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     char               atcmd[256]={'\0'};
 
     snprintf(atcmd, sizeof(atcmd), "AT+NWHOST=%s", domain);
-    err = rm_atcmd_check_value(atcmd, 5000, buf, sizeof(buf));
+    err = rm_atcmd_check_value(atcmd, 5000, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS!= err )
     {
         return err;
@@ -557,7 +557,7 @@ fsp_err_t rm_wifi_da16600_dns_query(const char *domain, char *ipaddr)
 fsp_err_t rm_wifi_da16600_ping(char *ipaddr, uint32_t count, uint32_t interval_ms)
 {
     fsp_err_t          err;
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     char               atcmd[256]={'\0'};
     int                rv, sent_cnt, recv_cnt = 0;
 
@@ -568,7 +568,7 @@ fsp_err_t rm_wifi_da16600_ping(char *ipaddr, uint32_t count, uint32_t interval_m
         return FSP_ERR_INVALID_ARGUMENT;
 
     snprintf(atcmd, sizeof(atcmd), "AT+NWPING=0,%s,%lu", ipaddr, count);
-    err = rm_atcmd_check_value(atcmd, 10000, buf, sizeof(buf));
+    err = rm_atcmd_check_value(atcmd, 10000, buf, LOCAL_BUF_SIZE);
     if( FSP_SUCCESS!= err )
     {
         return FSP_ERR_WIFI_TRANSMIT_FAILED;
@@ -645,7 +645,7 @@ fsp_err_t rm_wifi_da16600_socket_info(cid_type_t cid, int *lport, char *rIP, int
 {
     fsp_err_t          err;
     char               atcmd[256]={'\0'};
-    char               buf[256]={'\0'};
+    char               buf[LOCAL_BUF_SIZE]={'\0'};
     int                tmp_cid;
     char               tmp_ip[IPADDR_LEN];
     int                tmp_rport;
@@ -653,7 +653,7 @@ fsp_err_t rm_wifi_da16600_socket_info(cid_type_t cid, int *lport, char *rIP, int
     int                rv;
 
     snprintf(atcmd, sizeof(atcmd), "AT+TRPRT=%d", cid);
-    err = rm_atcmd_check_value(atcmd, 3000, buf, sizeof(buf));
+    err = rm_atcmd_check_value(atcmd, 3000, buf, LOCAL_BUF_SIZE);
     if( err )
         return err;
 

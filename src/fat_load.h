@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common_data.h"
+#define MY_CHAR_ARRAY_SIZE 64
+#define AWS_ENDPOINT_STRING_SIZE 128
+#define MODE_DESCRIPTION_LEN 64
 
 #define MCU_FILE_NAME           "mcu_fw_120.synpkg"
 #define DSP_FILE_NAME           "dsp_firmware.synpkg"
@@ -21,6 +25,10 @@
 #define DEVICE_PUBLIC_KEY_FILENAME  "pk_DEVICE_NAME.pem"
 
 #define BLE_DEFAULT_NAME "DA16600-"
+#define DEC_INSHIFT_VALUE_DEFAULT -100
+#define DEC_INSHIFT_VALUE_MIN 7
+#define DEC_INSHIFT_VALUE_MAX 13
+#define DEC_INSHIFT_OFFSET_DEFAULT 0
 
 #define LED_EVENT_NUM           10
 
@@ -90,29 +98,41 @@ enum WIF_CONFIG_TYPE {
 
 struct config_ini_items {
 	/* save the settings from config.ini */
-	char button_switch[8];		/** [Function_x]-->Button_shift **/
-	int led_event_color[LED_EVENT_NUM];	/** [Led]-->IDXn **/
+	char button_switch[8];		                /** [Function_x]-->Button_shift **/
+	int led_event_color[LED_EVENT_NUM];	        /** [Led]-->IDXn **/
 
-	int recording_period;		/** [Recording Period]-->Recording_Period **/
-	int imu_write_to_file;		/** [IMU data stream]-->Write_to_file **/
-	int imu_print_to_terminal;	/** [IMU data stream]-->Print_to_terminal **/
+	int recording_period;		                /** [Recording Period]-->Recording_Period **/
+	int imu_write_to_file;		                /** [IMU data stream]-->Write_to_file **/
+	int imu_print_to_terminal;	                /** [IMU data stream]-->Print_to_terminal **/
 
-	int low_power_mode;			/** [Low Power Mode]-->Power_Mode **/
-	int ble_mode;				/** [BLE Mode]-->BLE_Enabled **/
+	int low_power_mode;			                /** [Low Power Mode]-->Power_Mode **/
+	int ble_mode;				                /** [BLE Mode]-->BLE_Enabled **/
 
-	int cert_location;          /** [CERTS]-->Cert_Location **/
+	int cert_location;                          /** [CERTS]-->Cert_Location **/
 
-	int target_cloud;			/** [Cloud Connectivity]-->Target_Cloud **/
-    int wifi_config;            /** [WIFI]--> Use_Config_AP_Details**/
-	char wifi_ap_name[64];		/** [WIFI]-->Access_Point **/
-	char wifi_passwd[64];		/** [WIFI]-->Access_Point_Password **/
-	char wifi_cc[4];			/** [WIFI]-->Country_Code **/
+	int target_cloud;			                /** [Cloud Connectivity]-->Target_Cloud **/
+    int wifi_config;                            /** [WIFI]--> Use_Config_AP_Details**/
+	char wifi_ap_name[MY_CHAR_ARRAY_SIZE];		/** [WIFI]-->Access_Point **/
+	char wifi_passwd[MY_CHAR_ARRAY_SIZE];		/** [WIFI]-->Access_Point_Password **/
+	char wifi_cc[4];			                /** [WIFI]-->Country_Code **/
 
-	char iotc_uid[64];			/** [IoTConnect]-->Device_Unique_ID **/
-	char iotc_cpid[64];			/** [IoTConnect]-->CPID **/
-	char iotc_env[64];			/** [IoTConnect]-->Environment **/
+	char iotc_uid[MY_CHAR_ARRAY_SIZE];			/** [IoTConnect]-->Device_Unique_ID **/
+	char iotc_cpid[MY_CHAR_ARRAY_SIZE];			/** [IoTConnect]-->CPID **/
+	char iotc_env[MY_CHAR_ARRAY_SIZE];			/** [IoTConnect]-->Environment **/
 
-	char ble_name[32];          /** [BLE Mode]-->BLE_Name **/
+	char ble_name[32];                          /** [BLE Mode]-->BLE_Name **/
+
+	char ntp_time_server[32];                   /** [WIFI]-->NTP_Time_Server **/
+
+	// AWS configuration items
+	char aws_endpoint[AWS_ENDPOINT_STRING_SIZE];/** [AWS]-->Endpoint **/
+	char aws_device_id[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->Device_Unique_ID **/
+	char aws_pub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Pub_Topic **/
+	char aws_sub_topic[MY_CHAR_ARRAY_SIZE];     /** [AWS]-->MQTT_Sub_Topic **/
+	int dec_inshift_value;
+	int dec_inshift_offset;
+
+    char mode_description[MODE_DESCRIPTION_LEN];
 };
 
 extern struct config_ini_items config_items;
@@ -148,7 +168,7 @@ char* get_ble_name( void );
 char* get_wifi_ap( void );
 char* get_wifi_pw( void );
 char* get_wifi_cc( void );
-char* get_iotc_uid( void );
+char* get_device_uid( void );
 char* get_iotc_env( void );
 char* get_iotc_cpid( void );
 int get_target_cloud( void );
@@ -156,9 +176,17 @@ int get_load_certificate_from( void );
 char* get_certificate_file_name( int );
 bool get_certificate_data( char*, int, char*);
 int get_wifi_config( void );
+char* get_ntp_time_server( void );
+int get_dec_inshift_value( void );
+int get_dec_inshift_offset( void );
+char* get_aws_endpoint( void );
+char* get_aws_deviceId( void );
+char* get_aws_sub_topic( void );
+char* get_aws_pub_topic( void );
+char* get_mode_description( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
-int motion_to_disable(void);
+int motion_running(void);
 
 #endif /* FAT_LOAD_H_ */

@@ -75,14 +75,14 @@ You can either import an existing template, or create one from scratch.  I've in
 
 ## Import an Existing Template (Method #1)
 
-Importing a template is a quick way to use a template that someone else has already created.  Templates can be large, and manually inputting all the details can be tedious.  I've included [a template](./assets/images/IoTConnect/RASynBoard_template.JSON) that works with the OOB application in this GitHub repo.  You can also manaully edit an existing template, it's just a JSON document.  However, editing templates is beyond the scope of this document.
+Importing a template is a quick way to use a template that someone else has already created.  Templates can be large, and manually inputting all the details can be tedious.  I've included [a template](./assets/IoTConnect/RASyOobV1.5_template.JSON) that works with the OOB application in this GitHub repo.  You can also manaully edit an existing template, it's just a JSON document.  However, editing templates is beyond the scope of this document.
 
 1. Click on the **Import** button in the upper right hand corner
 
 ![](./assets/images/iotcImport.jpg "")
 
 2. The **Import** dialog opens
-    1. Use the **Browse** link to find the ```/docs/assets/IoTConnect/RASynBoard_template.JSON``` file
+    1. Use the **Browse** link to find the ```/docs/assets/IoTConnect/RASyOobV1.5_template.JSON``` file
     1. Click the **Save** button
 
 ![](./assets/images/iotcImport1.jpg "")
