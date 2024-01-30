@@ -73,7 +73,7 @@ When using the I/O board with a microSD card, the user can access the file syste
 **Note: The on-board E2-Light debugger interface is only available from the USB-C connector on the I/O board.  It's okay to use both USB-C interfaces at the same time.  One to access the microSD card (core board connector) and one to use the built in E2-Light interface (I/O board connector)**
 
 ## Cloud Connectivity
-The OOB application currently supports connecting to the Avnet IoTConnect Cloud Solution implemented on AWS.  Future releases will support AWS IoT Core devices and Azure IoT devices.  See the [```Cloud Connectivity```](#cloud-connectivity-1) section below for details.
+The OOB application currently supports connecting to the Avnet IoTConnect Cloud Solution implemented on AWS and AWS IoT Core.  Future releases will support Azure IoT devices.  See the [```Cloud Connectivity```](#cloud-connectivity-1) section below for details.
 
 # OOB Feature Configuration
 The OOB features are configured by editing the config.ini file located on the microSD card.  When the application starts the config.ini file is read and the application features are configured.  Additionally, the config.ini file is read by the OOB application if the microSD card is removed and re-inserted into the I/O board.

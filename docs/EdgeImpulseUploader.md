@@ -4,7 +4,16 @@ The RASynBoard can be used to collect IMU data to upload to Edge Impulse for tra
 
 ## Prerequisites
 
-In order to use the data uploader, you must have NodeJS with npm installed. Please refer to the NodeJS website for installation: https://nodejs.org/en/download/package-manager
+### Load the RASynBoard OOB Application onto your device
+You should have the latest RASynBoard OOB release loaded onto your RASynBoard including the microSD card files associated with the release.
+
+- [Using RASynBoard Releases](./UsingRASynbBoardReleases.md)
+    - All the details you need to load the latest OOB tested release onto your board
+- [RASynBoard Getting Started Guide](./RASyBoardGettingStarted.md)
+    - All the details to clone the OOB repo, build the application and load it onto your RASynBoard
+
+### Install NodeJS with npm
+In order to use the data forwarder, you must have NodeJS with npm installed. Please refer to the NodeJS website for installation: https://nodejs.org/en/download/package-manager
 
 Once you have installed NodeJS and npm, install the Edge Impulse CLI tools with the following command:
 
@@ -19,60 +28,79 @@ Windows:
 ```Powershell
 npm install -g edge-impulse-cli
 ```
-## Setting Up RASynBoard
 
-Clone or download the contents of the [RASynBoard OOB Demo repo](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo) and copy all the files from `ndp120/synpkg_files` to the root of a `FAT 32` formatted microSD card.
+## Setting Up RASynBoard
+- Verify you have copied all the microSD card files onto your RASynBoard microSD card's root directory
+    - If using the latest release use files in the microSD-Files-v<current version>.zip file
+    - If building the project copy all the files in the ndp120/synpkg_files directory onto your microSD card's root directory
 
 Modify the config.ini to contain the following:
 
+**Note** We're . . . 
+- Loading the "Circle Motion" model
+- Setting the recording period to 30 seconds
+- Sending the IMU data output to a file
+
 ```
 [NDP Firmware]
-Mode=1      # select function mode:  1->Function_1;  2->Function_2;  3->Function_3; ...
+Mode=3      # select function mode:  1->Function_1;  2->Function_2;  3->Function_3; ...
 
 [Function_1]
-Description="Single Mic"
-MCU=mcu_fw_120_notify.synpkg
+Description="5-keywords Single Mic"
+MCU=mcu_fw_120.synpkg
 DSP=dsp_firmware.synpkg
-DNN=menu_demo_512_general_newph_v100_rasyn_pdm0_ext_icm.synpkg
-Button_shift=imu  # Stream IMU data when the user button is pressed
+DNN=menu_demo_512_general_v105_rasyn_pdm0_ext_icm.synpkg
+#DECIMATION_INSHIFT_VALUE=10    # http://avnet.me/RASynDocsDecimationInshift
+
+# Reduce the 5-keyword model input audio gain by 6db for better performance
+DECIMATION_INSHIFT_OFFSET=-1
 
 [Function_2]
-Description="Dual Mic"
-MCU=mcu_fw_120_notify.synpkg
+Description="5-keywords Dual Mic"
+MCU=mcu_fw_120.synpkg
 DSP=dsp_firmware_noaec_ff.synpkg
-DNN=menu_demo_512_noaec_newph_v100_rasyn_icm.synpkg
+DNN=menu_demo_512_noaec_ff_v105_rasyn_pdm0_ext_icm.synpkg
 
 [Function_3]
 Description="Circle Motion"
-MCU=mcu_fw_120_notify.synpkg
+MCU=mcu_fw_120.synpkg
 DSP=dsp_firmware.synpkg
 DNN=circular_motion_NDP120B0_icm42670.synpkg
-Button_shift=imu      # redefine the short press button to capture the IMU data
+Button_shift=imu      # redefine the short press user button to capture the IMU data
 
+# http://avnet.me/RASynDocsLeds
 [Led]
-# set led response color for each voice command, choose from "red","green","blue","yellow","cyan" and "magenta".
+# set led response color for each voice command, choose from # "red","green","blue","yellow","cyan" and "magenta".
 IDX0=yellow     # ok-syntiant
 IDX1=cyan       # up
 IDX2=magenta    # down
 IDX3=red        # back
 IDX4=green      # next
 
+# http://avnet.me/RASynDocsDebugPort
 [Debug Print]
-Port=1          # select debug port:  1->by UART;  2->by USB-VCOM
+# Select debug port for application debug:  
+#  1->by UART     # On the I/O board PMOD connector
+#  2->by USB-VCOM # On the core board USB-C connector
+Port=1         
 
 [Recording Period] 
-# Defines the duration of voice or IMU data recording when the user button is pressed.
+# Defines the duration of voice or IMU data recording 
+# when the user button is pressed.
 Recording_Period=30    # in seconds
 
+# http://avnet.me/RASynDocsImuDataStream
 [IMU data stream]
-# Select the feature:  0->Disable;  1->Enable
-Write_to_file=1        # write data to a file in sdcard
-Print_to_terminal=0    # output data to the serial debug terminal
-
-[Low Power Mode]
-# 0->Enter Low Power Mode with "down . . down" command; 1->Enter Low Power mode automatically after each feature detection 
-Power_Mode=0
-
+# Defines where to capture IMU data when the record button is 
+# pressed.  Note that the [Function_x] block selected must
+# define "Button_shift=imu" for this feature to work.   
+#  0->Disable
+#  1->Enable
+Write_to_file=1        # write data to a *.csv file on the sdcard
+Print_to_terminal=    # output data to the serial debug terminal
+    :
+    :
+    :
 ```
 Remove the microSD card and insert into the RAsynBoard.
 
@@ -114,7 +142,7 @@ For the list of sensors, enter:
 accel,gyro
 ```
 
-For data frequency, enter 100Hz
+For data frequency, enter 200Hz
 ![Step 4](assets/images/acq_upload_step_4.png "Step 4")
 
 Finally, select finish wizard.
