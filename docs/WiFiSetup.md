@@ -2,6 +2,10 @@
 
 The RASynBoard Wi-Fi radio is implemented on the DA16600 wireless module.  There are two different ways to configure the Wi-Fi network using the OOB application.  Currently a Wi-Fi connection is required only when using one of the cloud connectivity options.  
 
+This video shows the two different ways to configure the WiFi network on your RASynBoard
+- [Video Link (9 minutes)](http://avnet.me/RASynWiFi)
+- [Documentation Link](./ApplicationUserGuide.md/#wifi-access-point-configuration-source)
+
 ## Use the config.ini configuration file
 
 The config.ini file contains the following items used to configure the Wi-Fi network.  When **Use_Config_AP_Details = 1** the **Access_Point** and **Access_Point_Password** will be used to configure the Wi-Fi Connection.
