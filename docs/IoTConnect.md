@@ -16,15 +16,18 @@ This document includes all the details required to . . .
 1. You have exercised the **5-keyword ML model "up", "down", "back", "next", "ok-syntiant"**
 1. You have a [USB to TTL debug cable](https://www.adafruit.com/product/954) to view debug from the OOB application
 
-# Request a Free IoTConnect Trial Account
+## Cloud Account Setup
+This guide requires an IoTConnect account on AWS.
 
-Until recently the Avnet IoTConnect platform was implemented only in the Azure cloud.  However, in Feb 2023 the IoTConnect team has [released the platform on AWS](https://news.avnet.com/press-releases/press-release-details/2023/Avnet-Announces-the-Release-of-its-First-Product-based-on-Global-Strategic-Collaboration-Agreement-with-AWS/default.aspx).  This example only runs on the AWS implementation.
+>**NOTE:**  
+> If you have already created an IoTConnect account on AWS, or were provided an account as part of a training or workshop, skip this section.
 
-The IoTConnect team is currently working on a IoTConnect on AWS self-sign-up portal for new customers to request a free trial account.  The self-signup page is scheduled to release in Jan 2024.  Until then, please request a trial account by contacting the IoTConnect sales team.
+If you need to create an account, a free 2-month subscription is available.
+Please follow the 
+[Creating a New IoTConnect Account](https://github.com/avnet-iotconnect/avnet-iotconnect.github.io/blob/main/documentation/iotconnect/subscription/subscription.md)
+guide and ensure to select the [AWS version](https://subscription.iotconnect.io/subscribe?cloud=aws) during registration:
 
-1. Navigate to the IoTConnect [Contact us](https://www.avnet.com/wps/portal/us/solutions/iot/contact-us/) web page
-1. Fill out the form with your contact information
-1. In the "Please describe your request:" text box paste in the text ```"I would like to request a free trial IoTConnect account to explore the Avnet RASynBoard Out-of-Box demo on IoTConnect AWS."```
+![IoTConnect on Azure](https://github.com/avnet-iotconnect/avnet-iotconnect.github.io/blob/main/documentation/iotconnect/subscription/media/iotc-aws.png)
 
 Once you have an account on IoTConnect come back to this document to move forward . . .
 
