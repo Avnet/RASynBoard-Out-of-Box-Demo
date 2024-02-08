@@ -97,7 +97,7 @@ Recording_Period=30    # in seconds
 #  0->Disable
 #  1->Enable
 Write_to_file=1        # write data to a *.csv file on the sdcard
-Print_to_terminal=    # output data to the serial debug terminal
+Print_to_terminal=0    # output data to the serial debug terminal
     :
     :
     :

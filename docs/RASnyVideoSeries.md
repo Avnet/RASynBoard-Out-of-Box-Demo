@@ -33,7 +33,24 @@ This video shows the user how to select different ML models that are included wi
 - [Video Link (3 minutes)](http://avnet.me/RASynChangingMlModelsVideo)
 - [Documentation Link](./ApplicationUserGuide.md/#ndp120-configuration)
 
-## Record Training Data 
+## Send Audio or IMU Sensor Data directly into your Edge Impulse ML Project
+This video shows how to use the ```edge-impulse-daemon``` utility and Edge Impulse Studio to send RASynBoard sensor data directly into your Edge Impulse Project.
+- [Video Link (28 minutes)](http://avnet.me/RASynDataIngestionVideo)
+    - 0:00: Introduction
+    - 1:26: Pros and Cons to using the Edge Impulse RASynbBoard application to capture training data
+    - 3:03: Prerequisites
+    - 3:45: Where to find the Edge Impulse RASynBoard application 
+    - 6:57: Update the microSD card files
+    - 9:00: Flash the Edge Impulse RASynBoard application onto our board
+    - 12:35: Configure the application to capture audio data
+    - 15:57: Checkpoint
+    - 16:30: Create a new Edge Impulse Project
+    - 17:10: Connect the RASynbBoard to your Edge Impulse project
+    - 20:36: Capture audio data 
+    - 24:30: Capture 6-Axis IMU data
+- [Documentation Link](./docs/RASynEdgeImpulseDataIngestion.md):
+
+## Record Training Data to the microSD card
 This video shows how to use the Avnet RASynBoard OOB example application to capture audio and IMU data to the microSD card.  Once the data has been captured, it can be uploaded to [Edge Impulse Studio](http://edgeimpulse.com) to train a new ML model or to test an existing model
 - [Video Link (11 minutes)](http://avnet.me/RASynRecordingTrainingDataVideo)
     - 1:10: Capture audio data to the microSD card
