@@ -12,6 +12,8 @@ This document captures common errors that may be encountered while using/modifyi
 - Development Issues
     - [Debugger fails to launch ```The device R7FA2A1AB . . . configuration does not match```](#debugger-fails-to-load-the-device-r7fa2a1ab-set-in-the-launch-configuration-does-not-match)
     - [Debugger connection failed](#debug-connection-failed)
+- Renesas Flash Programmer Errors
+    - [Error(E3000107): This device does not match the connection parameters](#rfp-errore3000107-this-device-does-not-match-the-connection-parameters)
 
 # NDP Failed to Load Models
 ## ```ndp_core2_platform_tiny_start failed 9```
@@ -136,3 +138,47 @@ If you still can't connect to the debugger, verify that the driver is correctly 
     - Try reinstalling the Renesas e^2 Studio application
 
 ![](./assets/images/renesase2LiteDevice.jpg)
+
+# Renesas Flash Programming (RFP) Errors
+
+## RFP ```Error(E3000107): This device does not match the connection parameters```
+
+### How to identify this issue
+When trying to flash a new image (*.srec) to the RASynBoard, the user sees the error below.
+
+<p align="left">
+    <br />
+    <img src=./assets/images/fspError01.jpg width="500">
+<br />
+
+### How to resolve this issue
+
+This is a known FSP issue.  To resolve the issue start a new FSP project
+
+1. Launch the **Renesas Flash Programmer** (version 3.11.02 or later)
+2. Select **File -> New Project**, the "Create New Project" dialog opens
+3. Use the configuration shown, click on the **Connect** button
+
+<p align="left">
+    <br />
+    <img src=./assets/images/fspError02.jpg width="500">
+<br />
+
+4. You should see that the application connected to your RASynBoard
+
+<p align="left">
+    <br />
+    <img src=./assets/images/fspError03.jpg width="500">
+<br />
+
+5. Flash the board
+    1. Select the **Operation Tab**
+    1. Browse to and select the *.srec file to load to the board
+    1. Click on the **Start** button
+    1. The image is flashed to the board, and you should see the application update as shown below
+
+<p align="left">
+    <br />
+    <img src=./assets/images/fspError04.jpg width="500">
+<br />
+
