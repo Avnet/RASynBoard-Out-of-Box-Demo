@@ -1,3 +1,23 @@
+## Version: 1.5.1
+Release type: **Documentation Release**
+
+Date: Feb 28, 2024
+
+## Note: The V1.5.1 release is compatible with Edge Impulse Models generated after 2/7/2024.
+
+### New Features
+- AAGBT-143: Update IoTConnect documentation.  Add new device and dashboard templates.
+- AAGBT-145: Add new document [RASynEdgeImpulseDataIngestion.md](./docs/RASynEdgeImpulseDataIngestion.md) detailing how to use the Edge Impulse Daemon to capture training data from the RASynBoard directly into Edge Impulse
+- AAGBT-146: Add a video link showcasing capturing training data using the Edge Impulse Daemon
+- AAGBT-147: Update the troubleshooting guide to include common Renesas Flash Programmer errors 
+
+### Bug Fixes
+None
+
+### Known Issues
+- AABGT-105: When using a custom BLE name, the OOB application is not able to connect to the Python GUI demo application
+- AABGT-123: When capturing audio, or IMU data if there is an issue receiving data from the NDP120 the application hangs
+
 ## Version: 1.5.0
 Release type: **Feature Release**
 

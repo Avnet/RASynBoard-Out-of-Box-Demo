@@ -1,21 +1,22 @@
 {
-    "code": "RASy15",
-    "name": "RASyOobV15",
+    "code": "RAS15c",
+    "name": "RASyV1_5",
     "authType": 2,
     "attributes": [
         {
             "name": "msgCount",
-            "type": "INTEGER"
+            "type": "INTEGER",
+            "description": "Telemetry message count since power-up"
         },
         {
             "name": "modeDescription",
             "type": "STRING",
-            "description": "Model description"
+            "description": "Model description from the config.ini [Function_x] block"
         },
         {
-            "name": "networkNum",
+            "name": "numNetworks",
             "type": "INTEGER",
-            "description": "Network number for the current motel"
+            "description": "Number of nurel networks (models) currently loaded to the NDP120"
         },
         {
             "name": "numLabels",
@@ -23,11 +24,23 @@
             "description": "The total number of labels implemented in the current ML model"
         },
         {
+            "name": "inferenceIdx",
+            "type": "INTEGER",
+            "description": "The inference index from the most recent inference detection",
+            "unit": null
+        },
+        {
+            "name": "inferenceStr",
+            "type": "STRING",
+            "description": "The most recent inference string from the NDP120",
+            "unit": null
+        },
+        {
             "name": "label_0",
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -48,7 +61,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -69,7 +82,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -90,7 +103,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -111,7 +124,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -132,7 +145,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -153,7 +166,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -174,7 +187,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -195,7 +208,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -216,7 +229,7 @@
             "type": "OBJECT",
             "childs": [
                 {
-                    "name": "InferenceString",
+                    "name": "infStr",
                     "type": "STRING",
                     "description": "Inference description from the NDP120"
                 },
@@ -252,14 +265,14 @@
     "commands": [
         {
             "name": "LedCmd",
-            "command": "led led",
+            "command": "led",
             "requiredParam": true,
             "requiredAck": false,
             "isOTACommand": false
         }
     ],
     "messageVersion": "2.1",
-    "msgCode": "XG4EC0J",
+    "msgCode": "XG4EJVZ",
     "greenGrass": "0",
     "wireless": "0",
     "properties": {

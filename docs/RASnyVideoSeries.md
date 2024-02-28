@@ -86,15 +86,22 @@ This video shows two different ways to load X.509 certificates onto the RASynBoa
 
 ## Avnet's IoTConnect on AWS
 This video walks through adding the RASynBoard to IoTConnect on AWS.  We'll download the device certificate/keys, configure the OOB application, an exercise the data connection by sending MQTT telemetry up to IoTConnect.  The video includes bonus content not currently documented showing the user how to create a custom dashboard to showcase the telemetry data in near real-time and how to share the dashboard for others to utilize.
-- [Video Link (25 minutes)](http://avnet.me/IoTConnectOnAWS)
-    - 2:10: Review the IoTConnect device template
-    - 5:10: Create a new device
-    - 6:48: Download device certificate and keys 
-    - 7:58: Configure the OOB application to connect to our new Thing
-    - 10:14: Setting up a WiFi connection 
-    - 11:30: Fix the certificate configuration 
-    - 13:20: Exercise the application and confirm Device to Cloud (D2C) messages
-    - 16:19: **Bonus Materials** Create a custom  IoTConnect dashboard in under 10 minutes!
+- [Video Link (31 minutes)](http://avnet.me/IoTConnectOnAWS)
+    - 2:30: Prerequisites
+    - 3:32: Cloud account
+    - 4:15: Create a new device
+        - 4:45: Import a device template
+        - 6:29: Review the template
+        - 9:15: Create the device
+        - 10:10: Download the device certificates
+    - 11:00: Checkpoint
+    - 11:15: Collect the IoTConnect details required to connect our board to IoTConnect
+    - 10:50: Configure the OOB application to connect to IoTConnect
+    - 18:30: Run the demo
+    - 22:30: IoTConnect Dashboards
+        - 26:40: Exercise the Dashboard
+        - 27:50: Run a different ML Model
+    - 30:22: Conclusion
 - [Documentation Link](./IoTConnect.md)
 
 # Avnet ML Workshop recordings
