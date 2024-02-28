@@ -67,11 +67,13 @@ static int num_labels = 0;
 
 #define SYNTIANT_NDP120_MAX_CLASSES     32
 #define SYNTIANT_NDP120_MAX_NNETWORKS   4
+#define MAX_TELEMETRY_NETWORKS          1
+#define MAX_TELEMETRY_LABELS            10
 #define NDP120_MCU_LABELS_MAX_LEN       (0x200)
 
 static char *labels[SYNTIANT_NDP120_MAX_CLASSES];
-static char *labels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS]
-            [SYNTIANT_NDP120_MAX_CLASSES];
+static char *labels_per_network[MAX_TELEMETRY_NETWORKS]
+            [MAX_TELEMETRY_LABELS];
 static char numlabels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS];
 static char label_data[NDP120_MCU_LABELS_MAX_LEN] = "";
 
@@ -154,8 +156,8 @@ void ndp_send_model_telemetry(void)
     enqueTelemetryJSON(telemetryMsg);
 
     // For each network and label, init the data structure and send the object up as telemetry
-    for(int networkNum = 0; networkNum < total_nn; networkNum++){
-        for( int labelNum = 0; labelNum < num_labels; labelNum++){
+    for(int networkNum = 0; networkNum < MAX_TELEMETRY_NETWORKS; networkNum++){
+       for( int labelNum = 0; labelNum < MAX_TELEMETRY_LABELS; labelNum++){
 
             // Construct the object key
             snprintf(dynamicKey, LABEL_KEY_LEN, "label_%d", labelNum);
@@ -164,8 +166,16 @@ void ndp_send_model_telemetry(void)
             strncpy(inferenceData[networkNum][labelNum].objKey, dynamicKey, LABEL_KEY_LEN);
             inferenceData[networkNum][labelNum].inferenceCnt = 0;
             inferenceData[networkNum][labelNum].inferenceIndex = labelNum;
-            strncpy(inferenceData[networkNum][labelNum].infStr, (char*)labels_per_network[networkNum][labelNum], MAX_SUPPORTED_LABEL_LEN);
             inferenceData[networkNum][labelNum].networkNumber = networkNum;
+
+            if((networkNum < total_nn) && (labelNum < num_labels)){
+
+                strncpy(inferenceData[networkNum][labelNum].infStr, (char*)labels_per_network[networkNum][labelNum], MAX_SUPPORTED_LABEL_LEN);
+                inferenceData[networkNum][labelNum].networkNumber = networkNum;
+            }
+            else{
+                strncpy(inferenceData[networkNum][labelNum].infStr, "N/A", MAX_SUPPORTED_LABEL_LEN);
+            }
 
             // Create the inference JSON
             snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"%s\":{\"infIdx\": %d,\"infStr\":\"%s\",\"infCnt\": %d}}",
@@ -255,7 +265,7 @@ __attribute__ ((optimize(0))) void enqueInferenceData(int networkNum, int infere
 
     // Create the inference JSON
     snprintf(telemetryMsg, sizeof(telemetryMsg), "{\"msgCount\": %d, \"inferenceIdx\": %d,\"inferenceStr\":\"%s\", \"%s\":{\"infCnt\": %d}}",
-                                                 msgCnt++, inferenceIndex,
+                                                 ++msgCnt, inferenceIndex,
                                                  inferenceData[networkNum][inferenceIndex].infStr,
                                                  inferenceData[networkNum][inferenceIndex].objKey,
                                                  inferenceData[networkNum][inferenceIndex].inferenceCnt);
@@ -292,8 +302,8 @@ void ndp_thread_entry(void *pvParameters)
     uint8_t ndp_class_idx, ndp_nn_idx, sec_val;
     EventBits_t   evbits;
     uint32_t q_event, notifications;
-	blink_msg_t  last_stat, current_stat;
-	char buf[32];
+    blink_msg_t  last_stat, current_stat;
+    char buf[32];
     int ndp_boot_mode = NDP_CORE2_BOOT_MODE_BOOT_FLASH;
 
     FSP_PARAMETER_NOT_USED (pvParameters);
@@ -353,8 +363,8 @@ void ndp_thread_entry(void *pvParameters)
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
             mode_circular_motion = flash_data.ndp_mode_motion;
-	        memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
-	    }
+            memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
+        }
         
         // Output the current configuration for the user
         if (get_print_console_type() != CONSOLE_USB_CDC) {
@@ -384,7 +394,7 @@ void ndp_thread_entry(void *pvParameters)
             }
         }
         
-	    ndp_print_imu();
+        ndp_print_imu();
 
         ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
         if (ret) {
@@ -408,7 +418,7 @@ void ndp_thread_entry(void *pvParameters)
     while (1)
     {
         /* Wait until NDP recognized voice keywords */
-     	evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH, 
+        evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH,
             pdTRUE, pdFALSE , portMAX_DELAY);
      
         if( evbits & EVENT_BIT_VOICE )

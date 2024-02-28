@@ -31,7 +31,7 @@ Use the links below to learn about the different ways to collect training/testin
 Use the links below to learn how to connect your RASynBoard to one of the currently supported cloud solutions.
 
 - [Avnet IoTConnect Configuration](./docs/IoTConnect.md):  Details to connect your RASynBoard to Avnet's IoTConnect on AWS cloud solution
-    - [Video walkthrough (25 minutes)](http://avnet.me/IoTConnectOnAWS)
+    - [Video walkthrough (31 minutes)](http://avnet.me/IoTConnectOnAWS)
 - [AWS IoT Core Configuration](./docs/awsIoTCore.md):  Details to connect your RASynBoard to AWS IoT Core
     - [Video walkthrough (18 minutes)](http://avnet.me/RASynAwsIotCore)
 - [Wi-Fi Configuration](./docs/WiFiSetup.md):  Details on how to configure the OOB application to connect to your Wi-Fi network. 

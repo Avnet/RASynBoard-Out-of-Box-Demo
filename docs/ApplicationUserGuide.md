@@ -256,15 +256,22 @@ Please see the [IoTConnect](./IoTConnect.md) document for details on how to . . 
 
 ![](./assets/images/iotConnectConfig.jpg "")
 
-- [Video Link (25 minutes)](http://avnet.me/IoTConnectOnAWS)
-    - 2:10: Review the IoTConnect device template
-    - 5:10: Create a new device
-    - 6:48: Download device certificate and keys 
-    - 7:58: Configure the OOB application to connect to our new Thing
-    - 10:14: Setting up a WiFi connection 
-    - 11:30: Fix the certificate configuration 
-    - 13:20: Exercise the application and confirm Device to Cloud (D2C) messages
-    - 16:19: **Bonus Materials** Create a custom  IoTConnect dashboard in under 10 minutes!
+- [Video Link (31 minutes)](http://avnet.me/IoTConnectOnAWS)
+    - 2:30: Prerequisites
+    - 3:32: Cloud account
+    - 4:15: Create a new device
+        - 4:45: Import a device template
+        - 6:29: Review the template
+        - 9:15: Create the device
+        - 10:10: Download the device certificates
+    - 11:00: Checkpoint
+    - 11:15: Collect the IoTConnect details required to connect our board to IoTConnect
+    - 10:50: Configure the OOB application to connect to IoTConnect
+    - 18:30: Run the demo
+    - 22:30: IoTConnect Dashboards
+        - 26:40: Exercise the Dashboard
+        - 27:50: Run a different ML Model
+    - 30:22: Conclusion
 
 ### AWS IoT Core
 Please see the [AWS IoT Core](./awsIoTCore.md) document for details on how to . . .
