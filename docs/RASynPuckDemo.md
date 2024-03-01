@@ -16,7 +16,7 @@ This page contains details for creating a copy of the RASynPuck demo.
 
 The RASynPuck demo is a pocket friendly, wireless, battery operated demo fixture with a supporting cloud dashboard hosted on Avnet's IoTConnect Cloud Platform.  The demo can be used to demonstrate ML models running on the Syntiant NDP120 Neural Decision Processor.  Additionally all ML model data and ML inference events can be viewed in a cloud hosted dashboard.
 
-> **Note:** If you don't care to run the demo on just the core board, you can work through the [IoTConnect instructions](./../IoTConnect.md) and end up with the same demo using the RASynBoard EVK (core board + I/O board).
+> **Note:** If you don't care to run the demo on just the core board, you can work through the [IoTConnect instructions](./IoTConnect.md) and end up with the same demo using the RASynBoard EVK (core board + I/O board).
 
 The demo uses the core board only and requires managing the following items without the microSD card.  The Out-of-Box application implementation includes ways to manage these items without the microSD card.
 
@@ -31,12 +31,12 @@ The demo uses the core board only and requires managing the following items with
 1. [Required Software](#required-software)
 1. [Setup the Demo System](#setup-the-demo-system)
     1. [Flash the latest OOB release to the RASynBoard](#flash-the-oob-v151-image-to-the-renesas-ra6m4-mcu)
-    1. [Copy the release microSD Card files to the microSD card]()
+    1. [Copy the release microSD Card files to the microSD card](#copy-the-release-microsd-card-file-to-the-microsd-card)
     1. [Select the ML model to run](#select-the-ml-model-to-run)
     1. [Connect the RASynbBoard to IoTConnect](#connect-the-rasynboard-to-iotconnect)
     1. [Update the WiFi configuration](#update-the-wifi-configuration)
     1. [Update the X.509 certificate location](#change-the-certificates-configuration-to-dont-load-any-certificates-the-certificates-are-already-loaded-onto-the-da16600)
-    1. [Flash the ML model and configuration to SPI Flash](#update-the-wifi-configuration)
+    1. [Flash the ML model and configuration to SPI Flash](#flash-the-ml-models-and-configuration-to-spi-flash-memory-on-the-core-board)
     1. [Separate the boards and test](#separate-the-core-board-from-the-io-board-and-test)
 1. [Conclusion](#conclusion)
 
@@ -71,7 +71,7 @@ Follow the steps here to get your RASynBoard demo up and running.  The tasks we 
 
 ## Flash the OOB V1.5.1+ image to the Renesas RA6M4 MCU
 
-1. Follow the [How to use RASynBoard Releases](../UsingRASynbBoardReleases.md) instructions to load the latest release
+1. Follow the [How to use RASynBoard Releases](./UsingRASynbBoardReleases.md) instructions to load the latest release
     1. Be sure to use the latest release >= 1.5.1
     1. A video walkthrough of the process is available [here](http://avnet.me/RASynUsingReleasesVideo)
 
@@ -82,19 +82,19 @@ Each release contains a zip file **microSD-Files-\<version string\>.zip** that c
 ## Select the ML model to run
 
 The default model configuration is the 5-keyword model "up," "down," "back," "next," "ok-syntiant."  If you want to run a different model . . .
-1. Use the instructions [here](./../ApplicationUserGuide.md#ndp120-configuration) to change the model running on the board.
+1. Use the instructions [here](./ApplicationUserGuide.md#ndp120-configuration) to change the model running on the board.
 1. A video walkthrough of the process is available [here](http://avnet.me/RASynChangingMlModelsVideo)
 
 > **Note:** the IoTConnect dashboard is generic and will work with any ML model
 
 ## Connect the RASynBoard to IoTConnect
 
-In order to use the IoTconnect dashboard, you must first setup the IoTConnect account/device/dashboard.  All the details to accomplish these tasks is documented in the [IoTConnect Documentation](./../IoTConnect.md).
+In order to use the IoTconnect dashboard, you must first setup the IoTConnect account/device/dashboard.  All the details to accomplish these tasks is documented in the [IoTConnect Documentation](./IoTConnect.md).
 
 1. A video walkthrough of the process is available [here](http://avnet.me/IoTConnectOnAWS)
 
 ## Update the WiFi configuration
-There are two ways to configure the WiFi network, both are documented [here]((./../ApplicationUserGuide.md/#wifi-access-point-configuration-source)).  Which configuration you use depends on the WiFi network where you plan to show the demo.
+There are two ways to configure the WiFi network, both are documented [here](./ApplicationUserGuide.md/#wifi-access-point-credentials).  Which configuration you use depends on the WiFi network where you plan to show the demo.
 - If you have a WiFi Hotspot or dedicated Access Point then it’s recommended to use the static configuration where you add the SSID and Password to the config.ini file
 - If you must use the WiFi at the location, use the Renesas WiFi Configuration mobile application.  Use caution here as some public WiFi networks require the user acknowledge an agreement and since the RASynBoard is headless, there will be no way to complete the WiFi registration.
     - Don't forget to enable BLE in the config.ini file
