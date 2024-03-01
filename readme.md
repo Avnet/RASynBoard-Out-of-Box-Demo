@@ -6,6 +6,8 @@ The Out-of-Box (OOB) application's goal is to "Provide a working example applica
 - [RASynBoard Development Guide](http://avnet.me/rasynboard-ug): Detailed overview of the hardware
 - [RASynBoard Video Series](./docs/RASnyVideoSeries.md)
     - Collection of short videos to help users get started with the RASynBoard OOB application
+- [RASynPuck Demo](./docs/RASynPuckDemo.md)
+    - Details for configuring a wireless, battery operated demo with a cloud dashboard    
 
 # Out-of-Box documentation
 Please follow the links below to learn more about the Avnet RASynBoard Out-of-Box application

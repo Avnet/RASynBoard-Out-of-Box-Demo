@@ -2,6 +2,21 @@
 
 This document provides links to videos designed to help users get the most out of the Avnet RASynBoard Out of Box example application.
 
+## Using RASynBoard Out-of-Box Releases
+This video walks through the process of using the Renesas Flash Programmer to load one of the tested releases onto your RASynBoard.
+- [Video Link (11:34)][http://avnet.me/RASynUsingReleasesVideo]
+    - 0:45: Review of releases
+    - 1:45: Review of the documentation
+    - 2:50: Review of the prerequisites
+    - 4:15: Configure the hardware for the Renesas Flash Programmer (RFP)
+    - 5:10: Download the latest OOB release
+    - 5:30: Run the RFP
+    - 6:00: Configure the RFP to connect to our board
+    - 7:20: Flash the image to the RASynBoard 
+    - 8:15: Configure the hardware to auto-boot
+    - 9:10: Update the microSD card files
+- [Documentation](./UsingRASynbBoardReleases.md)
+
 ## Getting Started
 This video walks through the [Getting Started Guide](RASyBoardGettingStarted.md) and reviews the process of cloning the OOB repo, building the application, loading it onto the RASynBoard and running the application using the Renesas e^2 studio debugger.  Common issues are reviewed along with details on how to overcome them.
 - [Video Link (23 minutes)](http://avnet.me/RASynGettingStartedVideo)
