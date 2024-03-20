@@ -3,6 +3,8 @@ This document captures common errors that may be encountered while using/modifyi
 
 # Table of Contents
 
+- Application Issues
+    - [OOB Application hangs, user button not working](#application-hangs-buttons-not-working)
 - NDP120 Issues
     - [NDP120 failed to load model: ```ndp_core2_platform_tiny_start failed 9```](#ndp_core2_platform_tiny_start-failed-9)
     - [Continuous NDP120 MATCH!!! events](#application-flooded-by-inference-events-even-though-there-should-be-none)
@@ -14,6 +16,25 @@ This document captures common errors that may be encountered while using/modifyi
     - [Debugger connection failed](#debug-connection-failed)
 - Renesas Flash Programmer Errors
     - [Error(E3000107): This device does not match the connection parameters](#rfp-errore3000107-this-device-does-not-match-the-connection-parameters)
+
+# Application Issues
+## Application hangs, buttons not working
+This error has been identified to be an issue between the OOB FSP microSD card driver and a microSD card that may have errors
+
+### How to identify this issue
+- The OOB application stops running, or does not perform some features 
+- The user button (button closest to the corner of the board) does not respond when pressed
+- The issue is not reproducible when powering the board from the USB-C connector on the I/O board (the larger bottom board)
+- Is only reproducible when powering the EVK using the USB-C connector on the core board (the smaller board)
+
+### How to resolve the issue
+To resolve the issue, fix any errors with the microSD card's file system by reformatting the card
+
+1. Copy all the files from the microSD card to a temporary folder on your development PC
+1. Format the drive as a FAT32 device
+1. Move the saved files back onto the microSD card
+1. Insert the microSD card back into the RASynBoard's I/O board
+1. Verify that the issue is not reproducible
 
 # NDP Failed to Load Models
 ## ```ndp_core2_platform_tiny_start failed 9```
