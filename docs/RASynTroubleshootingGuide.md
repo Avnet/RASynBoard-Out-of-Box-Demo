@@ -3,6 +3,9 @@ This document captures common errors that may be encountered while using/modifyi
 
 # Table of Contents
 
+- Hardware Issues
+    - [RASynBoard EVK does not power-up when powered from LiPo Battey](#the-rasynboard-evk-io-board--core-board-does-not-power-up-when-using-just-a-lipo-battery)
+    - [RASynBoard EVK RGB LED is not working when powered from LiPo Battey](#the-rasynboard-evk-io-board--core-board-does-not-power-up-when-using-just-a-lipo-battery)
 - Application Issues
     - [OOB Application hangs, user button not working](#application-hangs-buttons-not-working)
 - NDP120 Issues
@@ -16,6 +19,34 @@ This document captures common errors that may be encountered while using/modifyi
     - [Debugger connection failed](#debug-connection-failed)
 - Renesas Flash Programmer Errors
     - [Error(E3000107): This device does not match the connection parameters](#rfp-errore3000107-this-device-does-not-match-the-connection-parameters)
+
+# Hardware Issues
+## The RASynBoard EVK (I/O board + core board) does not power up when using just a LiPo battery 
+This entry captures two issues.  
+
+1. If powering the RASynBoard EVK from just a LiPo battery the OOB application does not startup
+2. After powering up the EVK with a USB-C cable and a LiPo battery, after removing the USB-C power source the RGB LED on the I/O board is not operational
+
+**Note**: You can power just the core board (the smaller of the two boards) with a LiPo battery, the application boots normally and there are not any other known issues.  To flash your model files and configuration to the SPI Flash on the core board, see . . . 
+
+- For non-cloud connected applications: [Application User Guide](./ApplicationUserGuide.md#flash-microsd-card-images-to-core-board-spi-flash)
+- For cloud connected applications: [RASynPuckDemo.md](./RASynPuckDemo.md) document to find detailed instructions.
+
+### How to identify this issues
+- When powering the EVK (I/O board + core board) using a LiPo battery connected to the application does not boot.  
+    - No debug is output from either debug source
+- The RGB LED on the I/O board is non-functional
+    - Usually this LED lights on power-up while the application loads the NDP120 images
+    - Usually this LED lights whenever a feature is detected by the Syntiant NDP120
+
+## How to resolve this issue
+Unfortunately this is a hardware issue.  Until this issue is resolved, the EVK can be run on a LiPo battery by following these simple steps:
+
+1. Power the RASynBoard EVK from either USB-C connectors
+2. Plug in the LiPo battery to the battery connector on the core board
+3. After the application has started, remove the USB-C cable
+
+The application will run as expected with the exception of the RGB LED, that will not work when the EVK is powered by the LiPo battery.
 
 # Application Issues
 ## Application hangs, buttons not working
