@@ -435,7 +435,7 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size,
 	}
 
 	if ( header == 1 ) {
-		strcpy(buff, "Acc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
+		strcpy(buff, "accX,accY,accZ,gyrX,gyrY,gyrZ\n");
 		buff_len = strlen(buff);
 	}
     else {

@@ -153,7 +153,8 @@ The utility should detect that 6 sensor axes were detected and will prompt you t
 You can paste the following headers into your terminal:
 
 ```
-Acc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z
+accX,accY,accZ,gyrX,gyrY,gyrZ
+
 ```
 
 You will no be prompted to provide a name for the device:

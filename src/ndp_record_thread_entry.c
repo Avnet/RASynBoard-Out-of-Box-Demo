@@ -154,7 +154,7 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
 		xSemaphoreGive(g_ndp_mutex);
 	}
 	if (is_imu_data_to_terminal()) {
-		printf("\nAcc_x,Acc_y,Acc_z,Gyro_x,Gyro_y,Gyro_z\n");
+		printf("\naccX,accY,accZ,gyrX,gyrY,gyrZ\n");
 	}
 
     while (extract_sets > sensor_arg->sets_count) {
