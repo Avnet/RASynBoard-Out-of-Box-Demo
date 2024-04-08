@@ -15,12 +15,26 @@
 
 #define   IMU_REC_BYTES_PER_SEC          200
 #define   IMU_REC_BUFFER_SIZE            256
-#define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_"
+#define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_raw_"
+#define   IMU_REC_FILE_NAME_CONVERTED_PREFIX  "ndp_imu_record_converted_"
+
 
 #define   SHORT_PRESS_TIME        pdMS_TO_TICKS(400UL)
 #define   LONG_PRESS_TIME         pdMS_TO_TICKS(3000UL)
 
 #define   IMU_SENSOR_INDEX         0
+
+#define CONVERT_G_TO_MS2            (9.80665f)
+#define ACC_RAW_SCALING             (32767.5f)
+#define ACC_SCALE_FACTOR            (float)((2.0f*CONVERT_G_TO_MS2)/ACC_RAW_SCALING)
+
+#define CONVERT_ADC_GYR             (float)(250.0f/32768.0f)
+#define NORMALIZE_GYR               (250.0f)
+
+/** Number of axis used and sample data format */
+#define INERTIAL_AXIS_SAMPLED       6
+
+
 
 extern int firmware_idx;
 
@@ -107,35 +121,82 @@ struct cb_sensor_arg_s {
 void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *sensor_arg)
 {
     struct cb_sensor_arg_s *cb_sensor_arg = (struct cb_sensor_arg_s*)sensor_arg;
-    int i, index = 0;
+    uint16_t i, j, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
     char *percent_ptr = NULL;
 
-	if (is_imu_data_to_terminal()) {
-		// show data on the serial console
-		index = sample_size / 2 - 1;
-		for (i = 0; i < index; i++) {
-			printf("%d,", acc_samples[i]);
-		}
-		printf("%d\n", acc_samples[index]);
-	}
+    // If we're capturing converted IMU data, then do the conversion.  acc_converted_samples will
+    // hold the converted float data.
+    if(is_imu_convertion_enabled()){
 
-	if (is_imu_data_to_file()) {
-		// save data to sdcard
-		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-		write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0);
+        float acc_converted_samples[sample_size];
 
-        // Catch the case where we're recording IMU data to a file and to the debug UART.  I'm not sure if
-		// there is a valid use case to do this, but the user can configure the app to do this.  If we're
-		// outputting data to the terminal we don't want to output the % done
-		if(!is_imu_data_to_terminal()){
+        for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED); j++) {
+            for (i = 0; i < 3; i++) {
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
 
-            percent_ptr = extract_process_percent(cb_sensor_arg->sets_count, cb_sensor_arg->wanted_sets, 1);
-            if (percent_ptr) printf("%s", percent_ptr);
-		}
-		xSemaphoreGive(g_ndp_mutex);
-	}
+            }
 
+            for (i = 3; i < INERTIAL_AXIS_SAMPLED; i++) {
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
+            }
+        }
+
+        if (is_imu_data_to_terminal()) {
+            // show data on the serial console
+            index = sample_size / 2 - 1;
+            for (i = 0; i < index; i++) {
+                printf("%f,", acc_converted_samples[i]);
+            }
+            printf("%f\n", acc_converted_samples[index]);
+        }
+
+        if (is_imu_data_to_file()) {
+            // save data to sdcard
+            xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+            write_sensor_file(cb_sensor_arg->file_name, sample_size, NULL, 0, acc_converted_samples);
+
+            // Catch the case where we're recording IMU data to a file and to the debug UART.  I'm not sure if
+            // there is a valid use case to do this, but the user can configure the app to do this.  If we're
+            // outputting data to the terminal we don't want to output the % done
+            if(!is_imu_data_to_terminal()){
+
+                percent_ptr = extract_process_percent(cb_sensor_arg->sets_count, cb_sensor_arg->wanted_sets, 1);
+                if (percent_ptr) printf("%s", percent_ptr);
+            }
+            xSemaphoreGive(g_ndp_mutex);
+        }
+
+
+    }
+    // Otherwise, we capture the ADC values read from the IMU sensor
+    else{
+
+        if (is_imu_data_to_terminal()) {
+            // show data on the serial console
+            index = sample_size / 2 - 1;
+            for (i = 0; i < index; i++) {
+                printf("%d,", acc_samples[i]);
+            }
+            printf("%d\n", acc_samples[index]);
+        }
+
+        if (is_imu_data_to_file()) {
+            // save data to sdcard
+            xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+            write_sensor_file(cb_sensor_arg->file_name, sample_size, acc_samples, 0, NULL);
+
+            // Catch the case where we're recording IMU data to a file and to the debug UART.  I'm not sure if
+            // there is a valid use case to do this, but the user can configure the app to do this.  If we're
+            // outputting data to the terminal we don't want to output the % done
+            if(!is_imu_data_to_terminal()){
+
+                percent_ptr = extract_process_percent(cb_sensor_arg->sets_count, cb_sensor_arg->wanted_sets, 1);
+                if (percent_ptr) printf("%s", percent_ptr);
+            }
+            xSemaphoreGive(g_ndp_mutex);
+        }
+    }
     cb_sensor_arg->sets_count ++;
 }
 
@@ -150,7 +211,7 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
 
 	if (is_imu_data_to_file()) {
 		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-		write_sensor_file(sensor_arg->file_name, 0, NULL, 1);
+		write_sensor_file(sensor_arg->file_name, 0, NULL, 1, NULL);
 		xSemaphoreGive(g_ndp_mutex);
 	}
 	if (is_imu_data_to_terminal()) {
@@ -345,12 +406,18 @@ process_out:
 
 static void check_record_file_name(char *fname, int *findex)
 {
-    char valid_filename[32] = {0};
+    char valid_filename[40] = {0};
     int count = *findex;
     do {
         if (is_record_motion()){//imu
-            snprintf(valid_filename, sizeof(valid_filename), "%s%04d.csv", \
-            IMU_REC_FILE_NAME_PREFIX, count);
+            if(is_imu_convertion_enabled()){
+                snprintf(valid_filename, sizeof(valid_filename), "%s%04d.csv", \
+                IMU_REC_FILE_NAME_CONVERTED_PREFIX, count);
+            }
+            else { // capturing RAW values
+                snprintf(valid_filename, sizeof(valid_filename), "%s%04d.csv", \
+                IMU_REC_FILE_NAME_PREFIX, count);
+            }
             if (is_imu_data_to_file() == IMU_FUNC_DISABLE)
                 break;
         } else {//audio

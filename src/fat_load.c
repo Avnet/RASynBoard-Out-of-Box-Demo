@@ -34,6 +34,7 @@ struct config_ini_items config_items ={  /* default settings */
 				LED_EVENT_NONE },
 
 		.recording_period = 10,
+		.imu_conversion_enabled = 1,
 		.imu_write_to_file = IMU_FUNC_ENABLE,
 		.imu_print_to_terminal = IMU_FUNC_DISABLE,
 		.low_power_mode = DOWN_DOWN_LP_MODE,
@@ -400,7 +401,7 @@ uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int hea
 }
 
 uint32_t write_sensor_file(char * file_name, uint32_t sample_size, 
-        int16_t *acc_samples, int header)
+        int16_t *acc_samples, int header, float *acc_converted_samples)
 {
     FRESULT res;
     char path[64];
@@ -441,11 +442,25 @@ uint32_t write_sensor_file(char * file_name, uint32_t sample_size,
     else {
         uint32_t buff_offset = 0;
 
-        for (int i = 0; i < sample_size / 2; i++) {
-			buff_offset += snprintf(&buff[buff_offset], 128,
-                    "%d,", acc_samples[i]);
+        // If we're converting the IMU ADC values to units, then write the converted
+        // values to the file
+        if(is_imu_convertion_enabled()){
+
+            for (int i = 0; i < sample_size / 2; i++) {
+                buff_offset += snprintf(&buff[buff_offset], 128,
+                        "%f,", acc_converted_samples[i]);
+            }
         }
-		buff_offset --; //Truncate the last comma in each line
+        // Write the ADC values to the file
+        else{
+
+            for (int i = 0; i < sample_size / 2; i++) {
+                buff_offset += snprintf(&buff[buff_offset], 128,
+                    "%d,", acc_samples[i]);
+            }
+        }
+
+        buff_offset --; //Truncate the last comma in each line
 		buff_offset += snprintf(&buff[buff_offset], 128,"\r\n");
 
         buff_len = buff_offset;
@@ -569,6 +584,8 @@ static uint32_t read_config_file( void )
 										IMU_FUNC_ENABLE, inifile);
 	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
 										IMU_FUNC_DISABLE, inifile);
+
+    config_items.imu_conversion_enabled = ini_getl("IMU Recording Format", "Convert_Data", 1, inifile);
 
 	// BLE Configuration
 	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
@@ -803,6 +820,10 @@ void printConfg(void)
             }
             if(IMU_FUNC_ENABLE == config_items.imu_write_to_file){
                 printf("    IMU data will be captured to the microSD card\n");
+            }
+
+            if((IMU_FUNC_ENABLE == config_items.imu_print_to_terminal) || (IMU_FUNC_ENABLE == config_items.imu_write_to_file)){
+                printf("    IMU data will %s converted from ADC values\n", is_imu_convertion_enabled() ? "be": "not be");
             }
 
             if((IMU_FUNC_DISABLE == config_items.imu_print_to_terminal) && (IMU_FUNC_DISABLE == config_items.imu_write_to_file)){
@@ -1066,4 +1087,8 @@ char* get_aws_pub_topic( void )
 char* get_mode_description( void )
 {
     return config_items.mode_description;
+}
+
+bool is_imu_convertion_enabled( void ){
+    return (1 == config_items.imu_conversion_enabled);
 }

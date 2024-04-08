@@ -133,6 +133,7 @@ struct config_ini_items {
 	int dec_inshift_offset;
 
     char mode_description[MODE_DESCRIPTION_LEN];
+    int imu_conversion_enabled;                 /** [IMU Recording Format]-->Convert_Data **/
 };
 
 extern struct config_ini_items config_items;
@@ -149,7 +150,7 @@ uint32_t get_synpkg_size(char * file_name);
 uint32_t read_synpkg_block(char * file_name, uint32_t offset, uint8_t *buff,  uint32_t split_len);
 int check_sdcard_env(void);
 uint32_t write_wav_file(char * file_name, uint8_t *buff,  uint32_t len,  int header);
-uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_samples, int header);
+uint32_t write_sensor_file(char * file_name, uint32_t sample_size, int16_t *acc_samples, int header, float *acc_converted_samples);
 #if 1
 void write_extraction_file_end(void);
 #endif
@@ -184,6 +185,7 @@ char* get_aws_deviceId( void );
 char* get_aws_sub_topic( void );
 char* get_aws_pub_topic( void );
 char* get_mode_description( void );
+bool is_imu_convertion_enabled( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
