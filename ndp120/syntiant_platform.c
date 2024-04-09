@@ -1326,7 +1326,31 @@ int ndp_core2_platform_tiny_notify_extract_data(uint8_t *data_buffer,
 
     while (1) {
         extract_size = sample_size;
-        s = syntiant_ndp120_tiny_extract_data(ndpp, data_buffer, &extract_size, 1);
+
+        /**
+         * @brief NDP120 extract data.
+         *
+         * Extract data from the dsp firmware buffers.
+         *
+         * @param ndp NDP state object
+         * @param data represents the buffer and gets updated with data.
+         * @param lenp indicates the length of data. The inherent assumption is
+         *        that the user provided buffer is at least as large as one frame's data
+         * @param extract_from indicates from where to extract like FROM_MATCH,
+         *        FROM_NEWEST, FROM_OLDEST, FROM_UNREAD.
+         * @param extract_type indicates the sample type to extract like
+         *        NDP120_DSP_SAMPLE_TYPE_PCM_AUDIO, NDP120_DSP_SAMPLE_TYPE_SENSOR
+         * @return a @c SYNTIANT_NDP_ERROR_* code. The return value could be
+         *        SYNTIANT_NDP_ERROR_DATA_REREAD, which indicates that enough data is
+         *        not available and caller might retry.
+         */
+        //int syntiant_ndp120_tiny_extract_data(struct syntiant_ndp120_tiny_device_s *ndp,
+        //        uint8_t *data, unsigned int *lenp, int extract_from, int extract_type);
+
+        // BW: Had to add the last two arguments, please verify they are correct
+
+//      s = syntiant_ndp120_tiny_extract_data(ndpp, data_buffer, &extract_size, 1);
+        s = syntiant_ndp120_tiny_extract_data(ndpp, data_buffer, &extract_size, SYNTIANT_NDP120_EXTRACT_FROM_UNREAD, NDP120_DSP_SAMPLE_TYPE_PCM_AUDIO);
         if (s == SYNTIANT_NDP_ERROR_DATA_REREAD) {
             break;
         } 
