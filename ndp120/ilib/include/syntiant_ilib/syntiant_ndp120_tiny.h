@@ -1731,6 +1731,12 @@ int syntiant_ndp120_tiny_get_sensor_sample_size(struct
 int syntiant_ndp120_tiny_get_nn_input_type(struct
     syntiant_ndp120_tiny_device_s *ndp, uint8_t *nn_input_type);
 
+// BW add this back since it's being used from the Avnet code
+int syntiant_ndp120_tiny_gpio_release(
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    uint32_t gpio_num);
+
+
 #ifdef __cplusplus
 }
 #endif

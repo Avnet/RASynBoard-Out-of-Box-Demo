@@ -4004,3 +4004,22 @@ error:
     }
     return s;
 }
+
+// BW add this back since it's being used from the Avnet code
+int syntiant_ndp120_tiny_gpio_release(
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    uint32_t gpio_num)
+{
+    int s;
+    uint32_t data, mask;
+
+    mask = (uint32_t) (1u << gpio_num);
+    s = syntiant_ndp120_tiny_read(ndp, 1, NDP120_CHIP_CONFIG_GPIOSEL, &data);
+    if (s) return s;
+
+    data &= ~mask;
+    s = syntiant_ndp120_tiny_write(ndp, 1, NDP120_CHIP_CONFIG_GPIOSEL, data);
+
+    return s;
+}
+

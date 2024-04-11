@@ -1292,6 +1292,7 @@ int ndp_core2_platform_tiny_get_recording_metadata(uint32_t *sample_size,
 
     s = syntiant_ndp120_tiny_get_recording_metadata(ndpp,
         sample_size, get_from);
+
     if (!s) {
         ndp120->sample_size = *sample_size;
     }
@@ -1368,6 +1369,9 @@ int ndp_core2_platform_tiny_notify_extract_data(uint8_t *data_buffer,
     return s;
 }
 
+#ifdef DEAD_CODE
+
+
 int ndp_core2_platform_tiny_extract_start(void)
 {
     int s;
@@ -1396,6 +1400,9 @@ int ndp_core2_platform_tiny_extract_stop(void)
 
     return s;
 }
+
+#endif // DEAD_CODE
+
 
 int ndp_core2_platform_tiny_src_type(uint8_t *data, uint32_t *data_size)
 {

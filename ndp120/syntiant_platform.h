@@ -204,8 +204,12 @@ extern int ndp_core2_platform_tiny_get_recording_metadata(uint32_t *sample_size,
 extern int ndp_core2_platform_tiny_notify_extract_data(uint8_t *data_buffer, 
         uint32_t sample_size, audio_data_cb_f audio_data_cb, void *audio_arg);
 
+
+#ifdef DEAD_CODE
 extern int ndp_core2_platform_tiny_extract_start(void);
 extern int ndp_core2_platform_tiny_extract_stop(void);
+#endif
+
 extern int ndp_core2_platform_tiny_src_type(uint8_t *data, uint32_t *data_size);
 #endif //EXCLUDE_TINY_EXTRACTION
 
