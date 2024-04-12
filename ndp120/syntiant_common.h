@@ -77,7 +77,7 @@
 
 /* maximum transfer size on the device */
 // Defined in ndp120/ilib/include/syntiant_ilib/syntiant_ndp120_tiny.h:49
-//#define SYNTIANT_MAX_BLOCK_SIZE         (32)
+#define SYNTIANT_MAX_BLOCK_SIZE         (32)
 
 /* set mcuclkdiv for super low-power */
 //#define MATCH_SWITCH_MCUCLKDIV
@@ -91,7 +91,7 @@
 //#define SPI_TRANS_DEBUG
 
 /* remove unused clock option structure */
-#define EXCLUDE_CLOCK_OPTION
+//#define EXCLUDE_CLOCK_OPTION
 
 /* exclude CSPI codes */
 //#define EXCLUDE_TINY_CSPI
@@ -104,11 +104,8 @@
 
 /* exclude info getting*/
 //#define EXCLUDE_GET_INFO
-#ifndef EXCLUDE_GET_INFO
-//#define GET_INFO_LITE
-#endif
 
 /* exclude debug printing */
-#define EXCLUDE_PRINT_DEBUG
+//#define EXCLUDE_PRINT_DEBUG
 
 #endif

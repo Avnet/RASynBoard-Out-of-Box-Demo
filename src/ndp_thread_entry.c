@@ -342,8 +342,12 @@ void ndp_thread_entry(void *pvParameters)
         ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
     }
 
+/**
+        "    4:  PLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 21504000 Hz\n"
+*/
     /* Start NDP120 program */
-    ret = ndp_core2_platform_tiny_start(1, 1, ndp_boot_mode);
+    ret = ndp_core2_platform_tiny_start(4, 1, ndp_boot_mode);
     if(ret == 0) {
         printf("ndp_core2_platform_tiny_start done\r\n");
         xSemaphoreGive(g_binary_semaphore);

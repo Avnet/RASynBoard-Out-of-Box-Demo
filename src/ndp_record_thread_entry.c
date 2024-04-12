@@ -14,7 +14,7 @@
 #define   AUDIO_REC_FILE_NAME_PREFIX    "ndp_audio_record_"
 
 #define   IMU_REC_BYTES_PER_SEC          200
-#define   IMU_REC_BUFFER_SIZE            256
+#define   IMU_REC_BUFFER_SIZE            1024
 #define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_raw_"
 #define   IMU_REC_FILE_NAME_CONVERTED_PREFIX  "ndp_imu_record_converted_"
 
@@ -34,7 +34,7 @@
 /** Number of axis used and sample data format */
 #define INERTIAL_AXIS_SAMPLED       6
 
-
+#define ARRAY_SIZE(x)   (sizeof(x)/sizeof(*(x)))
 
 extern int firmware_idx;
 
@@ -203,11 +203,17 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_arg)
 {
     int s;
-    uint32_t sample_size;
+    uint32_t save_sample_size;
+    int max_num_frames;
     uint8_t *data_ptr = NULL;
 
     data_ptr = pvPortMalloc(IMU_REC_BUFFER_SIZE);
-    if (!data_ptr) return -1;
+    if (!data_ptr) return -1;    
+    
+    s = ndp_core2_platform_tiny_get_sensor_sample_size(&save_sample_size);
+    if (s) return s;
+
+    max_num_frames = IMU_REC_BUFFER_SIZE / save_sample_size;
 
 	if (is_imu_data_to_file()) {
 		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
@@ -220,17 +226,16 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
 
     while (extract_sets > sensor_arg->sets_count) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
-                IMU_SENSOR_INDEX, icm42670_extraction_cb, sensor_arg);
+                IMU_SENSOR_INDEX, save_sample_size, max_num_frames, 
+                icm42670_extraction_cb, sensor_arg);
         if ((s) && (s != NDP_CORE2_ERROR_DATA_REREAD)) {
             printf("sensor extract data failed: %d\n", s);
             break;
         }
     }
 
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 0);
-#if 1
     write_extraction_file_end();
-#endif
+
     if (data_ptr) vPortFree(data_ptr);
 
     return s;
@@ -292,20 +297,32 @@ static void audio_record_operation(int isstart)
         ndp_irq_disable();
 
         if (motion_running() == CIRCULAR_MOTION_ENABLE) {
-        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
             if (s){
                 printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
                             NDP_CORE2_FEATURE_PDM, s);
             }
         }
+
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
+        if (s) {
+            printf("enable extract interrupt failed: %d\n", s);
+        }
     }
     else {
         if (motion_running() == CIRCULAR_MOTION_ENABLE) {
-        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
             if (s){
                 printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
                             NDP_CORE2_FEATURE_NONE, s);
             }
+        }
+        
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
+        if (s) {
+            printf("disable extract interrupt failed: %d\n", s);
         }
 
         ndp_irq_enable();
@@ -358,6 +375,7 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
 	struct wav_header_s wav_hdr;
     uint32_t sample_size;
     uint32_t sample_bytes = ndp_core2_platform_tiny_get_samplebytes();
+    uint32_t audio_chunk_size;
     uint8_t *data_ptr = NULL;
 
     data_ptr = pvPortMalloc(AUDIO_REC_BUFFER_SIZE);
@@ -371,10 +389,9 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
     printf("To audio record %d bytes for %d seconds\n", wanted_len, get_recording_period());
     fflush(stdin);
     /* sample ready interrupt is enabled in MCU firmware */
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 
-            NDP_CORE2_GET_FROM_MCU);
+    s = ndp_core2_platform_tiny_get_audio_chunk_size(&audio_chunk_size, &sample_size);
     if (s) {
-        printf("audio record get metadata from mcu with notify failed: %d\n", s);
+        printf("audio record get audio chunk size failed: %d\n", s);
         goto process_out;
     }
 
@@ -391,9 +408,6 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
             break;
         }
     }
-
-    /* disable extract ready interrupt */
-    s = ndp_core2_platform_tiny_config_interrupts(NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
 
 process_out:
 #if 1

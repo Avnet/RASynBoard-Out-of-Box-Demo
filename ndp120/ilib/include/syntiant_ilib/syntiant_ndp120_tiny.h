@@ -38,15 +38,15 @@
 extern "C" {
 #endif
 
+
+#include <stdint.h>
+
+#include "syntiant_common.h"
+
 /**
  * @file syntiant_ndp120_tiny.h
  * @brief Interface to Syntiant NDP120 minimal chip interface library
  */
-
-/**
- * @brief maximum transfer size on the device
- */
-#define SYNTIANT_MAX_BLOCK_SIZE     (2048)
 
 /**
  * @brief package load state flags
@@ -1730,12 +1730,15 @@ int syntiant_ndp120_tiny_get_sensor_sample_size(struct
  */
 int syntiant_ndp120_tiny_get_nn_input_type(struct
     syntiant_ndp120_tiny_device_s *ndp, uint8_t *nn_input_type);
-
-// BW add this back since it's being used from the Avnet code
+	
+/**
+ * @brief NDP120 release GPIO configuration
+ * @param ndp NDP state object
+ * @param GPIO index
+ */	
 int syntiant_ndp120_tiny_gpio_release(
     struct syntiant_ndp120_tiny_device_s *ndp,
     uint32_t gpio_num);
-
 
 #ifdef __cplusplus
 }

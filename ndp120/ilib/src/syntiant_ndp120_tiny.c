@@ -31,11 +31,17 @@
  	** SDK: v110 **
 */
 
+#include "syntiant_common.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <stddef.h>
+
+#ifdef __linux__
 #include <unistd.h>
 #include <sys/time.h>
+#endif
+
 #include <syntiant_ilib/syntiant_ndp120_tiny.h>
 
 /* flag to compile in/out debug prints */
@@ -3488,6 +3494,23 @@ done:
     return s;
 }
 
+int syntiant_ndp120_tiny_gpio_release(
+    struct syntiant_ndp120_tiny_device_s *ndp,
+    uint32_t gpio_num)
+{
+    int s;
+    uint32_t data, mask;
+
+    mask = (uint32_t) (1u << gpio_num);
+    s = syntiant_ndp120_tiny_read(ndp, 1, NDP120_CHIP_CONFIG_GPIOSEL, &data);
+    if (s) return s;
+
+    data &= ~mask;
+    s = syntiant_ndp120_tiny_write(ndp, 1, NDP120_CHIP_CONFIG_GPIOSEL, data);
+
+    return s;
+}
+
 int syntiant_ndp120_tiny_config_gpio(
     struct syntiant_ndp120_tiny_device_s *ndp,
     struct syntiant_ndp120_tiny_config_gpio_s *config)
@@ -4004,22 +4027,3 @@ error:
     }
     return s;
 }
-
-// BW add this back since it's being used from the Avnet code
-int syntiant_ndp120_tiny_gpio_release(
-    struct syntiant_ndp120_tiny_device_s *ndp,
-    uint32_t gpio_num)
-{
-    int s;
-    uint32_t data, mask;
-
-    mask = (uint32_t) (1u << gpio_num);
-    s = syntiant_ndp120_tiny_read(ndp, 1, NDP120_CHIP_CONFIG_GPIOSEL, &data);
-    if (s) return s;
-
-    data &= ~mask;
-    s = syntiant_ndp120_tiny_write(ndp, 1, NDP120_CHIP_CONFIG_GPIOSEL, data);
-
-    return s;
-}
-
