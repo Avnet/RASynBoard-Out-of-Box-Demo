@@ -42,7 +42,7 @@ extern "C" {
 
 #include "syntiant_common.h"
 
-#define SYNTIANT_NDP_SDK_VERSION    "v105"
+#define SYNTIANT_NDP_SDK_VERSION    "v110"
 
 #define EXT_CLOCK_FREQ      (21504000)
 #define PLL_FLL_CLOCK_FREQ  (32768)
