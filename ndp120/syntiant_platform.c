@@ -60,8 +60,10 @@ static char *labels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS]
             [SYNTIANT_NDP120_MAX_CLASSES];
 static char numlabels_per_network[SYNTIANT_NDP120_MAX_NNETWORKS];
 
+static uint32_t num_classes_per_nn[SYNTIANT_NDP120_MAX_NNETWORKS];
 static uint32_t sensor_info_per_sensor[SYNTIANT_NDP120_SENSOR_MAX];
 static uint8_t sensor_configured[SYNTIANT_NDP120_SENSOR_MAX] = "";
+static uint8_t saved_sensor_id[SYNTIANT_NDP120_SENSOR_MAX] = {0};
 
 struct ndp_core2_platform_tiny_s {
     int initialized;
@@ -1506,7 +1508,7 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
     uint32_t notifications, sample_size;
     int num_frames;
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
-    int extract_from = SYNTIANT_NDP120_EXTRACT_FROM_NEWEST;
+    int extract_from = SYNTIANT_NDP120_EXTRACT_FROM_UNREAD;
     uint8_t *sensor_data_ptr = NULL;
 
     if (!ndp120->initialized) {
@@ -1602,8 +1604,9 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
     info.labels = label_data;
     info.scale_factor = scale_factor_per_nn;
     info.sensor_info = sensor_info_per_sensor;
+    info.num_classes = num_classes_per_nn;
     s = syntiant_ndp120_tiny_get_info(ndpp, &info);
-    if (s) return s;
+    if (s) goto error;
 
     *total_nn = info.total_nn;
 
@@ -1627,7 +1630,7 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
         nn_num = *(label_string + 2) - '0';
         if (nn_num < 0 || nn_num >= SYNTIANT_NDP120_MAX_NNETWORKS) {
             s = SYNTIANT_NDP_ERROR_INVALID_NETWORK;
-            break;
+            goto error;
         }
         if (nn_num != prev_nn_num) {
             class_num = 0;
@@ -1677,8 +1680,19 @@ int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels,
                syntiant_ndp_sensor_id_name(sensor_id));
             sensor_configured[i] = 1;
         }
+        saved_sensor_id[i] = sensor_id;
     }
 
+    SYNTIANT_TRACE("Number of classes in each NN:");
+    for (i = 0; i < info.total_nn; i++) {
+        SYNTIANT_TRACE(" NN%d:%d",i,info.num_classes[i]);
+        if(i < info.total_nn-1) {
+            SYNTIANT_TRACE(", ");
+        }
+    }
+    SYNTIANT_TRACE("\n");
+
+error:
     return s;
 }
 
