@@ -133,12 +133,15 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 
         for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED); j++) {
             for (i = 0; i < 3; i++) {
-                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
 
+                // Update the converted samples array with converted gyro data
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
             }
 
             for (i = 3; i < INERTIAL_AXIS_SAMPLED; i++) {
-                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
+
+                // Update the converted samples array with converted accelerometer data
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
             }
         }
 
