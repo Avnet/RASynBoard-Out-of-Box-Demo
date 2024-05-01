@@ -227,6 +227,7 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
     while (extract_sets > sensor_arg->sets_count) {
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
                 IMU_SENSOR_INDEX, save_sample_size, max_num_frames, 
+                (!sensor_arg->sets_count)?1:0, 
                 icm42670_extraction_cb, sensor_arg);
         if ((s) && (s != NDP_CORE2_ERROR_DATA_REREAD)) {
             printf("sensor extract data failed: %d\n", s);

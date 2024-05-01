@@ -286,7 +286,7 @@ int bff_reinit_imu(void)
 
     s = ndp_core2_platform_tiny_dsp_restart();
     if (s) {
-        printf("restart DSP failed: %d\n", IMU_SENSOR_INDEX, s);
+        printf("restart DSP failed: %d\n", s);
         return s;
     }
     vTaskDelay (pdMS_TO_TICKS(1000UL));
@@ -397,15 +397,19 @@ void ndp_thread_entry(void *pvParameters)
                 printf("bff reinit IMU failed: %d\n", ret);
             }
         }
-        
+        else {
+            ret = ndp_core2_platform_tiny_dsp_restart();
+            if (ret) {
+                printf("restart DSP failed: %d\n", ret);
+            }
+            vTaskDelay (pdMS_TO_TICKS(1000UL));
+        }
+
         ndp_print_imu();
 
         ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
         if (ret) {
-            printf("Enable sensor[%d] icm-42670 failed: %d\n", IMU_SENSOR_INDEX, ret);
-        }
-        else {
-            printf("Enable sensor[%d] icm-42670 done\n", IMU_SENSOR_INDEX);
+            printf("Enable sensor icm-42670 failed: %d\n", IMU_SENSOR_INDEX, ret);
         }
     }
 

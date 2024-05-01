@@ -1502,13 +1502,14 @@ int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable)
 
 int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
         int sensor_num, uint32_t save_sample_size, int max_num_frames, 
-        sensor_data_cb_f sensor_data_cb, void *sensor_arg)
+        int extract_start, sensor_data_cb_f sensor_data_cb, void *sensor_arg)
 {
     int s;
     uint32_t notifications, sample_size;
     int num_frames;
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
-    int extract_from = SYNTIANT_NDP120_EXTRACT_FROM_UNREAD;
+    int extract_from = (extract_start)?SYNTIANT_NDP120_EXTRACT_FROM_NEWEST:
+            SYNTIANT_NDP120_EXTRACT_FROM_UNREAD;
     uint8_t *sensor_data_ptr = NULL;
 
     if (!ndp120->initialized) {

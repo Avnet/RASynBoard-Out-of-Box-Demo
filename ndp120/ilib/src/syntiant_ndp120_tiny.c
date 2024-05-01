@@ -214,6 +214,13 @@
 #define NDP120_SOFT_FLASH_BOOT_SIG      0x53594E54U
 #define NDP120_SOFT_FLASH_BOOT_ADDR     (0x40009174U)
 
+/* sensor control */
+#define NDP120_SENSOR_CTL_SHIFT         (4)
+#define NDP120_SENSOR_CTL_MASK          0xF
+#define NDP120_SENSOR_ID_MASK           0xF
+#define NDP120_COMBINE_SENSOR_ID_CTL(x, y)    ((x & NDP120_SENSOR_ID_MASK) | \
+                                        ((y & NDP120_SENSOR_CTL_MASK) << NDP120_SENSOR_CTL_SHIFT))
+
 #if SYNTIANT_NDP120_DEBUG
 static int SYNTIANT_NDP120_PRINTF(const char * fmt, ...){
     int ret;
@@ -2745,10 +2752,9 @@ int syntiant_ndp120_tiny_enable_disable_sensor(
             return s;
         }
     }
-    adx = NDP120_DSP_MB_H2D_ADDR;
+    adx = NDP120_DSP_MB_H2D_ADDR;    
     payload_in_MSB[0] = NDP120_H2D_MB_SET_PAYLOAD(payload_in_MSB[0],
-        sensor_id);
-    payload_in_MSB[1] = (uint32_t) enable;
+            NDP120_COMBINE_SENSOR_ID_CTL(sensor_id, ((uint32_t)enable)));
     s = syntiant_ndp120_tiny_write_block(ndp, SYNTIANT_NDP120_MCU_OP, adx,
             payload_in_MSB, sizeof(payload_in_MSB));
     if (s) {

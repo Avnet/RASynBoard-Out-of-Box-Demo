@@ -249,7 +249,7 @@ extern int ndp_core2_platform_tiny_get_sensor_sample_size(uint32_t *sample_size)
 extern int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable);
 extern int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
         int sensor_num, uint32_t save_sample_size, int max_num_frames, 
-        sensor_data_cb_f sensor_data_cb, void *sensor_arg);
+        int extract_start, sensor_data_cb_f sensor_data_cb, void *sensor_arg);
 
 
 /* get information related */
