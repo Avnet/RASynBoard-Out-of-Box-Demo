@@ -719,21 +719,10 @@ int ndp_core2_platform_tiny_transfer(int mcu, uint32_t addr,
 int ndp_core2_platform_tiny_feature_set(int feature_flag)
 {
     int s = SYNTIANT_NDP_ERROR_NONE;
-    uint32_t set_mcu_clk_div;
     struct syntiant_ndp120_tiny_device_s *ndpp = &ndp120->ndp;
 
     switch (feature_flag) {
     case NDP_CORE2_FEATURE_PDM:
-        set_mcu_clk_div = INFERENCE_MCU_CLK_DIV;
-        if (set_mcu_clk_div != DEFAULT_MCU_CLK_DIV) {
-            s = syntiant_ndp120_tiny_config_clk_div(ndpp, &set_mcu_clk_div, 1);
-            if (s) {
-                SYNTIANT_TRACE("clk_div config to %d failed: %d\n", 
-                        set_mcu_clk_div, s);
-                break;
-            }
-            SYNTIANT_TRACE("clk_div config to %d\n", set_mcu_clk_div);
-        }
         if (!ndp120->clk_started) {
             s = syntiant_ndp120_tiny_pdm_clock_exe_mode(ndpp, 
                     SYNTIANT_NDP120_PDM_CLK_START_CLEAN);
@@ -754,17 +743,6 @@ int ndp_core2_platform_tiny_feature_set(int feature_flag)
 #ifdef INFERENCE_MCU_NO_TOUCH
         ndp120->ndp_handle.mcu_no_touch = 0;
 #endif
-
-        set_mcu_clk_div = DEFAULT_MCU_CLK_DIV;
-        if (set_mcu_clk_div != INFERENCE_MCU_CLK_DIV) {
-            s = syntiant_ndp120_tiny_config_clk_div(ndpp, &set_mcu_clk_div, 1);
-            if (s) {
-                SYNTIANT_TRACE("clk_div config to %d failed: %d\n", 
-                        set_mcu_clk_div, s);
-                break;
-            }
-            SYNTIANT_TRACE("clk_div config to %d\n", set_mcu_clk_div);
-        }
         s = syntiant_ndp120_tiny_pdm_clock_exe_mode(ndpp, 
                 SYNTIANT_NDP120_PDM_CLK_START_PAUSE);
         break;

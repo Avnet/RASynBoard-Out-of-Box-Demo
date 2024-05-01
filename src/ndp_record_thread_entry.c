@@ -325,6 +325,19 @@ static void audio_record_operation(int isstart)
         if (s) {
             printf("disable extract interrupt failed: %d\n", s);
         }
+        
+        /* restart PDM clk */
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+        if (s){
+            printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                        NDP_CORE2_FEATURE_NONE, s);
+        }
+
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+        if (s){
+            printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
+                        NDP_CORE2_FEATURE_PDM, s);
+        }
 
         ndp_irq_enable();
     }
