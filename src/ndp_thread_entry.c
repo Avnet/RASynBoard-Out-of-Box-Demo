@@ -366,7 +366,7 @@ void ndp_thread_entry(void *pvParameters)
     // read back info from FLASH
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
-            mode_circular_motion = flash_data.ndp_mode_motion;
+            set_event_watch_mode (flash_data.watch_mode);
             memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
         }
         
@@ -381,7 +381,8 @@ void ndp_thread_entry(void *pvParameters)
     // Init the inference data structure and send up initial telemetry
     ndp_send_model_telemetry();
 
-    if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+    // enable the features
+    if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
         set_decimation_inshift();
 
         ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
@@ -390,7 +391,8 @@ void ndp_thread_entry(void *pvParameters)
                         NDP_CORE2_FEATURE_PDM, ret);
         }
     }
-    else {
+    
+    if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
         if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
             ret = bff_reinit_imu();
             if (ret) {
@@ -516,14 +518,15 @@ void ndp_thread_entry(void *pvParameters)
                 printf ("\nBegin to program the spi flash ..... \n");
                 ndp_irq_disable();
                 turn_led(BSP_LEDRED, BSP_LEDON);
-                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
                     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
                     if (ret) {
                         printf("Feature set NONE failed: %d\n", ret);
                         break;
                     }
                 }
-                else {
+
+                if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
                     ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
                     if (ret) {
                         printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
@@ -551,14 +554,15 @@ void ndp_thread_entry(void *pvParameters)
                 printf ("Finished programming!\n\n");
                 usb_enable();
             
-                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
                     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
                     if (ret) {
                         printf("Feature set NONE failed: %d\n", ret);
                         break;
                     }
                 }
-                else {
+
+                if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
                     ret = bff_reinit_imu();
                     if (ret) {
                         printf("bff reinit IMU failed: %d\n", ret);

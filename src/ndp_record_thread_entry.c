@@ -89,6 +89,22 @@ static int imu_record_operation(int isstart)
 
     if (isstart) {
         ndp_irq_disable();
+        
+        // disable pdm clk for confusion if audio enabled
+        if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+            if (s){
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_NONE, s);
+            }
+        }
+        
+        // enable sensor if sensor disable
+        if (!(get_event_watch_mode() & WATCH_TYPE_MOTION)) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+            if (s) {
+                printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            }
+        }
 
         s = ndp_core2_platform_tiny_config_interrupts(
                     NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
@@ -103,6 +119,22 @@ static int imu_record_operation(int isstart)
         if (s) {
             printf("disable extract interrupt failed: %d\n", s);
             return s;
+        }
+        
+        // enable pdm clk if audio enabled
+        if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+            if (s){
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_PDM, s);
+            }
+        }
+        
+        // disable sensor if sensor disable
+        if (!(get_event_watch_mode() & WATCH_TYPE_MOTION)) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+            if (s) {
+                printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            }
         }
 
         ndp_irq_enable();
@@ -297,11 +329,19 @@ static void audio_record_operation(int isstart)
     if (isstart) {
         ndp_irq_disable();
 
-        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
+        // enable pdm clk if audio disabled
+        if (!(get_event_watch_mode() & WATCH_TYPE_AUDIO)) {
             s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
             if (s){
-                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                            NDP_CORE2_FEATURE_PDM, s);
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_PDM, s);
+            }
+        }
+        
+        // disable sensor for confusion if sensor enabled
+        if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+            if (s) {
+                printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
             }
         }
 
@@ -312,12 +352,9 @@ static void audio_record_operation(int isstart)
         }
     }
     else {
-        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
-            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
-            if (s){
-                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                            NDP_CORE2_FEATURE_NONE, s);
-            }
+        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+        if (s){
+            printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_NONE, s);
         }
         
         s = ndp_core2_platform_tiny_config_interrupts(
@@ -326,17 +363,20 @@ static void audio_record_operation(int isstart)
             printf("disable extract interrupt failed: %d\n", s);
         }
         
-        /* restart PDM clk */
-        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
-        if (s){
-            printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                        NDP_CORE2_FEATURE_NONE, s);
+        // re-enable pdm clock if audio enabled
+        if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+            if (s){
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_PDM, s);
+            }
         }
-
-        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
-        if (s){
-            printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                        NDP_CORE2_FEATURE_PDM, s);
+        
+        // re-enable sensor if sensor enabled
+        if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+            if (s) {
+                printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            }
         }
 
         ndp_irq_enable();
