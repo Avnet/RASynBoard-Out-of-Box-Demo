@@ -61,13 +61,12 @@ static char ble_at_string[][36] = {
 // Structure to hold inference data and inference counts
 static inferenceData_t inferenceData[SYNTIANT_NDP120_MAX_NNETWORKS][SYNTIANT_NDP120_MAX_CLASSES];
 
-static int total_nn = 0;
-static int num_labels = 0;
-
+int total_nn = 0;
+int num_labels = 0;
 
 #define SYNTIANT_NDP120_MAX_CLASSES     32
 #define SYNTIANT_NDP120_MAX_NNETWORKS   4
-#define MAX_TELEMETRY_NETWORKS          1
+#define MAX_TELEMETRY_NETWORKS          2
 #define MAX_TELEMETRY_LABELS            10
 #define NDP120_MCU_LABELS_MAX_LEN       (0x200)
 
@@ -160,7 +159,7 @@ void ndp_send_model_telemetry(void)
        for( int labelNum = 0; labelNum < MAX_TELEMETRY_LABELS; labelNum++){
 
             // Construct the object key
-            snprintf(dynamicKey, LABEL_KEY_LEN, "label_%d", labelNum);
+            snprintf(dynamicKey, LABEL_KEY_LEN, "label_%d_%d", networkNum, labelNum);
 
             // Init the inference data structure
             strncpy(inferenceData[networkNum][labelNum].objKey, dynamicKey, LABEL_KEY_LEN);
@@ -168,7 +167,7 @@ void ndp_send_model_telemetry(void)
             inferenceData[networkNum][labelNum].inferenceIndex = labelNum;
             inferenceData[networkNum][labelNum].networkNumber = networkNum;
 
-            if((networkNum < total_nn) && (labelNum < num_labels)){
+            if((networkNum < total_nn) && (labelNum < numlabels_per_network[networkNum])){
 
                 strncpy(inferenceData[networkNum][labelNum].infStr, (char*)labels_per_network[networkNum][labelNum], MAX_SUPPORTED_LABEL_LEN);
                 inferenceData[networkNum][labelNum].networkNumber = networkNum;
@@ -209,7 +208,7 @@ void ndp_info_display(void)
             label_data, &labels_len); 
     if (s) return;
         
-    printf("ndp120 has %d network and %d labels loaded\n", total_nn, total_labels);
+    printf("ndp120 has %d network(s) and %d labels loaded\n", total_nn, total_labels);
   
     /* get pointers to the labels */
     num_labels = 0;
@@ -462,7 +461,7 @@ void ndp_thread_entry(void *pvParameters)
                     q_event = led_event_color(ndp_class_idx);
                     xQueueSend(g_led_queue, (void *)&q_event, 0U );
                     send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
-                    enqueInferenceData(0, ndp_class_idx);
+                    enqueInferenceData(ndp_nn_idx, ndp_class_idx);
                     break;
                 case 2:
                     /* Voice: Down; light Magenta Led */
@@ -475,7 +474,7 @@ void ndp_thread_entry(void *pvParameters)
                         q_event = led_event_color(ndp_class_idx);
                         xQueueSend(g_led_queue, (void *)&q_event, 0U );
                         send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-                        enqueInferenceData(0, ndp_class_idx);
+                        enqueInferenceData(ndp_nn_idx, ndp_class_idx);
                     }
                     else
                     {
@@ -499,7 +498,7 @@ void ndp_thread_entry(void *pvParameters)
                             q_event = led_event_color(ndp_class_idx);
                             xQueueSend(g_led_queue, (void *)&q_event, 0U );
                             send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-                            enqueInferenceData(0, ndp_class_idx);
+                            enqueInferenceData(ndp_nn_idx, ndp_class_idx);
                         }
                     }
                     break;
