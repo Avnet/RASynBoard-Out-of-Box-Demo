@@ -33,10 +33,10 @@
 
 /** Number of axis used and sample data format */
 #define INERTIAL_AXIS_SAMPLED       6
-
 #define ARRAY_SIZE(x)   (sizeof(x)/sizeof(*(x)))
 
-extern int firmware_idx;
+/** IMU DEBUG */
+//#define MSPI_READ_IMU
 
 enum short_press_button_to_record {
 	REC_AUDIO = 1,
@@ -165,12 +165,14 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 
         for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED); j++) {
             for (i = 0; i < 3; i++) {
-                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
+                        acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
 
             }
 
             for (i = 3; i < INERTIAL_AXIS_SAMPLED; i++) {
-                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
+                        acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
             }
         }
 
@@ -178,9 +180,9 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
             // show data on the serial console
             index = sample_size / 2 - 1;
             for (i = 0; i < index; i++) {
-                printf("%f,", acc_converted_samples[i]);
+                printf("%x   ,", acc_samples[i]);
             }
-            printf("%f\n", acc_converted_samples[index]);
+            printf("%x   \n", acc_samples[index]);
         }
 
         if (is_imu_data_to_file()) {
@@ -203,7 +205,6 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     }
     // Otherwise, we capture the ADC values read from the IMU sensor
     else{
-
         if (is_imu_data_to_terminal()) {
             // show data on the serial console
             index = sample_size / 2 - 1;
@@ -232,6 +233,102 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     cb_sensor_arg->sets_count ++;
 }
 
+#ifdef MSPI_READ_IMU
+#define   IMU_SENSOR_MSSB          1
+#define REG_READ                  (0x80)
+#define REG_FIFO_COUNT_H          (0x3D)
+#define REG_FIFO_DATA             (0x3F)
+#define FIFO_HEADER_ACCEL         (0x40)
+#define FIFO_HEADER_GYRO          (0x20)
+#define FIFO_HEADER_ACCEL_GYRO   (FIFO_HEADER_ACCEL | FIFO_HEADER_ACCEL)
+
+#define INVALID_FIFO_COUNT       (0xffff)
+uint16_t read_fifo_count(void)
+{
+    uint16_t count;
+    uint8_t xdata;
+    uint8_t rdata[16];
+
+    xdata = REG_FIFO_COUNT_H | REG_READ;
+    ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &xdata, 0);
+    ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 2, &rdata, 1);
+
+    memcpy(&count, rdata, 2);
+    return count;
+}
+
+typedef union {
+    uint16_t value;
+    struct {
+        uint16_t acc_x: 1;
+        uint16_t acc_y: 1;
+        uint16_t acc_z: 1;
+        uint16_t gyro_x: 1;
+        uint16_t gyro_y: 1;
+        uint16_t gyro_z: 1;
+    } bits;
+} axes_t;
+
+typedef enum {
+    SCALE_8_BIT,
+    SCALE_16_BIT,
+} dnn_scale_t;
+
+#define NUM_AXES 6
+#define BYTES_PER_AXIS 2
+
+uint8_t read_samples(const uint8_t *data, axes_t axes, dnn_scale_t scale,
+                            uint8_t *output) {
+    int i, output_i = 0;
+    // `axes` will be either for the holding tank or the DNN, read the axes
+    // which are enabled
+    for (i = 0; i < NUM_AXES; i++) {
+        if (axes.value & (1 << i)) {
+            // data is little endian
+            if (scale == SCALE_16_BIT) {
+                output[output_i++] = *data;
+            }
+            output[output_i++] = *(data + 1);
+        }
+        data += 2;
+    }
+
+    return output_i;
+}
+
+uint8_t sensor_data[NUM_AXES * BYTES_PER_AXIS];
+void imu_mspi_record_process(struct cb_sensor_arg_s *sensor_arg)
+{
+    uint16_t fifo_count;
+    uint8_t xdata;
+    uint8_t rdata[16];
+    axes_t tank_axes;
+    uint8_t output_size;
+
+    fifo_count = read_fifo_count();
+    if (fifo_count == INVALID_FIFO_COUNT) {
+        return;
+    }
+
+    tank_axes.value = 0x3F;
+    for (int i = 0; i < fifo_count; i++) {
+        xdata =  REG_FIFO_DATA | REG_READ;
+        ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &xdata, 0);
+        ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 16, &rdata, 1);
+
+        // make sure we've got both acc and gyro data in the packet
+        if ((rdata[0] & FIFO_HEADER_ACCEL_GYRO) != FIFO_HEADER_ACCEL_GYRO) {
+            continue;
+        }
+
+        output_size = read_samples(&rdata[1], tank_axes, SCALE_16_BIT, sensor_data);
+        if (output_size > 0) {
+            icm42670_extraction_cb(output_size, sensor_data, sensor_arg);
+        }
+    }
+}
+#endif
+
 static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_arg)
 {
     int s;
@@ -245,6 +342,7 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
     s = ndp_core2_platform_tiny_get_sensor_sample_size(&save_sample_size);
     if (s) return s;
 
+    printf("save_sample_size; %d\n", save_sample_size);
     max_num_frames = IMU_REC_BUFFER_SIZE / save_sample_size;
 
 	if (is_imu_data_to_file()) {
@@ -257,6 +355,10 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
 	}
 
     while (extract_sets > sensor_arg->sets_count) {
+#ifdef MSPI_READ_IMU
+        imu_mspi_record_process(sensor_arg);
+        vTaskDelay (pdMS_TO_TICKS(2UL));
+#else
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
                 IMU_SENSOR_INDEX, save_sample_size, max_num_frames, 
                 (!sensor_arg->sets_count)?1:0, 
@@ -265,6 +367,7 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
             printf("sensor extract data failed: %d\n", s);
             break;
         }
+#endif
     }
 
     write_extraction_file_end();

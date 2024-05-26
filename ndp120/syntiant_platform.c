@@ -1516,7 +1516,7 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
     while (1) {
         /* reinitialize sampe_size before every call to
             * syntiant_ndp_extract_data */
-        s = syntiant_ndp120_tiny_extract_data(ndpp, data_buffer, &sample_size, 
+        s = syntiant_ndp120_tiny_extract_data(ndpp, sensor_data_ptr, &sample_size, 
                 extract_from, NDP120_DSP_SAMPLE_TYPE_SENSOR);
         if (s == SYNTIANT_NDP_ERROR_DATA_REREAD) {
             s = SYNTIANT_NDP_ERROR_NONE;
@@ -1525,8 +1525,6 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
             SYNTIANT_TRACE("ndp120_tiny_extract_data fail: %d\n", s);
             return s;
         }
-    
-        sensor_data_cb(save_sample_size, sensor_data_ptr, sensor_arg);
 
         sensor_data_ptr += sample_size;
         extract_from = SYNTIANT_NDP120_EXTRACT_FROM_UNREAD;
@@ -1538,6 +1536,12 @@ int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer,
                     "frames: %d frames\n", num_frames);
             break;
         }
+    }
+
+    sensor_data_ptr = data_buffer;
+    for (int i = 0; i < num_frames; i ++) {
+        sensor_data_cb(save_sample_size, sensor_data_ptr, sensor_arg);
+        sensor_data_ptr += save_sample_size;
     }
 
     return s;
