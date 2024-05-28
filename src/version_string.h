@@ -16,7 +16,7 @@
 #define MAJOR_VERSION "1"
 
 // Increment Minor Version when new features are added
-#define MINOR_VERSION "5"
+#define MINOR_VERSION "6"
 
 #if RELEASE_BUILD
 

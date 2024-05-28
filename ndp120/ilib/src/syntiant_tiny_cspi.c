@@ -28,14 +28,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v105 **
+ 	** SDK: v110 **
 */
 
 #include <stdint.h>
 
-#include "syntiant_ilib/syntiant_ndp120_tiny.h"
-#include "syntiant_ilib/syntiant_spictl_regs.h"
-#include "syntiant_ilib/syntiant_tiny_cspi.h"
+#include <syntiant_ilib/syntiant_ndp120_tiny.h>
+#include <syntiant_ilib/syntiant_spictl_regs.h>
+#include <syntiant_ilib/syntiant_tiny_cspi.h>
 
 #define MSPI_CLK_DIV 2
 #define MSSB_OE_USED 7
@@ -81,7 +81,7 @@ done:
  * Write up to 16 bytes of data
  */
 static int _cspi_write(struct syntiant_ndp120_tiny_device_s *ndp,
-    unsigned int ssb, unsigned int num_bytes, uint8_t *buf, int end_packet)
+    unsigned int ssb, unsigned int num_bytes, const uint8_t *buf, int end_packet)
 {
     int s;
     uint32_t data;
@@ -240,7 +240,7 @@ done:
 }
 
 int syntiant_cspi_read(struct syntiant_ndp120_tiny_device_s *ndp,
-    unsigned int ssb, unsigned int num_bytes, void* buf, int end_packet)
+    unsigned int ssb, unsigned int num_bytes, void *buf, int end_packet)
 {
     int s;
     unsigned int chunk = 16;
@@ -261,7 +261,7 @@ int syntiant_cspi_read(struct syntiant_ndp120_tiny_device_s *ndp,
 }
 
 int syntiant_cspi_write(struct syntiant_ndp120_tiny_device_s *ndp,
-    unsigned int ssb, unsigned int num_bytes, void* buf, int end_packet)
+    unsigned int ssb, unsigned int num_bytes, const void *buf, int end_packet)
 {
     int s;
     unsigned int chunk = 16;

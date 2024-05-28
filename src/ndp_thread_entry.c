@@ -61,13 +61,12 @@ static char ble_at_string[][36] = {
 // Structure to hold inference data and inference counts
 static inferenceData_t inferenceData[SYNTIANT_NDP120_MAX_NNETWORKS][SYNTIANT_NDP120_MAX_CLASSES];
 
-static int total_nn = 0;
-static int num_labels = 0;
-
+int total_nn = 0;
+int num_labels = 0;
 
 #define SYNTIANT_NDP120_MAX_CLASSES     32
 #define SYNTIANT_NDP120_MAX_NNETWORKS   4
-#define MAX_TELEMETRY_NETWORKS          1
+#define MAX_TELEMETRY_NETWORKS          2
 #define MAX_TELEMETRY_LABELS            10
 #define NDP120_MCU_LABELS_MAX_LEN       (0x200)
 
@@ -160,7 +159,7 @@ void ndp_send_model_telemetry(void)
        for( int labelNum = 0; labelNum < MAX_TELEMETRY_LABELS; labelNum++){
 
             // Construct the object key
-            snprintf(dynamicKey, LABEL_KEY_LEN, "label_%d", labelNum);
+            snprintf(dynamicKey, LABEL_KEY_LEN, "label_%d_%d", networkNum, labelNum);
 
             // Init the inference data structure
             strncpy(inferenceData[networkNum][labelNum].objKey, dynamicKey, LABEL_KEY_LEN);
@@ -168,7 +167,7 @@ void ndp_send_model_telemetry(void)
             inferenceData[networkNum][labelNum].inferenceIndex = labelNum;
             inferenceData[networkNum][labelNum].networkNumber = networkNum;
 
-            if((networkNum < total_nn) && (labelNum < num_labels)){
+            if((networkNum < total_nn) && (labelNum < numlabels_per_network[networkNum])){
 
                 strncpy(inferenceData[networkNum][labelNum].infStr, (char*)labels_per_network[networkNum][labelNum], MAX_SUPPORTED_LABEL_LEN);
                 inferenceData[networkNum][labelNum].networkNumber = networkNum;
@@ -209,7 +208,7 @@ void ndp_info_display(void)
             label_data, &labels_len); 
     if (s) return;
         
-    printf("ndp120 has %d network and %d labels loaded\n", total_nn, total_labels);
+    printf("ndp120 has %d network(s) and %d labels loaded\n", total_nn, total_labels);
   
     /* get pointers to the labels */
     num_labels = 0;
@@ -286,7 +285,7 @@ int bff_reinit_imu(void)
 
     s = ndp_core2_platform_tiny_dsp_restart();
     if (s) {
-        printf("restart DSP failed: %d\n", IMU_SENSOR_INDEX, s);
+        printf("restart DSP failed: %d\n", s);
         return s;
     }
     vTaskDelay (pdMS_TO_TICKS(1000UL));
@@ -342,8 +341,12 @@ void ndp_thread_entry(void *pvParameters)
         ndp_boot_mode = NDP_CORE2_BOOT_MODE_HOST_FILE;
     }
 
+/**
+        "    4:  PLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 21504000 Hz\n"
+*/
     /* Start NDP120 program */
-    ret = ndp_core2_platform_tiny_start(1, 1, ndp_boot_mode);
+    ret = ndp_core2_platform_tiny_start(4, 1, ndp_boot_mode);
     if(ret == 0) {
         printf("ndp_core2_platform_tiny_start done\r\n");
         xSemaphoreGive(g_binary_semaphore);
@@ -362,7 +365,7 @@ void ndp_thread_entry(void *pvParameters)
     // read back info from FLASH
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
-            mode_circular_motion = flash_data.ndp_mode_motion;
+            set_event_watch_mode (flash_data.watch_mode);
             memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
         }
         
@@ -377,7 +380,8 @@ void ndp_thread_entry(void *pvParameters)
     // Init the inference data structure and send up initial telemetry
     ndp_send_model_telemetry();
 
-    if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+    // enable the features
+    if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
         set_decimation_inshift();
 
         ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
@@ -386,22 +390,27 @@ void ndp_thread_entry(void *pvParameters)
                         NDP_CORE2_FEATURE_PDM, ret);
         }
     }
-    else {
+    
+    if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
         if (ndp_boot_mode == NDP_CORE2_BOOT_MODE_BOOT_FLASH) {
             ret = bff_reinit_imu();
             if (ret) {
                 printf("bff reinit IMU failed: %d\n", ret);
             }
         }
-        
+        else {
+            ret = ndp_core2_platform_tiny_dsp_restart();
+            if (ret) {
+                printf("restart DSP failed: %d\n", ret);
+            }
+            vTaskDelay (pdMS_TO_TICKS(1000UL));
+        }
+
         ndp_print_imu();
 
         ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
         if (ret) {
-            printf("Enable sensor[%d] icm-42670 failed: %d\n", IMU_SENSOR_INDEX, ret);
-        }
-        else {
-            printf("Enable sensor[%d] icm-42670 done\n", IMU_SENSOR_INDEX);
+            printf("Enable sensor icm-42670 failed: %d\n", IMU_SENSOR_INDEX, ret);
         }
     }
 
@@ -452,7 +461,7 @@ void ndp_thread_entry(void *pvParameters)
                     q_event = led_event_color(ndp_class_idx);
                     xQueueSend(g_led_queue, (void *)&q_event, 0U );
                     send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
-                    enqueInferenceData(0, ndp_class_idx);
+                    enqueInferenceData(ndp_nn_idx, ndp_class_idx);
                     break;
                 case 2:
                     /* Voice: Down; light Magenta Led */
@@ -465,7 +474,7 @@ void ndp_thread_entry(void *pvParameters)
                         q_event = led_event_color(ndp_class_idx);
                         xQueueSend(g_led_queue, (void *)&q_event, 0U );
                         send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-                        enqueInferenceData(0, ndp_class_idx);
+                        enqueInferenceData(ndp_nn_idx, ndp_class_idx);
                     }
                     else
                     {
@@ -489,7 +498,7 @@ void ndp_thread_entry(void *pvParameters)
                             q_event = led_event_color(ndp_class_idx);
                             xQueueSend(g_led_queue, (void *)&q_event, 0U );
                             send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-                            enqueInferenceData(0, ndp_class_idx);
+                            enqueInferenceData(ndp_nn_idx, ndp_class_idx);
                         }
                     }
                     break;
@@ -508,14 +517,15 @@ void ndp_thread_entry(void *pvParameters)
                 printf ("\nBegin to program the spi flash ..... \n");
                 ndp_irq_disable();
                 turn_led(BSP_LEDRED, BSP_LEDON);
-                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
                     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
                     if (ret) {
                         printf("Feature set NONE failed: %d\n", ret);
                         break;
                     }
                 }
-                else {
+
+                if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
                     ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
                     if (ret) {
                         printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
@@ -543,14 +553,15 @@ void ndp_thread_entry(void *pvParameters)
                 printf ("Finished programming!\n\n");
                 usb_enable();
             
-                if (motion_running() == CIRCULAR_MOTION_DISABLE) {
+                if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
                     ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
                     if (ret) {
                         printf("Feature set NONE failed: %d\n", ret);
                         break;
                     }
                 }
-                else {
+
+                if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
                     ret = bff_reinit_imu();
                     if (ret) {
                         printf("bff reinit IMU failed: %d\n", ret);

@@ -42,7 +42,7 @@ extern "C" {
 
 #include "syntiant_common.h"
 
-#define SYNTIANT_NDP_SDK_VERSION    "v105"
+#define SYNTIANT_NDP_SDK_VERSION    "v110"
 
 #define EXT_CLOCK_FREQ      (21504000)
 #define PLL_FLL_CLOCK_FREQ  (32768)
@@ -102,11 +102,6 @@ enum {
     /**< enable the chip-specific default interrupts */
 };
 
-enum {
-    NDP_CORE2_GET_FROM_ILIB = 0,
-    NDP_CORE2_GET_FROM_MCU
-};
-
 /**
  * @brief extract source enable types
  */
@@ -150,6 +145,42 @@ enum {
 };
 
 /* general */
+/**
+" -c <option>:<type>   specify clock option [0-15], type [1:xtal]\n"
+        "   e.g. Set y to 1 for crystal, 0 otherwise\n"
+        "    0: FLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 15360000 Hz\n"
+        "    1: FLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 16896000 Hz\n\n"
+        "    2:  PLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 10752000 Hz\n"
+        "    3:  PLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 15360000 Hz\n"
+        "    4:  PLL voltage = 0.9v, input freq = 32768   Hz, system freq ="
+        " 21504000 Hz\n"
+        "    5:  PLL voltage = 0.9v, input freq = 4096000 Hz, system freq ="
+        " 15360000 Hz\n"
+        "    6:  PLL voltage = 0.9v, input freq = 4096000 Hz, system freq ="
+        " 21504000 Hz\n"
+        "    7:  PLL voltage = 1.0v, input freq = 32768   Hz, system freq ="
+        " 49152000 Hz\n"
+        "    8:  PLL voltage = 1.0v, input freq = 32768   Hz, system freq ="
+        " 55296000 Hz\n"
+        "    9:  PLL voltage = 1.0v, input freq = 4096000 Hz, system freq ="
+        " 49152000 Hz\n"
+        "    10: PLL voltage = 1.1v, input freq = 32768   Hz, system freq ="
+        " 55296000 Hz\n"
+        "    11: PLL voltage = 1.1v, input freq = 32768   Hz, system freq ="
+        " 76800000 Hz\n"
+        "    12: PLL voltage = 1.1v, input freq = 32768   Hz, system freq ="
+        " 98304000 Hz\n"
+        "    13: PLL voltage = 1.1v, input freq = 512000  Hz, system freq ="
+        " 98304000 Hz\n"
+        "    14: PLL voltage = 1.1v, input freq = 4096000 Hz, system freq ="
+        " 76800000 Hz\n"
+        "    15: PLL voltage = 1.1v, input freq = 4096000 Hz, system freq ="
+        " 98304000 Hz\n"
+*/
 extern int ndp_core2_platform_tiny_start(uint8_t clock_option, int use_xtal, 
         int boot_mode);
 extern int ndp_core2_platform_tiny_recover(uint8_t clock_option);
@@ -173,8 +204,7 @@ extern int ndp_core2_platform_tiny_halt_mcu(void);
 extern int ndp_core2_platform_tiny_dsp_restart(void);
 
 
-/* cspi related */
-#ifndef EXCLUDE_TINY_CSPI     
+/* cspi related */ 
 extern int ndp_core2_platform_tiny_mspi_config(void);
 extern int ndp_core2_platform_tiny_mspi_read(int ssb, int num_bytes, 
         uint8_t* data, int end_packet);
@@ -188,26 +218,19 @@ extern int ndp_core2_platform_tiny_flash_sector_erase(uint32_t addr);
 extern int ndp_core2_platform_tiny_flash_page_program(uint32_t addr, 
         uint8_t *data, unsigned int len);
 
-#endif //EXCLUDE_TINY_CSPI
-
 
 /* extraction related */
-#ifndef EXCLUDE_TINY_EXTRACTION
 typedef void (*audio_data_cb_f)(uint32_t extract_size, uint8_t *audio_data, 
                     void *audio_arg);
 
 extern uint32_t ndp_core2_platform_tiny_get_samplebytes(void);
 extern uint32_t ndp_core2_platform_tiny_get_samplerate(void);
+extern int ndp_core2_platform_tiny_get_audio_chunk_size(uint32_t *audio_chunk_size, 
+        uint32_t *sample_size);
 
-extern int ndp_core2_platform_tiny_get_recording_metadata(uint32_t *sample_size, 
-        int get_from);
 extern int ndp_core2_platform_tiny_notify_extract_data(uint8_t *data_buffer, 
         uint32_t sample_size, audio_data_cb_f audio_data_cb, void *audio_arg);
-
-extern int ndp_core2_platform_tiny_extract_start(void);
-extern int ndp_core2_platform_tiny_extract_stop(void);
 extern int ndp_core2_platform_tiny_src_type(uint8_t *data, uint32_t *data_size);
-#endif //EXCLUDE_TINY_EXTRACTION
 
 extern int ndp_core2_platfom_tiny_gpio_release(uint32_t gpio_num);
 extern int ndp_core2_platform_tiny_gpio_config(int gpio_num, 
@@ -219,28 +242,23 @@ extern int ndp_core2_platform_tiny_audio_config_set(uint8_t aud_id, uint8_t mic_
 
 
 /* sensor control related */
-#ifndef EXCLUDE_SENSOR_FEATURE
 typedef void (*sensor_data_cb_f)(uint32_t extract_size, uint8_t *sensor_data, 
                     void *sensor_arg);
 
+extern int ndp_core2_platform_tiny_get_sensor_sample_size(uint32_t *sample_size);
 extern int ndp_core2_platform_tiny_sensor_ctl(int sensor_num, int enable);
 extern int ndp_core2_platform_tiny_sensor_extract_data(uint8_t *data_buffer, 
-        int sensor_num, 
-        sensor_data_cb_f sensor_data_cb, void *sensor_arg);
-#endif //EXCLUDE_SENSOR_FEATURE
+        int sensor_num, uint32_t save_sample_size, int max_num_frames, 
+        int extract_start, sensor_data_cb_f sensor_data_cb, void *sensor_arg);
 
 
 /* get information related */
-#ifndef EXCLUDE_GET_INFO
 extern int ndp_core2_platform_tiny_get_info(int *total_nn, int *total_labels, 
         char *labels_get, int *labels_len);
-#endif //EXCLUDE_GET_INFO
 
 
 /* debug printing related */
-#ifndef EXCLUDE_PRINT_DEBUG
 extern void ndp_core2_platform_tiny_debug(void);
-#endif //EXCLUDE_PRINT_DEBUG
 
 #ifdef __cplusplus
 }

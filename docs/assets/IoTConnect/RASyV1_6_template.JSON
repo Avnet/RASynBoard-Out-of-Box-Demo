@@ -1,6 +1,6 @@
 {
-    "code": "RAS15c",
-    "name": "RASyV1_5",
+    "code": "RAS16c",
+    "name": "RASyV1_6",
     "authType": 2,
     "attributes": [
         {
@@ -36,7 +36,7 @@
             "unit": null
         },
         {
-            "name": "label_0",
+            "name": "label_0_0",
             "type": "OBJECT",
             "childs": [
                 {
@@ -57,7 +57,7 @@
             ]
         },
         {
-            "name": "label_1",
+            "name": "label_0_1",
             "type": "OBJECT",
             "childs": [
                 {
@@ -78,7 +78,7 @@
             ]
         },
         {
-            "name": "label_2",
+            "name": "label_0_2",
             "type": "OBJECT",
             "childs": [
                 {
@@ -99,7 +99,7 @@
             ]
         },
         {
-            "name": "label_3",
+            "name": "label_0_3",
             "type": "OBJECT",
             "childs": [
                 {
@@ -120,7 +120,7 @@
             ]
         },
         {
-            "name": "label_4",
+            "name": "label_0_4",
             "type": "OBJECT",
             "childs": [
                 {
@@ -141,7 +141,7 @@
             ]
         },
         {
-            "name": "label_5",
+            "name": "label_0_5",
             "type": "OBJECT",
             "childs": [
                 {
@@ -162,7 +162,7 @@
             ]
         },
         {
-            "name": "label_6",
+            "name": "label_0_6",
             "type": "OBJECT",
             "childs": [
                 {
@@ -183,7 +183,7 @@
             ]
         },
         {
-            "name": "label_7",
+            "name": "label_0_7",
             "type": "OBJECT",
             "childs": [
                 {
@@ -204,7 +204,7 @@
             ]
         },
         {
-            "name": "label_8",
+            "name": "label_0_8",
             "type": "OBJECT",
             "childs": [
                 {
@@ -225,7 +225,217 @@
             ]
         },
         {
-            "name": "label_9",
+            "name": "label_0_9",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_0",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_1",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_2",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_3",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_4",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_5",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_6",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_7",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_8",
+            "type": "OBJECT",
+            "childs": [
+                {
+                    "name": "infStr",
+                    "type": "STRING",
+                    "description": "Inference description from the NDP120"
+                },
+                {
+                    "name": "infIdx",
+                    "type": "INTEGER",
+                    "description": "Inference index from the NDP120"
+                },
+                {
+                    "name": "infCnt",
+                    "type": "INTEGER",
+                    "description": "Number of times this inference event has fired since boot time"
+                }
+            ]
+        },
+        {
+            "name": "label_1_9",
             "type": "OBJECT",
             "childs": [
                 {

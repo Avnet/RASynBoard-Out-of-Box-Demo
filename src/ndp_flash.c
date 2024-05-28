@@ -425,7 +425,7 @@ int ndp_flash_program_infos(void)
 	config_data_in_flash_t info = {0};
 
 	info.PINcode = PINCODE_VALUE;
-	info.ndp_mode_motion = mode_circular_motion;
+	info.watch_mode = get_event_watch_mode();
 	memcpy(&info.cfg, &config_items, sizeof(struct config_ini_items));
 
 	//ndp_flash_4kblock_erase(FLASH_INFO_ADDR);

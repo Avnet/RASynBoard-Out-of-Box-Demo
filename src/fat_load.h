@@ -60,6 +60,12 @@ enum CIRCULAR_MOTION_TYPE {
     CIRCULAR_MOTION_DISABLE = 1,
 };
 
+enum EVENT_WATCH_TYPE {
+    WATCH_TYPE_NONE = 0,
+    WATCH_TYPE_AUDIO = 0x1,
+    WATCH_TYPE_MOTION = 0x2,
+};
+
 enum IMU_FUNC_TYPE {
 	IMU_FUNC_DISABLE = 0,
     IMU_FUNC_ENABLE = 1,
@@ -137,7 +143,6 @@ struct config_ini_items {
 };
 
 extern struct config_ini_items config_items;
-extern int mode_circular_motion;
 extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];
@@ -156,6 +161,8 @@ void write_extraction_file_end(void);
 #endif
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
+uint32_t get_event_watch_mode();
+void set_event_watch_mode(uint32_t watch_mode);
 uint32_t get_sdcard_total_sectors( void );
 uint32_t get_sdcard_slot_status( void );
 int get_print_console_type( void );
@@ -189,6 +196,5 @@ bool is_imu_convertion_enabled( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
-int motion_running(void);
 
 #endif /* FAT_LOAD_H_ */
