@@ -156,6 +156,8 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     uint16_t i, j, index = 0;
     int16_t *acc_samples = (int16_t *)(sensor_data);
     char *percent_ptr = NULL;
+    float acc_converted_samples[sample_size];
+
 
     // If we're capturing converted IMU data, then do the conversion.  acc_converted_samples will
     // hold the converted float data.
@@ -178,11 +180,26 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 
         if (is_imu_data_to_terminal()) {
             // show data on the serial console
-            index = sample_size / 2 - 1;
-            for (i = 0; i < index; i++) {
-                printf("%x   ,", acc_samples[i]);
+
+            // Output converted samples
+            if(is_imu_convertion_enabled()){
+
+                index = sample_size / 2 - 1;
+                for (i = 0; i < index; i++) {
+                    printf("%f,", acc_converted_samples[i]);
+                }
+                printf("%f\n", acc_converted_samples[index]);
+
             }
-            printf("%x   \n", acc_samples[index]);
+            // Output RAW ADC values
+            else{
+
+                index = sample_size / 2 - 1;
+                for (i = 0; i < index; i++) {
+                    printf("%x,", acc_samples[i]);
+                }
+                printf("%x\n", acc_samples[index]);
+            }
         }
 
         if (is_imu_data_to_file()) {
@@ -342,7 +359,7 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
     s = ndp_core2_platform_tiny_get_sensor_sample_size(&save_sample_size);
     if (s) return s;
 
-    printf("save_sample_size; %d\n", save_sample_size);
+//    printf("save_sample_size; %d\n", save_sample_size);
     max_num_frames = IMU_REC_BUFFER_SIZE / save_sample_size;
 
 	if (is_imu_data_to_file()) {
