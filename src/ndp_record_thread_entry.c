@@ -169,7 +169,6 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
             for (i = 0; i < 3; i++) {
                 acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
                         acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
-
             }
 
             for (i = 3; i < INERTIAL_AXIS_SAMPLED; i++) {

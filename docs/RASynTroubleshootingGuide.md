@@ -39,14 +39,42 @@ This entry captures two issues.
     - Usually this LED lights on power-up while the application loads the NDP120 images
     - Usually this LED lights whenever a feature is detected by the Syntiant NDP120
 
-## How to resolve this issue
+### How to resolve this issue
 Unfortunately this is a hardware issue.  Until this issue is resolved, the EVK can be run on a LiPo battery by following these simple steps:
 
 1. Power the RASynBoard EVK from either USB-C connectors
-2. Plug in the LiPo battery to the battery connector on the core board
-3. After the application has started, remove the USB-C cable
+1. Plug in the LiPo battery to the battery connector on the core board
+1. After the application has started, remove the USB-C cable
 
 The application will run as expected with the exception of the RGB LED, that will not work when the EVK is powered by the LiPo battery.
+
+#### Hardware modification to resolve this issue
+
+We've identified a hardware modification that will resolve this issue.  The only downside is that there is about a 1mW of additional current pulled from the LiPo battery with the modification.
+
+There are two hardware changes required to boot and run the EVK (I/O board + core board) from a LiPo battery.  The modification will permanently disable the U1 buck regulator on the I/O board and instead bridge the 3.3V_MCU and 3.3V_MCU_1 power rails.  These changes can be made to the top side of the I/O board. 
+
+1. Disable U1 by desoldering the L1 inductor from the I/O board (L1 is much easier to remove than the tiny R13, R16 resistors)
+Functionally U1 is now disabled. External 3.3V voltage applied across it’s internal FETs should not be a problem.
+The risk of energy getting stored-in and discharged-from this L1 inductor when external 3.3V is applied, is also eliminated.
+
+1. Add a short wire-mod between:
+    - Pmod connector  J11 pin 13 (3v3_MCU) and
+    - Debug MCU header J3 pin 4 (3V3_MCU_1) 
+
+<p align="center">
+    <br />
+    <img src=./assets/images/LiPoRework01.png width="600">
+<br />
+
+**Notes:** 
+- This will keep the I/O Board RX231 MCU and RGB LED powered from 3v3_MCU when USB power is not present.
+- With the RUN jumper across J3 pins 1 and 2, the RX231 is kept in reset state, so current consumed by this MCU should be very low
+
+<p align="center">
+    <br />
+    <img src=./assets/images/LiPoRework02.png width="800">
+<br />
 
 # Application Issues
 ## Application hangs, buttons not working
@@ -74,7 +102,10 @@ To resolve the issue, fix any errors with the microSD card's file system by refo
 - The ML model does not load 
 - You see debug similar to
 
-![](./assets/images/errIncorrectModelNameSpecified.jpg)
+<p align="center">
+    <br />
+    <img src=./assets/images/errIncorrectModelNameSpecified.jpg width="600">
+<br />
 
 ### How to resolve the issue
 This error occurred because the *.synpkg filenames defined in the selected config.ini [Function_x] block are not found in the root directory of the microSD card.
@@ -89,7 +120,10 @@ This error occurred because the *.synpkg filenames defined in the selected confi
 
 The following debug was a result of loading V1.4.0 models while running the V1.5.0 Out-of-Box application
 
-![](./assets/images/ErrIncompatableMLModelLoaded.jpg)
+<p align="center">
+    <br />
+    <img src=./assets/images/ErrIncompatableMLModelLoaded.jpg width="700">
+<br />
 
 ## Syntiant SDK version mismatch
 The OOB application is built using a specific Syntiant SDK version.  Any ML models loaded to the NDP120 must have been generated using the same Syntiant SDK version.  
@@ -124,7 +158,10 @@ If the application is configured to send debug output to the PMOD UART ```config
 ### How to resolve the issue
 - Verify that the config.ini file is correctly configured
 
-![](./assets/images/debugConfig.jpg "")
+<p align="center">
+    <br />
+    <img src=./assets/images/debugConfig.jpg width="600">
+<br />
 
 - Verify that the microSD card is inserted into the RASynBoard I/O board
 - Verify that the microSD card contains the config.ini file
@@ -155,7 +192,10 @@ This section captures issues you may encounter when developing custom applicatio
 
 When trying to debug the application (clicking on the small green bug icon in e^2 studio) the following dialog is displayed . . . 
 
-![](./assets/images/debuggerConfigDoesNotMatch.jpg)
+<p align="center">
+    <br />
+    <img src=./assets/images/debuggerConfigDoesNotMatch.jpg width="500">
+<br />
 
 ### How to resolve this issue
 
@@ -172,14 +212,20 @@ This error will occur if the Renesas e^2 debugger is not found on the developmen
 
 When trying to debug the application (clicking on the small green bug icon in e^2 studio) the following dialog is displayed . . . 
 
-![](./assets/images/debugConnectionFailed.jpg)
+<p align="center">
+    <br />
+    <img src=./assets/images/debugConnectionFailed.jpg width="400">
+<br />
 
 ### How to resolve this issue
 
 - Verify that the RASynBoard is correctly configured to enable the debugger
 - Make sure to use the USB-C connector on the I/O board
 
-![](./assets/images/releases13.jpg)
+<p align="center">
+    <br />
+    <img src=./assets/images/releases13.jpg width="600">
+<br />
 
 If you still can't connect to the debugger, verify that the driver is correctly installed on your development PC
 
@@ -189,7 +235,10 @@ If you still can't connect to the debugger, verify that the driver is correctly 
     - Try to reboot your PC
     - Try reinstalling the Renesas e^2 Studio application
 
-![](./assets/images/renesase2LiteDevice.jpg)
+<p align="center">
+    <br />
+    <img src=./assets/images/renesase2LiteDevice.jpg width="350">
+<br />
 
 # Renesas Flash Programming (RFP) Errors
 
@@ -198,9 +247,9 @@ If you still can't connect to the debugger, verify that the driver is correctly 
 ### How to identify this issue
 When trying to flash a new image (*.srec) to the RASynBoard, the user sees the error below.
 
-<p align="left">
+<p align="center">
     <br />
-    <img src=./assets/images/fspError01.jpg width="500">
+    <img src=./assets/images/fspError01.jpg width="600">
 <br />
 
 ### How to resolve this issue
@@ -211,14 +260,14 @@ This is a known FSP issue.  To resolve the issue start a new FSP project
 2. Select **File -> New Project**, the "Create New Project" dialog opens
 3. Use the configuration shown, click on the **Connect** button
 
-<p align="left">
+<p align="center">
     <br />
     <img src=./assets/images/fspError02.jpg width="500">
 <br />
 
 4. You should see that the application connected to your RASynBoard
 
-<p align="left">
+<p align="center">
     <br />
     <img src=./assets/images/fspError03.jpg width="500">
 <br />
@@ -229,7 +278,7 @@ This is a known FSP issue.  To resolve the issue start a new FSP project
     1. Click on the **Start** button
     1. The image is flashed to the board, and you should see the application update as shown below
 
-<p align="left">
+<p align="center">
     <br />
     <img src=./assets/images/fspError04.jpg width="500">
 <br />
