@@ -158,12 +158,9 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     char *percent_ptr = NULL;
     float acc_converted_samples[sample_size];
 
-
     // If we're capturing converted IMU data, then do the conversion.  acc_converted_samples will
     // hold the converted float data.
     if(is_imu_convertion_enabled()){
-
-        float acc_converted_samples[sample_size];
 
         for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED); j++) {
             for (i = 0; i < 3; i++) {

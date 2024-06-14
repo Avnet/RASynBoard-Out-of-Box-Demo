@@ -55,6 +55,12 @@ enum LOW_POWER_MODE_TYPE {
     LOW_POWER_MODE_NONE,
 };
 
+
+enum DOWN_DOWN_LP_ENABLED_TYPE {
+    DOWN_DOWN_DISABLED = 0,
+    DOWN_DOWN_ENABLED = 1,
+};
+
 enum CIRCULAR_MOTION_TYPE {
     CIRCULAR_MOTION_ENABLE = 0,
     CIRCULAR_MOTION_DISABLE = 1,
@@ -112,6 +118,7 @@ struct config_ini_items {
 	int imu_print_to_terminal;	                /** [IMU data stream]-->Print_to_terminal **/
 
 	int low_power_mode;			                /** [Low Power Mode]-->Power_Mode **/
+	int low_power_down_down_enabled;            /** [Low Power Mode]-->down_down_enters_low_power **/
 	int ble_mode;				                /** [BLE Mode]-->BLE_Enabled **/
 
 	int cert_location;                          /** [CERTS]-->Cert_Location **/
@@ -168,6 +175,7 @@ uint32_t get_sdcard_slot_status( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
+int get_down_down_lp_mode( void );
 int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
 int is_file_exist_in_sdcard( char *filename );
