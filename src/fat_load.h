@@ -30,6 +30,11 @@
 #define DEC_INSHIFT_VALUE_MAX 13
 #define DEC_INSHIFT_OFFSET_DEFAULT 0
 
+// Define to identify the configuration that may cause the application to freeze when outputting
+// floating point IMU data to the debug COM port.  This issue has been masked by reducing the 
+// floating point percision in the output to 4 places.
+#undef FLOATING_POINT_PRINTF_BUG
+
 #define LED_EVENT_NUM           10
 
 enum FW_LOAD_TYPE {
