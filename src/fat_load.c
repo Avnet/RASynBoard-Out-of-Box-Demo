@@ -605,6 +605,7 @@ static uint32_t read_config_file( void )
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 	config_items.recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	config_items.low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
+    config_items.low_power_down_down_enabled = ini_getl("Low Power Mode", "down_down_enters_low_power",DOWN_DOWN_ENABLED, inifile);
 	config_items.imu_write_to_file = ini_getl("IMU data stream", "Write_to_file", \
 										IMU_FUNC_ENABLE, inifile);
 	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
@@ -774,6 +775,10 @@ int get_low_power_mode( void )
     return config_items.low_power_mode;
 }
 
+int get_down_down_lp_mode( void ){
+    return config_items.low_power_down_down_enabled;
+}
+
 int get_wifi_config( void )
 {
     return config_items.wifi_config;
@@ -854,6 +859,13 @@ void printConfg(void)
                 printf("    WARNING: The application is configured to capture IMU data, but the configuration does indicate where to capture the IMU data!\n");
                 printf("             Please edit the config.ini file, section [IMU data stream]\n");
             }
+#ifdef FLOATING_POINT_PRINTF_BUG
+            // Add a warning message if the user wants to output converted IMU data to the terminal.  See AAGBT-165 for details
+            if((1 == config_items.imu_print_to_terminal) && (1 == config_items.imu_conversion_enabled)){
+                printf("\n!!!!! AAGBT-165: Note this configuration is not currently working . . . \n* [IMU data stream]->Print_to_terminal=1 \n*    AND\n* [IMU Recording Format]->Convert_Data=1\n");
+                printf("\nTo capture converted IMU data please write the data to a file set . . . \n* [IMU data stream]->Print_to_terminal=0\n*    AND\n* IMU data stream]->Print_to_file=1\n*    AND\n* [IMU Recording Format]->Convert_Data=1\n\n");
+            }
+#endif   
         }
     }
     else {

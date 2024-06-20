@@ -30,6 +30,11 @@
 #define DEC_INSHIFT_VALUE_MAX 13
 #define DEC_INSHIFT_OFFSET_DEFAULT 0
 
+// Define to identify the configuration that may cause the application to freeze when outputting
+// floating point IMU data to the debug COM port.  This issue has been masked by reducing the 
+// floating point percision in the output to 4 places.
+#undef FLOATING_POINT_PRINTF_BUG
+
 #define LED_EVENT_NUM           10
 
 enum FW_LOAD_TYPE {
@@ -53,6 +58,12 @@ enum LOW_POWER_MODE_TYPE {
     DOWN_DOWN_LP_MODE = 0,
     ALWAYS_ENTER_LP_MODE = 1,
     LOW_POWER_MODE_NONE,
+};
+
+
+enum DOWN_DOWN_LP_ENABLED_TYPE {
+    DOWN_DOWN_DISABLED = 0,
+    DOWN_DOWN_ENABLED = 1,
 };
 
 enum CIRCULAR_MOTION_TYPE {
@@ -112,6 +123,7 @@ struct config_ini_items {
 	int imu_print_to_terminal;	                /** [IMU data stream]-->Print_to_terminal **/
 
 	int low_power_mode;			                /** [Low Power Mode]-->Power_Mode **/
+	int low_power_down_down_enabled;            /** [Low Power Mode]-->down_down_enters_low_power **/
 	int ble_mode;				                /** [BLE Mode]-->BLE_Enabled **/
 
 	int cert_location;                          /** [CERTS]-->Cert_Location **/
@@ -168,6 +180,7 @@ uint32_t get_sdcard_slot_status( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
+int get_down_down_lp_mode( void );
 int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
 int is_file_exist_in_sdcard( char *filename );

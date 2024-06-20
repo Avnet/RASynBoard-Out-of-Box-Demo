@@ -8,6 +8,9 @@
 #include "ndp_irq_service.h"
 #include "led.h"
 #include "usb_pcdc_vcom.h"
+#ifdef FLOATING_POINT_PRINTF_BUG
+#include "stdbool.h"
+#endif
 
 #define   AUDIO_REC_BYTES_PER_SEC         32000U
 #define   AUDIO_REC_BUFFER_SIZE            2048
@@ -154,23 +157,45 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 {
     struct cb_sensor_arg_s *cb_sensor_arg = (struct cb_sensor_arg_s*)sensor_arg;
     uint16_t i, j, index = 0;
-    int16_t *acc_samples = (int16_t *)(sensor_data);
+    int16_t *acc_samples = (int16_t *)(sensor_data); // Note we're casting this incomming uint_8 data to uint_16 
     char *percent_ptr = NULL;
     float acc_converted_samples[sample_size];
 
+#ifdef FLOATING_POINT_PRINTF_BUG
+
+    static bool error_message_printed = false;
+
+    if (is_imu_data_to_terminal() && is_imu_convertion_enabled() && !error_message_printed) {
+
+        // Add a warning message if the user wants to output converted IMU data to the terminal.  See AAGBT-165 for details
+        printf("\n!!!!! AAGBT-165: Note this configuration is not currently working . . . \n* [IMU data stream]->Print_to_terminal=1 \n*    AND\n* [IMU Recording Format]->Convert_Data=1\n");
+        printf("\nTo capture converted IMU data please write the data to a file set . . . \n* [IMU data stream]->Print_to_terminal=0\n*    AND\n* IMU data stream]->Print_to_file=1\n*    AND\n* [IMU Recording Format]->Convert_Data=1\n\n");
+        error_message_printed = true;
+    }
+
+    // Exit this routine
+    if(error_message_printed){
+
+        // Increment the count so that the application does not hang . . .
+        cb_sensor_arg->sets_count ++;
+        return;
+    }
+#endif
 
     // If we're capturing converted IMU data, then do the conversion.  acc_converted_samples will
     // hold the converted float data.
     if(is_imu_convertion_enabled()){
 
-        float acc_converted_samples[sample_size];
+        // Populate the float array with converted IMU values
+        for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED/2); j++) {
 
-        for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED); j++) {
+            // Handle the accelerometer entries
             for (i = 0; i < 3; i++) {
                 acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
                         acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
             }
 
+            // Handle the gyro entries
             for (i = 3; i < INERTIAL_AXIS_SAMPLED; i++) {
                 acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
                         acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
@@ -185,19 +210,10 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 
                 index = sample_size / 2 - 1;
                 for (i = 0; i < index; i++) {
-                    printf("%f,", acc_converted_samples[i]);
-                }
-                printf("%f\n", acc_converted_samples[index]);
+                    printf("%0.3f,", acc_converted_samples[i]);  // Note increasing the floating point percision past %0.4f may 
+                }                                                // cause the application to hang.  See AAGBT-165
+                printf("%0.3f\n", acc_converted_samples[index]);
 
-            }
-            // Output RAW ADC values
-            else{
-
-                index = sample_size / 2 - 1;
-                for (i = 0; i < index; i++) {
-                    printf("%x,", acc_samples[i]);
-                }
-                printf("%x\n", acc_samples[index]);
             }
         }
 
