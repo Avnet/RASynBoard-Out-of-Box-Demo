@@ -18,7 +18,6 @@
 void printConfg(void);
 
 /* Parse config.ini to save the settings */
-int mode_circular_motion = CIRCULAR_MOTION_DISABLE;
 char mcu_file_name[32] = { MCU_FILE_NAME };
 char dsp_file_name[64] = { DSP_FILE_NAME };
 char model_file_name[64] = { MODEL_FILE_NAME };
@@ -68,6 +67,7 @@ static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int sdcard_slot_status =  SDCARD_IN_SLOT;
 static int print_console_type = CONSOLE_UART;
+static uint32_t event_watch_mode = WATCH_TYPE_AUDIO; //default
 
 char mode_description[64] = {0};
 int mode;
@@ -504,6 +504,30 @@ void write_extraction_file_end(void)
     }
 }
 
+static void parse_event_watch_mode( void )
+{
+    switch (mode)
+    {
+        case 3:
+        case 5:
+            event_watch_mode = WATCH_TYPE_MOTION;
+            break;
+
+        case 8:
+            event_watch_mode = WATCH_TYPE_AUDIO | WATCH_TYPE_MOTION;
+            break;
+
+        case 1:
+        case 2:
+        case 4:
+        case 6:
+        case 7:
+        default:
+            event_watch_mode = WATCH_TYPE_AUDIO;
+            break;
+    }
+}
+
 static uint32_t read_config_file( void )
 {
     FRESULT res;
@@ -533,6 +557,7 @@ static uint32_t read_config_file( void )
 	/* Read config.ini from sdcard */
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
 	sprintf(section, "Function_%d", mode);
+    parse_event_watch_mode();
 
     ini_gets(section, "Description", NULL, config_items.mode_description, sizeof(config_items.mode_description), inifile);
 
@@ -580,6 +605,7 @@ static uint32_t read_config_file( void )
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 	config_items.recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	config_items.low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
+    config_items.low_power_down_down_enabled = ini_getl("Low Power Mode", "down_down_enters_low_power",DOWN_DOWN_ENABLED, inifile);
 	config_items.imu_write_to_file = ini_getl("IMU data stream", "Write_to_file", \
 										IMU_FUNC_ENABLE, inifile);
 	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
@@ -727,19 +753,14 @@ int get_print_console_type( void )
     return print_console_type;
 }
 
-/* Identify circular_motion mode based on the DNN file in the SD card
-   or the setting value stored in the Flash */
-int motion_running(void)
+uint32_t get_event_watch_mode()
 {
-	if (get_synpkg_boot_mode() == BOOT_MODE_SD)
-	{
-		if (strstr (model_file_name, "motion") != NULL )
-		{
-			mode_circular_motion = CIRCULAR_MOTION_ENABLE;
-		}
-	}
+    return event_watch_mode;
+}
 
-    return mode_circular_motion;
+void set_event_watch_mode(uint32_t watch_mode)
+{
+    event_watch_mode = watch_mode;
 }
 
 // Returns number of seconds to record data (audio or IMU data)
@@ -752,6 +773,10 @@ int get_recording_period( void )
 int get_low_power_mode( void )
 {
     return config_items.low_power_mode;
+}
+
+int get_down_down_lp_mode( void ){
+    return config_items.low_power_down_down_enabled;
 }
 
 int get_wifi_config( void )
@@ -806,12 +831,16 @@ void printConfg(void)
     printf("Features enabled in config.ini file:\n");
 
     printf("\n  Operation mode=%d selected: %s\r\n", mode, config_items.mode_description);
+    printf("    Event Watching Mode: %s %s\r\n", 
+            (event_watch_mode&WATCH_TYPE_AUDIO)?"Key-Word":"", 
+            (event_watch_mode&WATCH_TYPE_MOTION)?"IMU-Motion":"");
 
     // Output recording feature driven by Low Power Mode Selection
     if(config_items.low_power_mode == DOWN_DOWN_LP_MODE){
 
         printf("  The Recording feature is enabled!\n");
-        printf("    Press user button < 400ms to record %d seconds of %s data\n", config_items.recording_period, config_items.button_switch);
+        printf("    Press user button < 400ms to record %d seconds of %s data\n", 
+                config_items.recording_period, config_items.button_switch);
         printf("    Press user button > 3sec to flash the NDP120 firmware to FLASH\n\n");
 
         if(0 == strcmp(config_items.button_switch, "imu")){
@@ -830,6 +859,13 @@ void printConfg(void)
                 printf("    WARNING: The application is configured to capture IMU data, but the configuration does indicate where to capture the IMU data!\n");
                 printf("             Please edit the config.ini file, section [IMU data stream]\n");
             }
+#ifdef FLOATING_POINT_PRINTF_BUG
+            // Add a warning message if the user wants to output converted IMU data to the terminal.  See AAGBT-165 for details
+            if((1 == config_items.imu_print_to_terminal) && (1 == config_items.imu_conversion_enabled)){
+                printf("\n!!!!! AAGBT-165: Note this configuration is not currently working . . . \n* [IMU data stream]->Print_to_terminal=1 \n*    AND\n* [IMU Recording Format]->Convert_Data=1\n");
+                printf("\nTo capture converted IMU data please write the data to a file set . . . \n* [IMU data stream]->Print_to_terminal=0\n*    AND\n* IMU data stream]->Print_to_file=1\n*    AND\n* [IMU Recording Format]->Convert_Data=1\n\n");
+            }
+#endif   
         }
     }
     else {

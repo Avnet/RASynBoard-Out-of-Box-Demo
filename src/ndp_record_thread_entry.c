@@ -8,13 +8,16 @@
 #include "ndp_irq_service.h"
 #include "led.h"
 #include "usb_pcdc_vcom.h"
+#ifdef FLOATING_POINT_PRINTF_BUG
+#include "stdbool.h"
+#endif
 
 #define   AUDIO_REC_BYTES_PER_SEC         32000U
 #define   AUDIO_REC_BUFFER_SIZE            2048
 #define   AUDIO_REC_FILE_NAME_PREFIX    "ndp_audio_record_"
 
 #define   IMU_REC_BYTES_PER_SEC          200
-#define   IMU_REC_BUFFER_SIZE            256
+#define   IMU_REC_BUFFER_SIZE            1024
 #define   IMU_REC_FILE_NAME_PREFIX      "ndp_imu_record_raw_"
 #define   IMU_REC_FILE_NAME_CONVERTED_PREFIX  "ndp_imu_record_converted_"
 
@@ -33,10 +36,10 @@
 
 /** Number of axis used and sample data format */
 #define INERTIAL_AXIS_SAMPLED       6
+#define ARRAY_SIZE(x)   (sizeof(x)/sizeof(*(x)))
 
-
-
-extern int firmware_idx;
+/** IMU DEBUG */
+//#define MSPI_READ_IMU
 
 enum short_press_button_to_record {
 	REC_AUDIO = 1,
@@ -89,6 +92,22 @@ static int imu_record_operation(int isstart)
 
     if (isstart) {
         ndp_irq_disable();
+        
+        // disable pdm clk for confusion if audio enabled
+        if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+            if (s){
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_NONE, s);
+            }
+        }
+        
+        // enable sensor if sensor disable
+        if (!(get_event_watch_mode() & WATCH_TYPE_MOTION)) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+            if (s) {
+                printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            }
+        }
 
         s = ndp_core2_platform_tiny_config_interrupts(
                     NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
@@ -103,6 +122,22 @@ static int imu_record_operation(int isstart)
         if (s) {
             printf("disable extract interrupt failed: %d\n", s);
             return s;
+        }
+        
+        // enable pdm clk if audio enabled
+        if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+            if (s){
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_PDM, s);
+            }
+        }
+        
+        // disable sensor if sensor disable
+        if (!(get_event_watch_mode() & WATCH_TYPE_MOTION)) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+            if (s) {
+                printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            }
         }
 
         ndp_irq_enable();
@@ -122,33 +157,64 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 {
     struct cb_sensor_arg_s *cb_sensor_arg = (struct cb_sensor_arg_s*)sensor_arg;
     uint16_t i, j, index = 0;
-    int16_t *acc_samples = (int16_t *)(sensor_data);
+    int16_t *acc_samples = (int16_t *)(sensor_data); // Note we're casting this incomming uint_8 data to uint_16 
     char *percent_ptr = NULL;
+    float acc_converted_samples[sample_size];
+
+#ifdef FLOATING_POINT_PRINTF_BUG
+
+    static bool error_message_printed = false;
+
+    if (is_imu_data_to_terminal() && is_imu_convertion_enabled() && !error_message_printed) {
+
+        // Add a warning message if the user wants to output converted IMU data to the terminal.  See AAGBT-165 for details
+        printf("\n!!!!! AAGBT-165: Note this configuration is not currently working . . . \n* [IMU data stream]->Print_to_terminal=1 \n*    AND\n* [IMU Recording Format]->Convert_Data=1\n");
+        printf("\nTo capture converted IMU data please write the data to a file set . . . \n* [IMU data stream]->Print_to_terminal=0\n*    AND\n* IMU data stream]->Print_to_file=1\n*    AND\n* [IMU Recording Format]->Convert_Data=1\n\n");
+        error_message_printed = true;
+    }
+
+    // Exit this routine
+    if(error_message_printed){
+
+        // Increment the count so that the application does not hang . . .
+        cb_sensor_arg->sets_count ++;
+        return;
+    }
+#endif
 
     // If we're capturing converted IMU data, then do the conversion.  acc_converted_samples will
     // hold the converted float data.
     if(is_imu_convertion_enabled()){
 
-        float acc_converted_samples[sample_size];
+        // Populate the float array with converted IMU values
+        for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED/2); j++) {
 
-        for (j = 0; j < (sample_size/INERTIAL_AXIS_SAMPLED); j++) {
+            // Handle the accelerometer entries
             for (i = 0; i < 3; i++) {
-                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
-
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
+                        acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * ACC_SCALE_FACTOR;
             }
 
+            // Handle the gyro entries
             for (i = 3; i < INERTIAL_AXIS_SAMPLED; i++) {
-                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
+                acc_converted_samples[(j * INERTIAL_AXIS_SAMPLED) + i] = 
+                        acc_samples[(j * INERTIAL_AXIS_SAMPLED) + i] * CONVERT_ADC_GYR;
             }
         }
 
         if (is_imu_data_to_terminal()) {
             // show data on the serial console
-            index = sample_size / 2 - 1;
-            for (i = 0; i < index; i++) {
-                printf("%f,", acc_converted_samples[i]);
+
+            // Output converted samples
+            if(is_imu_convertion_enabled()){
+
+                index = sample_size / 2 - 1;
+                for (i = 0; i < index; i++) {
+                    printf("%0.3f,", acc_converted_samples[i]);  // Note increasing the floating point percision past %0.4f may 
+                }                                                // cause the application to hang.  See AAGBT-165
+                printf("%0.3f\n", acc_converted_samples[index]);
+
             }
-            printf("%f\n", acc_converted_samples[index]);
         }
 
         if (is_imu_data_to_file()) {
@@ -171,7 +237,6 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     }
     // Otherwise, we capture the ADC values read from the IMU sensor
     else{
-
         if (is_imu_data_to_terminal()) {
             // show data on the serial console
             index = sample_size / 2 - 1;
@@ -200,14 +265,117 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
     cb_sensor_arg->sets_count ++;
 }
 
+#ifdef MSPI_READ_IMU
+#define   IMU_SENSOR_MSSB          1
+#define REG_READ                  (0x80)
+#define REG_FIFO_COUNT_H          (0x3D)
+#define REG_FIFO_DATA             (0x3F)
+#define FIFO_HEADER_ACCEL         (0x40)
+#define FIFO_HEADER_GYRO          (0x20)
+#define FIFO_HEADER_ACCEL_GYRO   (FIFO_HEADER_ACCEL | FIFO_HEADER_ACCEL)
+
+#define INVALID_FIFO_COUNT       (0xffff)
+uint16_t read_fifo_count(void)
+{
+    uint16_t count;
+    uint8_t xdata;
+    uint8_t rdata[16];
+
+    xdata = REG_FIFO_COUNT_H | REG_READ;
+    ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &xdata, 0);
+    ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 2, &rdata, 1);
+
+    memcpy(&count, rdata, 2);
+    return count;
+}
+
+typedef union {
+    uint16_t value;
+    struct {
+        uint16_t acc_x: 1;
+        uint16_t acc_y: 1;
+        uint16_t acc_z: 1;
+        uint16_t gyro_x: 1;
+        uint16_t gyro_y: 1;
+        uint16_t gyro_z: 1;
+    } bits;
+} axes_t;
+
+typedef enum {
+    SCALE_8_BIT,
+    SCALE_16_BIT,
+} dnn_scale_t;
+
+#define NUM_AXES 6
+#define BYTES_PER_AXIS 2
+
+uint8_t read_samples(const uint8_t *data, axes_t axes, dnn_scale_t scale,
+                            uint8_t *output) {
+    int i, output_i = 0;
+    // `axes` will be either for the holding tank or the DNN, read the axes
+    // which are enabled
+    for (i = 0; i < NUM_AXES; i++) {
+        if (axes.value & (1 << i)) {
+            // data is little endian
+            if (scale == SCALE_16_BIT) {
+                output[output_i++] = *data;
+            }
+            output[output_i++] = *(data + 1);
+        }
+        data += 2;
+    }
+
+    return output_i;
+}
+
+uint8_t sensor_data[NUM_AXES * BYTES_PER_AXIS];
+void imu_mspi_record_process(struct cb_sensor_arg_s *sensor_arg)
+{
+    uint16_t fifo_count;
+    uint8_t xdata;
+    uint8_t rdata[16];
+    axes_t tank_axes;
+    uint8_t output_size;
+
+    fifo_count = read_fifo_count();
+    if (fifo_count == INVALID_FIFO_COUNT) {
+        return;
+    }
+
+    tank_axes.value = 0x3F;
+    for (int i = 0; i < fifo_count; i++) {
+        xdata =  REG_FIFO_DATA | REG_READ;
+        ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &xdata, 0);
+        ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 16, &rdata, 1);
+
+        // make sure we've got both acc and gyro data in the packet
+        if ((rdata[0] & FIFO_HEADER_ACCEL_GYRO) != FIFO_HEADER_ACCEL_GYRO) {
+            continue;
+        }
+
+        output_size = read_samples(&rdata[1], tank_axes, SCALE_16_BIT, sensor_data);
+        if (output_size > 0) {
+            icm42670_extraction_cb(output_size, sensor_data, sensor_arg);
+        }
+    }
+}
+#endif
+
 static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_arg)
 {
     int s;
-    uint32_t sample_size;
+    uint32_t save_sample_size;
+    int max_num_frames;
     uint8_t *data_ptr = NULL;
 
     data_ptr = pvPortMalloc(IMU_REC_BUFFER_SIZE);
-    if (!data_ptr) return -1;
+    if (!data_ptr) return -1;    
+    
+    s = ndp_core2_platform_tiny_get_sensor_sample_size(&save_sample_size);
+    if (s) return s;
+
+//    printf("save_sample_size; %d\n", save_sample_size);
+    max_num_frames = IMU_REC_BUFFER_SIZE / save_sample_size;
 
 	if (is_imu_data_to_file()) {
 		xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
@@ -219,18 +387,23 @@ static int imu_record_process(int extract_sets, struct cb_sensor_arg_s *sensor_a
 	}
 
     while (extract_sets > sensor_arg->sets_count) {
+#ifdef MSPI_READ_IMU
+        imu_mspi_record_process(sensor_arg);
+        vTaskDelay (pdMS_TO_TICKS(2UL));
+#else
         s = ndp_core2_platform_tiny_sensor_extract_data(data_ptr, 
-                IMU_SENSOR_INDEX, icm42670_extraction_cb, sensor_arg);
+                IMU_SENSOR_INDEX, save_sample_size, max_num_frames, 
+                (!sensor_arg->sets_count)?1:0, 
+                icm42670_extraction_cb, sensor_arg);
         if ((s) && (s != NDP_CORE2_ERROR_DATA_REREAD)) {
             printf("sensor extract data failed: %d\n", s);
             break;
         }
+#endif
     }
 
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 0);
-#if 1
     write_extraction_file_end();
-#endif
+
     if (data_ptr) vPortFree(data_ptr);
 
     return s;
@@ -291,20 +464,53 @@ static void audio_record_operation(int isstart)
     if (isstart) {
         ndp_irq_disable();
 
-        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
-        s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+        // enable pdm clk if audio disabled
+        if (!(get_event_watch_mode() & WATCH_TYPE_AUDIO)) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
             if (s){
-                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                            NDP_CORE2_FEATURE_PDM, s);
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_PDM, s);
             }
+        }
+        
+        // disable sensor for confusion if sensor enabled
+        if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+            if (s) {
+                printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
+            }
+        }
+
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 1);
+        if (s) {
+            printf("enable extract interrupt failed: %d\n", s);
         }
     }
     else {
-        if (motion_running() == CIRCULAR_MOTION_ENABLE) {
         s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+        if (s){
+            printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_NONE, s);
+        }
+        
+        s = ndp_core2_platform_tiny_config_interrupts(
+                    NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
+        if (s) {
+            printf("disable extract interrupt failed: %d\n", s);
+        }
+        
+        // re-enable pdm clock if audio enabled
+        if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+            s = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
             if (s){
-                printf("ndp_core2_platform_tiny_feature_set set 0x%x failed %d\r\n",
-                            NDP_CORE2_FEATURE_NONE, s);
+                printf("feature set 0x%x failed %d\r\n", NDP_CORE2_FEATURE_PDM, s);
+            }
+        }
+        
+        // re-enable sensor if sensor enabled
+        if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
+            s = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+            if (s) {
+                printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, s);
             }
         }
 
@@ -358,6 +564,7 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
 	struct wav_header_s wav_hdr;
     uint32_t sample_size;
     uint32_t sample_bytes = ndp_core2_platform_tiny_get_samplebytes();
+    uint32_t audio_chunk_size;
     uint8_t *data_ptr = NULL;
 
     data_ptr = pvPortMalloc(AUDIO_REC_BUFFER_SIZE);
@@ -371,10 +578,9 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
     printf("To audio record %d bytes for %d seconds\n", wanted_len, get_recording_period());
     fflush(stdin);
     /* sample ready interrupt is enabled in MCU firmware */
-    s = ndp_core2_platform_tiny_get_recording_metadata(&sample_size, 
-            NDP_CORE2_GET_FROM_MCU);
+    s = ndp_core2_platform_tiny_get_audio_chunk_size(&audio_chunk_size, &sample_size);
     if (s) {
-        printf("audio record get metadata from mcu with notify failed: %d\n", s);
+        printf("audio record get audio chunk size failed: %d\n", s);
         goto process_out;
     }
 
@@ -391,9 +597,6 @@ static int audio_record_process(int wanted_len, struct cb_audio_arg_s *audio_arg
             break;
         }
     }
-
-    /* disable extract ready interrupt */
-    s = ndp_core2_platform_tiny_config_interrupts(NDP_CORE2_INTERRUPT_EXTRACT_READY, 0);
 
 process_out:
 #if 1

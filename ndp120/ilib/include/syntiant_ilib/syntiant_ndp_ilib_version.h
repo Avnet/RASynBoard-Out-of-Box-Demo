@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2023 Syntiant Corp.  All rights reserved.
+ * Copyright (c) 2020-2024 Syntiant Corp.  All rights reserved.
  * Contact at http://www.syntiant.com
  *
  * This software is available to you under a choice of one of two licenses.
@@ -29,7 +29,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * DEALINGS IN THE SOFTWARE.
- 	** SDK: v105 **
+ 	** SDK: v110 **
 */
 
 /*
@@ -43,10 +43,10 @@
 #define SYNTIANT_NDP_ILIB_VERSION_H
 
 #define SYNTIANT_NDP_ILIB_RELEASE_HASH \
-    "d6af56bb4d0b02b2582914628f1e24fc6dd1595b"
+    "75d39286cb33efa7da921ab899103262d1a88ad1"
 
 #define SYNTIANT_NDP_ILIB_SYNTIANT_CORE_2_MAJOR_VERSION 1
-#define SYNTIANT_NDP_ILIB_SYNTIANT_CORE_2_MINOR_VERSION 133
+#define SYNTIANT_NDP_ILIB_SYNTIANT_CORE_2_MINOR_VERSION 137
 #define SYNTIANT_NDP_ILIB_SYNTIANT_CORE_2_PATCH_VERSION 0
 
 

@@ -73,7 +73,7 @@ enum SPI_FLASH_TRANSFER_TYPE {
 typedef struct config_data_in_flash {
 	unsigned short PINcode;
 	/* store items for ndp */
-	int ndp_mode_motion;
+	uint32_t watch_mode;
 	/* store items from config.ini */
 	struct config_ini_items cfg;
 }config_data_in_flash_t;

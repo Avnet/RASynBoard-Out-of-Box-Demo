@@ -30,6 +30,11 @@
 #define DEC_INSHIFT_VALUE_MAX 13
 #define DEC_INSHIFT_OFFSET_DEFAULT 0
 
+// Define to identify the configuration that may cause the application to freeze when outputting
+// floating point IMU data to the debug COM port.  This issue has been masked by reducing the 
+// floating point percision in the output to 4 places.
+#undef FLOATING_POINT_PRINTF_BUG
+
 #define LED_EVENT_NUM           10
 
 enum FW_LOAD_TYPE {
@@ -55,9 +60,21 @@ enum LOW_POWER_MODE_TYPE {
     LOW_POWER_MODE_NONE,
 };
 
+
+enum DOWN_DOWN_LP_ENABLED_TYPE {
+    DOWN_DOWN_DISABLED = 0,
+    DOWN_DOWN_ENABLED = 1,
+};
+
 enum CIRCULAR_MOTION_TYPE {
     CIRCULAR_MOTION_ENABLE = 0,
     CIRCULAR_MOTION_DISABLE = 1,
+};
+
+enum EVENT_WATCH_TYPE {
+    WATCH_TYPE_NONE = 0,
+    WATCH_TYPE_AUDIO = 0x1,
+    WATCH_TYPE_MOTION = 0x2,
 };
 
 enum IMU_FUNC_TYPE {
@@ -106,6 +123,7 @@ struct config_ini_items {
 	int imu_print_to_terminal;	                /** [IMU data stream]-->Print_to_terminal **/
 
 	int low_power_mode;			                /** [Low Power Mode]-->Power_Mode **/
+	int low_power_down_down_enabled;            /** [Low Power Mode]-->down_down_enters_low_power **/
 	int ble_mode;				                /** [BLE Mode]-->BLE_Enabled **/
 
 	int cert_location;                          /** [CERTS]-->Cert_Location **/
@@ -137,7 +155,6 @@ struct config_ini_items {
 };
 
 extern struct config_ini_items config_items;
-extern int mode_circular_motion;
 extern char mcu_file_name[32];
 extern char dsp_file_name[64];
 extern char model_file_name[64];
@@ -156,11 +173,14 @@ void write_extraction_file_end(void);
 #endif
 uint32_t get_synpkg_config_info( void );
 uint32_t get_synpkg_boot_mode( void );
+uint32_t get_event_watch_mode();
+void set_event_watch_mode(uint32_t watch_mode);
 uint32_t get_sdcard_total_sectors( void );
 uint32_t get_sdcard_slot_status( void );
 int get_print_console_type( void );
 int get_recording_period( void );
 int get_low_power_mode( void );
+int get_down_down_lp_mode( void );
 int is_imu_data_to_file( void );
 int is_imu_data_to_terminal( void );
 int is_file_exist_in_sdcard( char *filename );
@@ -189,6 +209,5 @@ bool is_imu_convertion_enabled( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);
-int motion_running(void);
 
 #endif /* FAT_LOAD_H_ */

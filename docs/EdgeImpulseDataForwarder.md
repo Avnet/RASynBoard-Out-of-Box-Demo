@@ -147,7 +147,7 @@ You should see that a serial device was connected and the sample rate of the inc
 The utility should detect that 6 sensor axes were detected and will prompt you to provide a title for each axes:
 
 ```
-? 6 sensor axes detected (example values: [-466,-6006,-14900,-44,-54,36]). What do you want to call them? Separate the names with ',':
+? 6 sensor axes detected (example values: [-1.334788,5.230214,-7.872255,-8.483887,1.861572,-1.754761]). What do you want to call them? Separate the names with ',':
 ```
 
 You can paste the following headers into your terminal:
