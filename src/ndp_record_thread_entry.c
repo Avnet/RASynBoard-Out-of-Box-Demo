@@ -210,9 +210,9 @@ void icm42670_extraction_cb(uint32_t sample_size, uint8_t *sensor_data, void *se
 
                 index = sample_size / 2 - 1;
                 for (i = 0; i < index; i++) {
-                    printf("%0.4f,", acc_converted_samples[i]);  // Note increasing the floating point percision past %0.4f may 
+                    printf("%0.3f,", acc_converted_samples[i]);  // Note increasing the floating point percision past %0.4f may 
                 }                                                // cause the application to hang.  See AAGBT-165
-                printf("%0.4f\n", acc_converted_samples[index]);
+                printf("%0.3f\n", acc_converted_samples[index]);
 
             }
         }
