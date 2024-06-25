@@ -33,6 +33,7 @@ struct config_ini_items config_items ={  /* default settings */
 				LED_EVENT_NONE },
 
 		.recording_period = 10,
+        .event_watch_mode = 1,
 		.imu_conversion_enabled = 1,
 		.imu_write_to_file = IMU_FUNC_ENABLE,
 		.imu_print_to_terminal = IMU_FUNC_DISABLE,
@@ -67,7 +68,6 @@ static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int sdcard_slot_status =  SDCARD_IN_SLOT;
 static int print_console_type = CONSOLE_UART;
-static uint32_t event_watch_mode = WATCH_TYPE_AUDIO; //default
 
 char mode_description[64] = {0};
 int mode;
@@ -504,30 +504,6 @@ void write_extraction_file_end(void)
     }
 }
 
-static void parse_event_watch_mode( void )
-{
-    switch (mode)
-    {
-        case 3:
-        case 5:
-            event_watch_mode = WATCH_TYPE_MOTION;
-            break;
-
-        case 8:
-            event_watch_mode = WATCH_TYPE_AUDIO | WATCH_TYPE_MOTION;
-            break;
-
-        case 1:
-        case 2:
-        case 4:
-        case 6:
-        case 7:
-        default:
-            event_watch_mode = WATCH_TYPE_AUDIO;
-            break;
-    }
-}
-
 static uint32_t read_config_file( void )
 {
     FRESULT res;
@@ -535,6 +511,7 @@ static uint32_t read_config_file( void )
     char inifile[] = "0:/config.ini";
     char color[16] = {0};
     char key[6] = {0};
+    char net[16] = {0};
     char section[24] = {0};
 
     // mount
@@ -557,7 +534,6 @@ static uint32_t read_config_file( void )
 	/* Read config.ini from sdcard */
 	mode = ini_getl("NDP Firmware", "Mode", 0, inifile);
 	sprintf(section, "Function_%d", mode);
-    parse_event_watch_mode();
 
     ini_gets(section, "Description", NULL, config_items.mode_description, sizeof(config_items.mode_description), inifile);
 
@@ -571,37 +547,40 @@ static uint32_t read_config_file( void )
 						config_items.button_switch, sizeof(config_items.button_switch), inifile);
 	config_items.dec_inshift_value = ini_getl(section, "DECIMATION_INSHIFT_VALUE", DEC_INSHIFT_VALUE_DEFAULT, inifile);
     config_items.dec_inshift_offset = ini_getl(section, "DECIMATION_INSHIFT_OFFSET", DEC_INSHIFT_OFFSET_DEFAULT, inifile);
+    config_items.event_watch_mode = ini_getl(section, "Event_Watch_Mode", WATCH_TYPE_AUDIO, inifile);
 
-	/* Get led color according according to voice command */
-	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
-	{
-		sprintf(key, "IDX%d", idx);
-		ini_gets("Led", key, "-", color, sizeof(color), inifile);
+	/* Get led color according to network number and inference index */
+	for (int network = 0; network < LED_NETWORK_NUM; network++){
+        for (int idx = 0; idx < LED_EVENT_NUM; idx++)
+        {
+            sprintf(net, "LED Network %d", network);
+            sprintf(key, "IDX%d", idx);
+            ini_gets(net, key, "-", color, sizeof(color), inifile);
 
-		if( strncmp(color, "red", 3) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_RED;
-		} else if( strncmp(color, "green", 5) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_GREEN;
-		} else if( strncmp(color, "blue", 4) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_BLUE;
-		} else if( strncmp(color, "cyan", 4) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_CYAN;
-		} else if( strncmp(color, "magenta", 6) == 0)
-		{
-		    config_items.led_event_color[idx] = LED_COLOR_MAGENTA;
-		} else if( strncmp(color, "yellow", 6) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_YELLOW;
-		} else
-		{
-			config_items.led_event_color[idx] = LED_EVENT_NONE;
-		}
+            if( strncmp(color, "red", 3) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_RED;
+            } else if( strncmp(color, "green", 5) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_GREEN;
+            } else if( strncmp(color, "blue", 4) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_BLUE;
+            } else if( strncmp(color, "cyan", 4) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_CYAN;
+            } else if( strncmp(color, "magenta", 6) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_MAGENTA;
+            } else if( strncmp(color, "yellow", 6) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_YELLOW;
+            } else
+            {
+                config_items.led_event_color_data[network][idx] = LED_EVENT_NONE;
+            }
+        }
 	}
-
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 	config_items.recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	config_items.low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
@@ -755,12 +734,7 @@ int get_print_console_type( void )
 
 uint32_t get_event_watch_mode()
 {
-    return event_watch_mode;
-}
-
-void set_event_watch_mode(uint32_t watch_mode)
-{
-    event_watch_mode = watch_mode;
+    return config_items.event_watch_mode;
 }
 
 // Returns number of seconds to record data (audio or IMU data)
@@ -832,8 +806,8 @@ void printConfg(void)
 
     printf("\n  Operation mode=%d selected: %s\r\n", mode, config_items.mode_description);
     printf("    Event Watching Mode: %s %s\r\n", 
-            (event_watch_mode&WATCH_TYPE_AUDIO)?"Key-Word":"", 
-            (event_watch_mode&WATCH_TYPE_MOTION)?"IMU-Motion":"");
+            (get_event_watch_mode()&WATCH_TYPE_AUDIO)?"Key-Word":"",
+            (get_event_watch_mode()&WATCH_TYPE_MOTION)?"IMU-Motion":"");
 
     // Output recording feature driven by Low Power Mode Selection
     if(config_items.low_power_mode == DOWN_DOWN_LP_MODE){
