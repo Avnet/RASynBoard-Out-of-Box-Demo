@@ -136,9 +136,10 @@ There are two different ways to redefine the decimation_inshift vaules at startu
 
 ![](./assets/images/decimationInshift02.jpg "")
 
-
 ## LED control
-The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the NDP120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
+The ```[Led Network x]``` blocks allow the user to assign different RGB LED colors to each neural network and inference index.  When the NDP120 detects a feature in the data the network number and inference results are passed to the application.  The application uses the 
+neural network number and the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments
+in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
 
 - [Video Link (3 minutes)](http://avnet.me/RASynChangeLedColorsVideo)
 

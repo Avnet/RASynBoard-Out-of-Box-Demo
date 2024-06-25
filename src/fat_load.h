@@ -36,6 +36,7 @@
 #undef FLOATING_POINT_PRINTF_BUG
 
 #define LED_EVENT_NUM           10
+#define LED_NETWORK_NUM         2
 
 enum FW_LOAD_TYPE {
 	BOOT_MODE_FLASH = 0,
@@ -117,7 +118,8 @@ struct config_ini_items {
 	/* save the settings from config.ini */
 	char button_switch[8];		                /** [Function_x]-->Button_shift **/
 	int event_watch_mode;                       /** [Function_x]-->event_watch_mode **/
-	int led_event_color[LED_EVENT_NUM];	        /** [Led]-->IDXn **/
+	int led_event_color[LED_EVENT_NUM];         
+    int led_event_color_data[LED_NETWORK_NUM][ LED_EVENT_NUM];	/** [Led Network x]-->IDXn **/
 
 	int recording_period;		                /** [Recording Period]-->Recording_Period **/
 	int imu_write_to_file;		                /** [IMU data stream]-->Write_to_file **/

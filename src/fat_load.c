@@ -511,6 +511,7 @@ static uint32_t read_config_file( void )
     char inifile[] = "0:/config.ini";
     char color[16] = {0};
     char key[6] = {0};
+    char net[16] = {0};
     char section[24] = {0};
 
     // mount
@@ -548,36 +549,38 @@ static uint32_t read_config_file( void )
     config_items.dec_inshift_offset = ini_getl(section, "DECIMATION_INSHIFT_OFFSET", DEC_INSHIFT_OFFSET_DEFAULT, inifile);
     config_items.event_watch_mode = ini_getl(section, "Event_Watch_Mode", WATCH_TYPE_AUDIO, inifile);
 
-	/* Get led color according according to voice command */
-	for (int idx = 0; idx < LED_EVENT_NUM; idx++)
-	{
-		sprintf(key, "IDX%d", idx);
-		ini_gets("Led", key, "-", color, sizeof(color), inifile);
+	/* Get led color according to network number and inference index */
+	for (int network = 0; network < LED_NETWORK_NUM; network++){
+        for (int idx = 0; idx < LED_EVENT_NUM; idx++)
+        {
+            sprintf(net, "LED Network %d", network);
+            sprintf(key, "IDX%d", idx);
+            ini_gets(net, key, "-", color, sizeof(color), inifile);
 
-		if( strncmp(color, "red", 3) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_RED;
-		} else if( strncmp(color, "green", 5) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_GREEN;
-		} else if( strncmp(color, "blue", 4) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_BLUE;
-		} else if( strncmp(color, "cyan", 4) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_CYAN;
-		} else if( strncmp(color, "magenta", 6) == 0)
-		{
-		    config_items.led_event_color[idx] = LED_COLOR_MAGENTA;
-		} else if( strncmp(color, "yellow", 6) == 0)
-		{
-			config_items.led_event_color[idx] = LED_COLOR_YELLOW;
-		} else
-		{
-			config_items.led_event_color[idx] = LED_EVENT_NONE;
-		}
+            if( strncmp(color, "red", 3) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_RED;
+            } else if( strncmp(color, "green", 5) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_GREEN;
+            } else if( strncmp(color, "blue", 4) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_BLUE;
+            } else if( strncmp(color, "cyan", 4) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_CYAN;
+            } else if( strncmp(color, "magenta", 6) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_MAGENTA;
+            } else if( strncmp(color, "yellow", 6) == 0)
+            {
+                config_items.led_event_color_data[network][idx] = LED_COLOR_YELLOW;
+            } else
+            {
+                config_items.led_event_color_data[network][idx] = LED_EVENT_NONE;
+            }
+        }
 	}
-
 	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
 	config_items.recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	config_items.low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
