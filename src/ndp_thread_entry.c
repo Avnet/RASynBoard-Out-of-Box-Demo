@@ -14,7 +14,7 @@
 #include "usb_pcdc_vcom.h"
 #include "iotc_thread_entry.h"
 
-#define led_event_color(x)	(config_items.led_event_color[x])
+#define led_event_color(x,y)	(config_items.led_event_color_data[x][y])
 #define SYNTIANT_NDP120_MAX_CLASSES     32
 #define SYNTIANT_NDP120_MAX_NNETWORKS   4
 #define NDP120_MCU_LABELS_MAX_LEN       (0x200)
@@ -195,7 +195,7 @@ void ndp_print_imu(void)
     ndp_core2_platform_tiny_mspi_config();
     ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &reg, 0);
     ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 1, &imu_val, 1);
-    printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
+    printf("attached IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
 }
 
 void ndp_info_display(void)
@@ -365,7 +365,6 @@ void ndp_thread_entry(void *pvParameters)
     // read back info from FLASH
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
-            set_event_watch_mode (flash_data.watch_mode);
             memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
         }
         
@@ -426,7 +425,7 @@ void ndp_thread_entry(void *pvParameters)
     /* TODO: add your own code here */
     while (1)
     {
-        /* Wait until NDP recognized voice keywords */
+        /* Wait until NDP inference event detection */
         evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH,
             pdTRUE, pdFALSE , portMAX_DELAY);
      
@@ -458,7 +457,7 @@ void ndp_thread_entry(void *pvParameters)
                 case 9:
                     /* Voice: OK-Syntiant; light Amber Led */
                     current_stat.led = LED_EVENT_NONE;
-                    q_event = led_event_color(ndp_class_idx);
+                    q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
                     xQueueSend(g_led_queue, (void *)&q_event, 0U );
                     send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
                     enqueInferenceData(ndp_nn_idx, ndp_class_idx);
@@ -474,7 +473,7 @@ void ndp_thread_entry(void *pvParameters)
                         if (last_stat.led != LED_COLOR_MAGENTA)
                         {
                             /* first receive 'Down'  keyword */
-                            q_event = led_event_color(ndp_class_idx);
+                            q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
                             xQueueSend(g_led_queue, (void *)&q_event, 0U );
                             send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
                             enqueInferenceData(ndp_nn_idx, ndp_class_idx);
@@ -498,7 +497,7 @@ void ndp_thread_entry(void *pvParameters)
                             else
                             {
                                 /* invalid time */
-                                q_event = led_event_color(ndp_class_idx);
+                                q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
                                 xQueueSend(g_led_queue, (void *)&q_event, 0U );
                                 send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
                                 enqueInferenceData(ndp_nn_idx, ndp_class_idx);
@@ -506,7 +505,7 @@ void ndp_thread_entry(void *pvParameters)
                         }
                     }
                     else{
-                        q_event = led_event_color(ndp_class_idx);
+                        q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
                         xQueueSend(g_led_queue, (void *)&q_event, 0U );
                         send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
                         enqueInferenceData(ndp_nn_idx, ndp_class_idx);

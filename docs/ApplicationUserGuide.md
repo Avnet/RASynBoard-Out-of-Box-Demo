@@ -87,7 +87,7 @@ The NDP120 is configured by identifying the firmware images that will be loaded 
 
 - [Video Link (3 minutes)](http://avnet.me/RASynChangingMlModelsVideo)
 
-There are two areas in the config.ini file to configure which NDP120 files are loaded to the NDP120 at startup.
+There are two areas in the config.ini file to configure which NDP120 files/model(s) are loaded to the NDP120 at startup.
 
 1. ```[NDP Firmware]-->Mode=x```
     
@@ -101,6 +101,11 @@ Each ```[Function_x]``` block defines a description, and the three required NDP1
 - ```MCU``` refers to the ARM-M0 firmware that runs on the NDP120.  This firmware manages the devices and data flow.
 - ```DSP``` refers to the dsp firmware that runs on the NDP120.  This firmware does data pre-processing plus other functions.
 - ```DNN``` refers to the Nerual Network Parameters and ML model.  This firmware implements the ML model.
+- ```Event_Watch_Mode``` tells the NDP120 what data streams to watch and needs to align with the model defined in the ```DNN``` entry.
+   - 1 == Audio
+   - 2 == IMU
+   - 3 == Combined Audio & IMU data 
+
 
 ![](./assets/images/ndpConfig.jpg "")
 
@@ -131,9 +136,10 @@ There are two different ways to redefine the decimation_inshift vaules at startu
 
 ![](./assets/images/decimationInshift02.jpg "")
 
-
 ## LED control
-The ```[LED]``` block allows the user to assign different RGB LED colors to each inference index.  When the NDP120 detects a feature in the data the inference results are passed to the application.  The application uses the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
+The ```[Led Network x]``` blocks allow the user to assign different RGB LED colors to each neural network and inference index.  When the NDP120 detects a feature in the data the network number and inference results are passed to the application.  The application uses the 
+neural network number and the index of the inference result [0 - n] to identify how to light the RGB LED on the I/O board.  The comments
+in the config.ini file associate each index with the 5-keyword model, but this feature works with any model that's loaded.  
 
 - [Video Link (3 minutes)](http://avnet.me/RASynChangeLedColorsVideo)
 
