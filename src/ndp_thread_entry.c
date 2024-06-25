@@ -195,7 +195,7 @@ void ndp_print_imu(void)
     ndp_core2_platform_tiny_mspi_config();
     ndp_core2_platform_tiny_mspi_write(IMU_SENSOR_MSSB, 1, &reg, 0);
     ndp_core2_platform_tiny_mspi_read(IMU_SENSOR_MSSB, 1, &imu_val, 1);
-    printf("attched IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
+    printf("attached IMU ID = 0x%02x\n", imu_val); /*id = 0x67*/
 }
 
 void ndp_info_display(void)
@@ -365,7 +365,7 @@ void ndp_thread_entry(void *pvParameters)
     // read back info from FLASH
         config_data_in_flash_t flash_data = {0};
         if (0 == ndp_flash_read_infos(&flash_data)){
-            set_event_watch_mode (flash_data.watch_mode);
+//            set_event_watch_mode (flash_data.watch_mode);
             memcpy(&config_items, &flash_data.cfg, sizeof(struct config_ini_items));
         }
         

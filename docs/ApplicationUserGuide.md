@@ -87,7 +87,7 @@ The NDP120 is configured by identifying the firmware images that will be loaded 
 
 - [Video Link (3 minutes)](http://avnet.me/RASynChangingMlModelsVideo)
 
-There are two areas in the config.ini file to configure which NDP120 files are loaded to the NDP120 at startup.
+There are two areas in the config.ini file to configure which NDP120 files/model(s) are loaded to the NDP120 at startup.
 
 1. ```[NDP Firmware]-->Mode=x```
     
@@ -101,6 +101,11 @@ Each ```[Function_x]``` block defines a description, and the three required NDP1
 - ```MCU``` refers to the ARM-M0 firmware that runs on the NDP120.  This firmware manages the devices and data flow.
 - ```DSP``` refers to the dsp firmware that runs on the NDP120.  This firmware does data pre-processing plus other functions.
 - ```DNN``` refers to the Nerual Network Parameters and ML model.  This firmware implements the ML model.
+- ```Event_Watch_Mode``` tells the NDP120 what data streams to watch and needs to align with the model defined in the ```DNN``` entry.
+   - 1 == Audio
+   - 2 == IMU
+   - 3 == Combined Audio & IMU data 
+
 
 ![](./assets/images/ndpConfig.jpg "")
 

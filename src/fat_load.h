@@ -116,6 +116,7 @@ enum WIF_CONFIG_TYPE {
 struct config_ini_items {
 	/* save the settings from config.ini */
 	char button_switch[8];		                /** [Function_x]-->Button_shift **/
+	int event_watch_mode;                       /** [Function_x]-->event_watch_mode **/
 	int led_event_color[LED_EVENT_NUM];	        /** [Led]-->IDXn **/
 
 	int recording_period;		                /** [Recording Period]-->Recording_Period **/
