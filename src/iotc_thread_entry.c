@@ -514,6 +514,9 @@ __attribute__ ((optimize(0))) void setup_network(void)
                 memset(buf, '\0', ATBUF_SIZE);
                 if(FSP_SUCCESS != rm_atcmd_check_value("AT+NWIP",5000,buf,ATBUF_SIZE)){
                     // 0,192.168.0.143,255.255.255.0,192.168.0.1",
+
+                    networkState = NETWORK_CONFIGURE;
+                    currentState = INIT_DA16600;
                     failCnt++;
                     return;
                 }
@@ -524,22 +527,23 @@ __attribute__ ((optimize(0))) void setup_network(void)
                     printf("INFO: No IP Address from WiFi Access Point . . . \n");
                     printf("\n\nINFO: Waiting for a connection to the internet, verify your Wi-Fi network is setup\n");
 
-                        if(USE_CONFIG_WIFI_SETTINGS == get_wifi_config()){
+                    if(USE_CONFIG_WIFI_SETTINGS == get_wifi_config()){
 
-                            printf("\n  INFO: Verify your network credentials in config.ini file\n\n");
-                            networkState = NETWORK_CONFIGURE;
-                            failCnt++;
-                            return;
+                        printf("\n  INFO: Verify your network credentials in config.ini file\n\n");
+                        networkState = NETWORK_CONFIGURE;
+                        currentState = INIT_DA16600;
+                        failCnt++;
+                        return;
 
-                        }
-                        else{
+                    }
+                    else{
 
-                            printf("\n  INFO: Use the Renesas Wi-Fi Provisioning Tool from your device's App store to confirm WiFi configuration\n\n");
+                        printf("\n  INFO: Use the Renesas Wi-Fi Provisioning Tool from your device's App store to confirm WiFi configuration\n\n");
 
-                            // If the user is using the Renesas provisioning tool, just stay in the loop until we get a network
-                            // connection.
-                            loopCnt = 0;
-                        }
+                        // If the user is using the Renesas provisioning tool, just stay in the loop until we get a network
+                        // connection.
+                        loopCnt = 0;
+                    }
                 }
             }
             // Check the size of the string returned, to see if we have an ip address
@@ -827,7 +831,6 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
         iotc_print("  SUBT: %s\n",subTopicString);
     }
 
-
     // Check to see if we're stuck trying to connect
     if(MAX_RETRIES == failCnt){
         currentState = SETUP_NETWORK;
@@ -845,7 +848,14 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
     // Set the MQTT Client ID
     memset(buf, '\0', ATBUF_SIZE);
     memset(atCmdBuffer,0,sizeof(atCmdBuffer));
-    snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_device_uid());
+
+    if(get_target_cloud() == CLOUD_AWS){
+        snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_aws_deviceId());
+    }
+    else{
+        snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQCID=%s",get_device_uid());
+    }
+
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
@@ -857,6 +867,44 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
     snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQBR=%s,8883",hostnameString);
 
     if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set the SNI configuration
+    memset(buf, '\0', ATBUF_SIZE);
+    memset(atCmdBuffer,0,sizeof(atCmdBuffer));
+    snprintf(atCmdBuffer, sizeof(atCmdBuffer), "AT+NWMQSNI=%s",hostnameString);
+
+    if(FSP_SUCCESS != rm_atcmd_send(atCmdBuffer, 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set the TLS authorization to MBEDTLS_SSL_VERIFY_REQUIRED
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWOTATLSAUTH=2", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set QOS to 1
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQQOS=1", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set Clean Session mode to true
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQCS=1", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set MQTT version 3.1.1
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQV311=1", 1000,buf, ATBUF_SIZE)){
         failCnt++;
         return;
     }
@@ -897,7 +945,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
 
     do{
 
-        // Allow 3 seconds for the connection to be established
+        // Allow 3000 * MAX_TIMEOUTS == 30 seconds for the connection to be established
         vTaskDelay(3000);
 
         memset(buf, '\0', ATBUF_SIZE);
@@ -907,7 +955,7 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
         if(++timeoutCnt >= MAX_TIMEOUTS){
 
             // Fall back and start from the setup network state to recover the MQTT connection
-            currentState = SETUP_NETWORK;
+            currentState = INIT_DA16600;
             failCnt = 0;
             return;
         }

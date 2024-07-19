@@ -22,7 +22,7 @@
 
 // Increment Build Version when Major and Minor versions do not change
 // If Major or Minor versions change, reset BUILD_VERSION to 0
-#define BUILD_VERSION "1"
+#define BUILD_VERSION "2"
 
 #else
 #define BUILD_VERSION "Engineering Build"
