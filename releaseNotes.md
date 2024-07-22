@@ -1,3 +1,26 @@
+## Version: 1.6.2
+Release type: **Feature Release**
+
+Date: July 22, 2024
+
+## Note: The V1.6.2 release is compatible with Edge Impulse Models generated after June 10th 2024
+
+### New Features
+- AAGBT-170: Added additional AT commands when setting up MQTT over TLS to allow the device to pass the AWS IoT Core certification tests.
+  - MQTT3.1.1
+  - Set SNI configuration
+  - TLS authorization to required
+
+### Bug Fixes
+None
+
+### Known Issues
+- AAGBT-165: When capturing IMU data converted from ADC values to accelerometer and gyro units to debug sometimes the application hangs.  This appears to be a floating point printf() issue and is currently masked by reducing the floating point  precision to 3 places.  For full  precision data, please capture converted IMU data to the microSD card file system.
+- AAGBT-159: The EVK does not power up with powered by just a battery.  See [troubleshooting guide](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/blob/rasynboard_v2_tiny/docs/RASynTroubleshootingGuide.md#the-rasynboard-evk-io-board--core-board-does-not-power-up-when-using-just-a-lipo-battery) for a work around
+- AAGBT-159: When powering EVK from a battery the RGB LEDs are not powered.  See [troubleshooting guide](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/blob/rasynboard_v2_tiny/docs/RASynTroubleshootingGuide.md#the-rasynboard-evk-io-board--core-board-does-not-power-up-when-using-just-a-lipo-battery) for a hardware work around
+- AAGBT-105: When using a custom BLE name, the OOB application is not able to connect to the Python GUI demo application
+- AAGBT-123: When capturing audio, or IMU data if there is an issue receiving data from the NDP120 the application hangs
+
 ## Version: 1.6.1
 Release type: **Feature Release**
 
