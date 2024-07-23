@@ -155,6 +155,7 @@ struct config_ini_items {
 
     char mode_description[MODE_DESCRIPTION_LEN];
     int imu_conversion_enabled;                 /** [IMU Recording Format]-->Convert_Data **/
+    int idle_delay;                             /** [Puck Demo]-->Idle_Delay in ms**/
 };
 
 extern struct config_ini_items config_items;
@@ -209,6 +210,7 @@ char* get_aws_sub_topic( void );
 char* get_aws_pub_topic( void );
 char* get_mode_description( void );
 bool is_imu_convertion_enabled( void );
+int get_puck_idle_delay( void );
 
 uint32_t cat_file(char * src_file, char * dst_file, int flag);
 uint32_t remove_file(char * file_name);

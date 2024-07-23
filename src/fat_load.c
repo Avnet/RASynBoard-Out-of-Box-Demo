@@ -549,6 +549,8 @@ static uint32_t read_config_file( void )
     config_items.dec_inshift_offset = ini_getl(section, "DECIMATION_INSHIFT_OFFSET", DEC_INSHIFT_OFFSET_DEFAULT, inifile);
     config_items.event_watch_mode = ini_getl(section, "Event_Watch_Mode", WATCH_TYPE_AUDIO, inifile);
 
+    config_items.idle_delay = ini_getl("Puck Demo", "Idle_Delay", 4000, inifile);
+
 	/* Get led color according to network number and inference index */
 	for (int network = 0; network < LED_NETWORK_NUM; network++){
         for (int idx = 0; idx < LED_EVENT_NUM; idx++)
@@ -808,6 +810,8 @@ void printConfg(void)
     printf("    Event Watching Mode: %s %s\r\n", 
             (get_event_watch_mode()&WATCH_TYPE_AUDIO)?"Key-Word":"",
             (get_event_watch_mode()&WATCH_TYPE_MOTION)?"IMU-Motion":"");
+
+    printf("\n  Puck Demo Idle delay: %d ms\n\n", config_items.idle_delay);
 
     // Output recording feature driven by Low Power Mode Selection
     if(config_items.low_power_mode == DOWN_DOWN_LP_MODE){
@@ -1093,7 +1097,6 @@ char* get_aws_pub_topic( void )
     return config_items.aws_pub_topic;
 }
 
-
 char* get_mode_description( void )
 {
     return config_items.mode_description;
@@ -1102,3 +1105,8 @@ char* get_mode_description( void )
 bool is_imu_convertion_enabled( void ){
     return (1 == config_items.imu_conversion_enabled);
 }
+
+int get_puck_idle_delay( void ){
+    return config_items.idle_delay;
+}
+

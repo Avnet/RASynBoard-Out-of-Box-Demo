@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 // Set RELEASE_BUILD to 1 for official releases, 0 for engineeering builds
-#define RELEASE_BUILD 1
+#define RELEASE_BUILD 0
 
 #ifndef VERSION_STRING_H_
 #define VERSION_STRING_H_
@@ -25,7 +25,7 @@
 #define BUILD_VERSION "1"
 
 #else
-#define BUILD_VERSION "Engineering Build"
+#define BUILD_VERSION "1 -- RASynPuck_Build"
 #endif
 #define DOT "."
 

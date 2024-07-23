@@ -13,6 +13,7 @@
 #include "rm_atcmd.h"
 #include "usb_pcdc_vcom.h"
 #include "iotc_thread_entry.h"
+#include "telemetryTiming.h"
 
 #define led_event_color(x,y)	(config_items.led_event_color_data[x][y])
 #define SYNTIANT_NDP120_MAX_CLASSES     32
@@ -66,8 +67,8 @@ int num_labels = 0;
 
 #define SYNTIANT_NDP120_MAX_CLASSES     32
 #define SYNTIANT_NDP120_MAX_NNETWORKS   4
-#define MAX_TELEMETRY_NETWORKS          2
-#define MAX_TELEMETRY_LABELS            10
+#define MAX_TELEMETRY_NETWORKS          1
+#define MAX_TELEMETRY_LABELS            8
 #define NDP120_MCU_LABELS_MAX_LEN       (0x200)
 
 static char *labels[SYNTIANT_NDP120_MAX_CLASSES];
@@ -173,7 +174,9 @@ void ndp_send_model_telemetry(void)
                 inferenceData[networkNum][labelNum].networkNumber = networkNum;
             }
             else{
-                strncpy(inferenceData[networkNum][labelNum].infStr, "N/A", MAX_SUPPORTED_LABEL_LEN);
+
+                // RASynPuck Demo: Create the "Idle" entry in the data structure
+                strncpy(inferenceData[networkNum][labelNum].infStr, "Idle", MAX_SUPPORTED_LABEL_LEN);
             }
 
             // Create the inference JSON
@@ -422,174 +425,197 @@ void ndp_thread_entry(void *pvParameters)
 
     memset(&last_stat, 0, sizeof(blink_msg_t));
     memset(&current_stat, 0, sizeof(blink_msg_t));
+
+    // Send the Idle telemetry to put the idle graphic up on IoTConnect
+    enqueInferenceData(IDLE_NETWORK_NUM, IDLE_INFERENCE_INDEX);
+
     /* TODO: add your own code here */
     while (1)
     {
+
         /* Wait until NDP inference event detection */
         evbits = xEventGroupWaitBits(g_ndp_event_group, EVENT_BIT_VOICE | EVENT_BIT_FLASH,
             pdTRUE, pdFALSE , portMAX_DELAY);
      
-        if( evbits & EVENT_BIT_VOICE )
-        {
-            xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
-            ndp_core2_platform_tiny_poll(&notifications, 1, &fatal_error);
-            if (fatal_error) {
-                printf("\nNDP Fatal Error!!!\n\n");
-            }
+            if( evbits & EVENT_BIT_VOICE )
+            {
 
-            ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
-            if (!ret) {
-                printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n", 
-                    ndp_nn_idx, ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx], 
-                    (sec_val>0)?"with":"without");
-            }
-            xSemaphoreGive(g_ndp_mutex);
+                xSemaphoreTake(g_ndp_mutex,portMAX_DELAY);
+                ndp_core2_platform_tiny_poll(&notifications, 1, &fatal_error);
+                if (fatal_error) {
+                    printf("\nNDP Fatal Error!!!\n\n");
+                }
 
-            switch (ndp_class_idx) {
-                case 0:
-                case 1:
-                case 3:
-                case 4:
-                case 5:
-                case 6:
-                case 7:
-                case 8:
-                case 9:
-                    /* Voice: OK-Syntiant; light Amber Led */
-                    current_stat.led = LED_EVENT_NONE;
-                    q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
-                    xQueueSend(g_led_queue, (void *)&q_event, 0U );
-                    send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
-                    enqueInferenceData(ndp_nn_idx, ndp_class_idx);
-                    break;
-                case 2:
+                ret = ndp_core2_platform_tiny_match_process(&ndp_nn_idx, &ndp_class_idx, &sec_val, NULL);
 
-                    if(DOWN_DOWN_ENABLED == get_down_down_lp_mode()){
+                // Only process the current event if we're not forcing the timing
+                // between the last inference event and sending the idle message.
+                if(getSupressNdp120Event()){
 
-                        /* Voice: Down; light Magenta Led */
-                        current_stat.led = LED_COLOR_MAGENTA;
-                        current_stat.timestamp = xTaskGetTickCount();
+                    // Service the ndp120 semaphores.  If we don't do this and we ignore
+                    // ndp120 events, we no longer receive events.
+                    xSemaphoreGive(g_ndp_mutex);
+                    xSemaphoreGive(g_binary_semaphore);
 
-                        if (last_stat.led != LED_COLOR_MAGENTA)
-                        {
-                            /* first receive 'Down'  keyword */
+                }
+                else{
+
+                    if (!ret) {
+                        printf("\nNDP MATCH!!! -- [%d:%d]:%s %s sec-val\n\n",
+                            ndp_nn_idx, ndp_class_idx, labels_per_network[ndp_nn_idx][ndp_class_idx],
+                            (sec_val>0)?"with":"without");
+                    }
+                    xSemaphoreGive(g_ndp_mutex);
+
+                    switch (ndp_class_idx) {
+                        case 0:
+                        case 1:
+                        case 3:
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7:
+                        case 8:
+                        case 9:
+                            /* Voice: OK-Syntiant; light Amber Led */
+                            current_stat.led = LED_EVENT_NONE;
                             q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
                             xQueueSend(g_led_queue, (void *)&q_event, 0U );
-                            send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+                            send_ble_update(ble_at_string[V_WAKEUP], 1000, buf, sizeof(buf));
                             enqueInferenceData(ndp_nn_idx, ndp_class_idx);
-                        }
-                        else
-                        {
-                            /*Judging the received 'Down""Down' keyword*/
-                            TickType_t duration = current_stat.timestamp - last_stat.timestamp;
-                            printf("duration time =%d \n", duration);
-                            if ( duration < pdMS_TO_TICKS(3600UL) )
-                            {
-                                /* valid, send led blink envent */
-                                q_event =  LED_BLINK_DOUBLE_BLUE;
-                                xQueueSend(g_led_queue, (void *)&q_event, 0U );
-                                /* Send 'idle' and 'advstop' to bluetooth */
-                                send_ble_update(ble_at_string[V_IDLE],1000,buf, sizeof(buf));
-                                send_ble_update(ble_at_string[V_STOP],1000,buf, sizeof(buf));
-                                /* clear led state */
-                                current_stat.led = LED_EVENT_NONE;
+                            suppressNdp120Events();
+                            break;
+                        case 2:
+
+                            if(DOWN_DOWN_ENABLED == get_down_down_lp_mode()){
+
+                                /* Voice: Down; light Magenta Led */
+                                current_stat.led = LED_COLOR_MAGENTA;
+                                current_stat.timestamp = xTaskGetTickCount();
+
+                                if (last_stat.led != LED_COLOR_MAGENTA)
+                                {
+                                    /* first receive 'Down'  keyword */
+                                    q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
+                                    xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                                    send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+                                    enqueInferenceData(ndp_nn_idx, ndp_class_idx);
+                                    suppressNdp120Events();
+                                }
+                                else
+                                {
+                                    /*Judging the received 'Down""Down' keyword*/
+                                    TickType_t duration = current_stat.timestamp - last_stat.timestamp;
+                                    printf("duration time =%d \n", duration);
+                                    if ( duration < pdMS_TO_TICKS(3600UL) )
+                                    {
+                                        /* valid, send led blink envent */
+                                        q_event =  LED_BLINK_DOUBLE_BLUE;
+                                        xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                                        /* Send 'idle' and 'advstop' to bluetooth */
+                                        send_ble_update(ble_at_string[V_IDLE],1000,buf, sizeof(buf));
+                                        send_ble_update(ble_at_string[V_STOP],1000,buf, sizeof(buf));
+                                        /* clear led state */
+                                        current_stat.led = LED_EVENT_NONE;
+                                    }
+                                    else
+                                    {
+                                        /* invalid time */
+                                        q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
+                                        xQueueSend(g_led_queue, (void *)&q_event, 0U );
+                                        send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
+                                        enqueInferenceData(ndp_nn_idx, ndp_class_idx);
+                                        suppressNdp120Events();
+                                    }
+                                }
                             }
-                            else
-                            {
-                                /* invalid time */
+                            else{
                                 q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
                                 xQueueSend(g_led_queue, (void *)&q_event, 0U );
                                 send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
                                 enqueInferenceData(ndp_nn_idx, ndp_class_idx);
+                                suppressNdp120Events();
                             }
+                            break;
+                        default :
+                            break;
+                    }
+                    xSemaphoreGive(g_binary_semaphore);
+                    /* Store the led state */
+                    memcpy(&last_stat, &current_stat, sizeof(blink_msg_t));
+                }
+            }
+            else if( evbits & EVENT_BIT_FLASH )
+            {
+                if ( 0 == check_sdcard_env())
+                {
+                    usb_disable();
+                    printf ("\nBegin to program the spi flash ..... \n");
+                    ndp_irq_disable();
+                    turn_led(BSP_LEDRED, BSP_LEDON);
+                    if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+                        ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
+                        if (ret) {
+                            printf("Feature set NONE failed: %d\n", ret);
+                            break;
                         }
                     }
-                    else{
-                        q_event = led_event_color(ndp_nn_idx, ndp_class_idx);
-                        xQueueSend(g_led_queue, (void *)&q_event, 0U );
-                        send_ble_update(ble_at_string[V_DOWN],1000,buf, sizeof(buf));
-                        enqueInferenceData(ndp_nn_idx, ndp_class_idx);
+
+                    if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
+                        ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
+                        if (ret) {
+                            printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
+                            break;
+                        }
                     }
-                    break;
-                default :
-                    break;
-            }
-            xSemaphoreGive(g_binary_semaphore);
-            /* Store the led state */
-            memcpy(&last_stat, &current_stat, sizeof(blink_msg_t));
-        }
-        else if( evbits & EVENT_BIT_FLASH )
-        {
-            if ( 0 == check_sdcard_env())
-            {
-                usb_disable();
-                printf ("\nBegin to program the spi flash ..... \n");
-                ndp_irq_disable();
-                turn_led(BSP_LEDRED, BSP_LEDON);
-                if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
-                    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_NONE);
-                    if (ret) {
-                        printf("Feature set NONE failed: %d\n", ret);
-                        break;
+
+                    ndp_flash_init();
+                    ndp_flash_program_all_fw();
+
+                    turn_led(BSP_LEDRED, BSP_LEDOFF);
+                    turn_led(BSP_LEDGREEN, BSP_LEDON);
+    #ifdef  FLASH_READBACK_CHECK
+                    for(int i=0; i<3000 ; i++)
+                    {
+                        uint8_t pdata[256];
+                        uint32_t address = i * 256;
+                        memset(pdata, 0, sizeof(pdata));
+                        ndp_flash_read_block(address, pdata, 256);
+                        write_wav_file("readback_flash.bin", pdata,  256, i+1);
                     }
+    #endif
+                    vTaskDelay (100);
+                    turn_led(BSP_LEDGREEN, BSP_LEDOFF);
+                    printf ("Finished programming!\n\n");
+                    usb_enable();
+
+                    if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
+                        ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
+                        if (ret) {
+                            printf("Feature set NONE failed: %d\n", ret);
+                            break;
+                        }
+                    }
+
+                    if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
+                        ret = bff_reinit_imu();
+                        if (ret) {
+                            printf("bff reinit IMU failed: %d\n", ret);
+                        }
+
+                        ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
+                        if (ret) {
+                            printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
+                            break;
+                        }
+                    }
+                    ndp_irq_enable();
                 }
-
-                if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
-                    ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 0);
-                    if (ret) {
-                        printf("disable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
-                        break;
-                    }
-                }
-
-                ndp_flash_init();
-                ndp_flash_program_all_fw();
-
-                turn_led(BSP_LEDRED, BSP_LEDOFF);
-                turn_led(BSP_LEDGREEN, BSP_LEDON);
-#ifdef  FLASH_READBACK_CHECK
-                for(int i=0; i<3000 ; i++)
+                else
                 {
-                    uint8_t pdata[256];
-                    uint32_t address = i * 256;
-                    memset(pdata, 0, sizeof(pdata));
-                    ndp_flash_read_block(address, pdata, 256);
-                    write_wav_file("readback_flash.bin", pdata,  256, i+1);
+                    printf("Cannot find sdcard or firmware files !");
                 }
-#endif
-                vTaskDelay (100);
-                turn_led(BSP_LEDGREEN, BSP_LEDOFF);
-                printf ("Finished programming!\n\n");
-                usb_enable();
-            
-                if (get_event_watch_mode() & WATCH_TYPE_AUDIO) {
-                    ret = ndp_core2_platform_tiny_feature_set(NDP_CORE2_FEATURE_PDM);
-                    if (ret) {
-                        printf("Feature set NONE failed: %d\n", ret);
-                        break;
-                    }
-                }
-
-                if (get_event_watch_mode() & WATCH_TYPE_MOTION) {
-                    ret = bff_reinit_imu();
-                    if (ret) {
-                        printf("bff reinit IMU failed: %d\n", ret);
-                    }
-
-                    ret = ndp_core2_platform_tiny_sensor_ctl(IMU_SENSOR_INDEX, 1);
-                    if (ret) {
-                        printf("enable sneosr[%d] failed: %d\n", IMU_SENSOR_INDEX, ret);
-                        break;
-                    }
-                }
-                ndp_irq_enable();
             }
-            else
-            {
-                printf("Cannot find sdcard or firmware files !");
-            }
-        }
-        vTaskDelay (5);
     }
 }
 
