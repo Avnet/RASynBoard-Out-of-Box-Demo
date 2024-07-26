@@ -49,14 +49,17 @@ There is also a [video](http://avnet.me/IoTConnectOnAWS) showing how to complete
 This guide requires an IoTConnect account on AWS.
 
 >**NOTE:**  
-> If you have already created an IoTConnect account on AWS, or were provided an account as part of a training or workshop, skip this section.
+> If you have already created an IoTConnect account on AWS, or were provided an account as part of a training or workshop, please move onto the next section [Create a New Device on IoTConnct](#create-a-new-device-on-iotconnect).
 
 If you need to create an account, a free 2-month subscription is available.
 Please follow the 
 [Creating a New IoTConnect Account](https://github.com/avnet-iotconnect/avnet-iotconnect.github.io/blob/main/documentation/iotconnect/subscription/subscription.md)
-guide and ensure to select the [AWS version](https://subscription.iotconnect.io/subscribe?cloud=aws) during registration:
+guide and ensure to select the [AWS version](https://subscription.iotconnect.io/subscribe?cloud=aws) during registration
 
-![IoTConnect on Azure](https://github.com/avnet-iotconnect/avnet-iotconnect.github.io/blob/main/documentation/iotconnect/subscription/media/iotc-aws.png)
+<p align="center">
+    <br />
+    <img src=./assets/images/IotConnectSubscribe.jpg width="350">
+<br />
 
 Once you have an account on IoTConnect come back to this document to move forward . . .
 
@@ -72,7 +75,7 @@ Once you have an account on IoTConnect come back to this document to move forwar
 
 The first thing we need to do is create a device template, since the template is a required input when we create a new IoTDevice.  A device template is a self-contained file that defines a set of resources, configuration, and rules for devices on IoTConnect.  
 
-You can manually create or import a pre-defined template.  In this tutorial, we'll import a template.  Importing a template is a quick way to use a template that someone else has already created.  Templates can be large, and manually inputting all the details can be tedious.  I've included [a template](./assets/IoTConnect/RASyV15_template.JSON) that works with the OOB application in this GitHub repo.  You can also manually edit an existing template, it's just a JSON document.  However, editing templates is beyond the scope of this document.
+You can manually create or import a pre-defined template.  In this tutorial, we'll import a template.  Importing a template is a quick way to use a template that someone else has already created.  Templates can be large, and manually inputting all the details can be tedious.  I've included [a template](./assets/IoTConnect/RASyV1_6_template.JSON) that works with the OOB application in this GitHub repo.  You can also manually edit an existing template, it's just a JSON document.  However, editing templates is beyond the scope of this document.
 
 1. Open the **devices** page
 
@@ -103,7 +106,7 @@ You can manually create or import a pre-defined template.  In this tutorial, we'
 <br />
 
 5. The **Import** dialog opens
-    1. Use the **Browse** link to find the ```/docs/assets/IoTConnect/RASyV15_template.JSON``` file
+    1. Use the **Browse** link to find the ```/docs/assets/IoTConnect/RASyV1_6_template.JSON``` template file
     1. Click the **Save** button
 
 <p align="center">
@@ -402,8 +405,11 @@ One of my favorite IoTConnect features is the ability to build a custom dashboar
     1. Select the template we just imported **RASyV1_5**
     1. Select the device we just created **RASynBoard** for me
     1. Give your dashboard a name
-    1. Use the **Browse** button to browse to the file [RASynBoard_dashboard_export.json](./assets/IoTConnect/RASynBoard_dashboard_export.json) from the [GitHub repo](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo)
+    1. Use the **Browse** button to browse to the file [RASynBoard_generic_dashboard.json](./assets/IoTConnect/RASynBoard_generic_dashboard.json) template from the [GitHub repo](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo)
     1. Click the **Save** button
+
+> **Note**: if you're working to recreate the RASynPuck demo load the [RASynPuck_dashboard.json](./assets/IoTConnect/RASynPuck_dashboard.json) template from the [GitHub repo](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo)
+
 
 3. The new dashboard opens in edit mode
 4. Click the **Save** button to exit edit mode

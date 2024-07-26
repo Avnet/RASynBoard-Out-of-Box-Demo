@@ -1,69 +1,130 @@
-# Avnet RASynBoard Out-Of-Box Application
+# RASynPuck Demo    
 
-The Out-of-Box (OOB) application's goal is to "Provide a working example application that exercise the RASynBoard hardware and gives development teams a strong starting point for their own custom designs and ML training data"
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo1.jpg width="300">
+    <img src=./docs/assets/images/puckDemo2.jpg width="177">
+<br />
 
-- [RASynBoard Product Page](http://avnet.me/RASynBoard): Includes a buy link
-- [RASynBoard Development Guide](http://avnet.me/rasynboard-ug): Detailed overview of the hardware
-- [RASynBoard Video Series](./docs/RASnyVideoSeries.md)
-    - Collection of short videos to help users get started with the RASynBoard OOB application
-- [RASynPuck Demo](./docs/RASynPuckDemo.md)
-    - Details for configuring a wireless, battery operated demo with a cloud dashboard    
+This project is an example of how the current Avnet RASynBoard Out of Box (OOB) application can be repurposed for a custom application.  The standard application implements many features that a deployed application needs like cloud connectivity and the interface to the NDP120.  Lets leverage these features and enhance the application to fit our needs.
 
-# Out-of-Box documentation
-Please follow the links below to learn more about the Avnet RASynBoard Out-of-Box application
+This documentation was written to compliment the current [RASynPuckDemo](./docs/RASynPuckDemo.md) documentation.  
+- This document details how to leverage the generic Avnet Out of Box application for a custom solution
+- The existing [RASynPuckDemo](./docs/RASynPuckDemo.md) document details how to configure the RASynBoard for a cloud connected core board only deployment
 
-- [Getting Started](./docs/RASyBoardGettingStarted.md): All the details you need to clone, build, load and debug the application on your RASynBoard development kit
-    - [Video walkthrough (23 minutes)](http://avnet.me/RASynGettingStartedVideo)
-- [Application User Guide](./docs/ApplicationUserGuide.md): Details on all the application features and configuration options
-- [Using RASynBoard Releases](./docs/UsingRASynbBoardReleases.md): Details on loading one of the OOB releases onto your RASynBoard if you don't want to build the application yourself
-    - [Video walkthrough (11 minutes)](http://avnet.me/RASynUsingReleasesVideo)
-- [RASynBoard Troubleshooting guide](./docs/RASynTroubleshootingGuide.md)
-    - Document to address common issues encountered when running and debugging the OOB application
+This branch (RASynPuckDemo) contains code changes specific for the RASynPuck Demo.  The RASynPuck demo was created to be a small battery powered demo that can easily travel to trade shows or customer sites to show some of the capabilities of the RASynBoard and Avnet's IoTConnect cloud solution.  
 
-## Edge Impulse Data ingestions documentation
-Use the links below to learn about the different ways to collect training/testing data with your RASynBoard and transfer it to your Edge Impulse ML project.
+The code changes include . . . 
 
-- [Edge Impulse RASynBoard Documentation](https://docs.edgeimpulse.com/docs/development-platforms/officially-supported-mcu-targets/avnet-rasynboard)
-- [Edge Impulse Daemon instructions](./docs/RASynEdgeImpulseDataIngestion.md): Details on using the Edge Impulse RASynBoard application and the ```edge-impulse-daemon``` utility to send training data from your RASynBoard directly into your Edge Impulse ML project
-    - [Video walkthrough (xx minutes)](http://avnet.me/RASynDataIngestionVideo)
-- [Edge Impulse Data Forwarder instructions](./docs/EdgeImpulseDataForwarder.md): Details on using the Edge Impulse Data Forwarder CLI tool to stream 6-Axis IMU data directly into your Edge Impulse ML project
-- [Edge Impulse Uploader instructions](./docs/EdgeImpulseUploader.md): Details on using the Edge Impulse Uploader CLI tool to upload audio (\*.wav) or 6-Axis IMU data (\*.csv) data files directly into your Edge Impulse ML project
+- Add logic to suppress NDP120 events after sending an inference telemetry message i.e., ```Rolling```, then wait a period of time and send the ```Idle``` telemetry message.  This allows the gif images to play to completion on the IoTConnect Dashboard.
 
-## Connecting your RASynBoard to a cloud solution
-Use the links below to learn how to connect your RASynBoard to one of the currently supported cloud solutions.
+- Change the length of time the RGB LED is turned on when the NDP120 detects and inference event.  The new period is the same period between sending inference telemetry i.e., ```Rolling``` and the ```Idle``` message.  This is a good visual indication that NDP120 events are suppressed.
 
-- [Avnet IoTConnect Configuration](./docs/IoTConnect.md):  Details to connect your RASynBoard to Avnet's IoTConnect on AWS cloud solution
-    - [Video walkthrough (31 minutes)](http://avnet.me/IoTConnectOnAWS)
-- [AWS IoT Core Configuration](./docs/awsIoTCore.md):  Details to connect your RASynBoard to AWS IoT Core
-    - [Video walkthrough (18 minutes)](http://avnet.me/RASynAwsIotCore)
-- [Wi-Fi Configuration](./docs/WiFiSetup.md):  Details on how to configure the OOB application to connect to your Wi-Fi network. 
-    - [Video tutorial (9 minutes)](http://avnet.me/RASynWiFi)
+- Add a new config.ini setting called [Puck Demo]-->Idle_Delay that defines the time period between when the application sends an inference telemetry message i.e., ```Rolling``` and sending the ```Idle``` telemetry message
 
-## Software development documentation
-Use the links below to learn how to modify the Avnet OOB application to target your specific application requirements.
+## The Story 
 
-- [Out-of-Box Development Notes](./docs/OobDevelopmentNotes.md): Details on the OOB application and areas of interest for engineering teams looking to leverage the application for custom applications.
-- [Add a Temperature and Humidity Sensor to the OOB Application](./docs/addTempHumiditySensor.md): Details on how to add the [Renesas HS300X temperature and humidity sensor](https://www.renesas.com/us/en/products/sensor-products/humidity-sensors/us082-hs3001evz-relative-humidity-sensor-pmod-board-renesas-quick-connect-iot) to the OOB application.
+To implement this demo I need . . . 
+1. A demo fixture to hold the Core board and a battery
+1. Custom gif images that mimic the motion events from the NDP120
+1. A ML model to capture the event I wanted to show
+1. Customizations to the Avnet RASynBoard OOB application to suit the demo
+1. Implement a cloud based dashboard to show inference events using animated gifs 
 
-# Out-of-Box Releases
-As Avnet adds features and bug fixes to the OOB application we push out releases.  Each release:
+### Demo Fixture
 
-1. Has a unique version string
-2. Is built from a GitHub [Repo Tag](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/tags)
-3. Have been tested
-4. Include release notes detailing changes since the last release
-5. Are delivered as a binary image
-6. Include the corresponding microSD card images 
-7. Documents known issues with the release, and if available, details on working around the issue
+When I first started to work on the RASynBoard project I created a 3D printable enclosure that holds the RASynBoard core board and a 500mAH battery.  My *.stl files can be found [here](https://www.thingiverse.com/thing:6273171).  I used my resin printer to capture the fine details of the design.  
 
-[Link to Avnet RASynBoard OOB Releases](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/releases)
+### Custom gif images
 
-# Self Paced Training
-Avnet creates training materials to help engineering teams come up to speed quickly with the Avnet RASynBoard.  Follow the links below to access the latest hands-on RASynBoard lab documents.
+IoTConnect has a very cool dashboard feature/widget called ```transformations``` that can show a graphic or gif based on a telemetry value.  More on this later, but I wanted to create animated gif images that showed the motion detected by the RASynBoard.  I used the animation feature in Fusion 360 (now just Fusion) to create the animations, then captured video of the animations with Camtasia then converted the short videos to gif images using a free utility called ffmpeg.
 
-- [Lab0](http://avnet.me/ML-Workshop-Lab0): Walks the user through setting the tools and free on-line accounts to complete the labs
-- [Lab1](http://avnet.me/ML-Workshop-Lab1): Details on sideloading the OOB binary image onto the board and exercising some of the ML features implemented in the OOB application
-- [Lab2](http://avnet.me/ML-Workshop-Lab2): Details on creating an Edge Impulse ML model.  **Note:** this lab can't be completed until late October when Edge Impulse releases public support for the Avnet RASynBoard.  However, you can still stream 6-Axis IMU data to Edge Impulse, build a ML model, and test it in Edge Impulse from data streaming from your RASynBoard.
+Here are my gif images.  Note I also created a static image of the Puck at rest, the modified application will send up an ```idle``` message to show the static image between motion events.  When creating the gifs and image I took the time to ensure all images started and ended in the same location to enhance the visualization.
 
-# Bugs or improvement ideas
-If you encounter a bug, have questions on the OOB application, or have an idea for ways to improve the application, please open an issue on the [GitHub Issue Page](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/issues).  An Avnet engineer will respond to the request.
+<p align="left">
+    <br />
+    <img src=https://images2.imgbox.com/ef/2c/Fpd0jH7K_o.gif width="250">
+    <img src=https://images2.imgbox.com/aa/dd/j2jucSRz_o.gif width="250">
+    <img src=https://images2.imgbox.com/94/b8/FHQHw4rG_o.gif width="250">
+    <img src=https://images2.imgbox.com/38/05/XQ1QYv4s_o.gif width="250">
+    <img src=https://images2.imgbox.com/57/c5/yNSmAnoP_o.jpg width="250">
+<br />
+
+### Create a ML model to capture motion events
+
+I recently updated my RASynBoard workshop lab documents.  I followed my [Lab1 document](http://avnet.me/ML-WorkshopV2-Lab1) to create a new IMU model in Edge Impulse and added the twisting motion event.  The RASynPuck ML model was also delivered in the latest [RASynBoard release 1.6.2](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/releases).
+
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo11.jpg width="650">
+<br />
+
+### Customize the OOB application
+#### Out of Box configuration settings
+
+I leveraged a couple standard Out of Box features for the demo
+
+- [IoTConnect on AWS cloud connectivity](./docs/IoTConnect.md) for my cloud connectivity and dashboard
+- I also disable the "down down" low power entry feature.  Currently the low power features don't play nice with an MQTT connection.
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo7.jpg width="800">
+<br />
+
+##### Code changes
+
+I wanted to allow the gifs to play to completion before allowing another gif to start so I had to . . .
+
+- Implement a way to disable inference events until the current gif completed
+- Implement a way to send up the ```Idle``` telemetry message after the gif completed or a specific delay
+  - It's pretty much impossible to get this timing exactly correct since there are variable telemetry transmission times and the IoTConnect back end has to process the message then show the correct gif.
+- Modify how long the RGB is turned to match the period between sending a telemetry message i.e., ```Rolling``` and sending the ```Idle``` telemetry message.  This gives the user a visual indication that inferencing is disabled while the RGB LED is on.
+
+To implement these requirements I created a new thread called ```telemetryTiming``` and a boolean flag called ```supressNdp120Events```.  When the NDP120 detects an event I added a call to ```suppressNdp120Event()``` that sets the boolean flag in the ```telemetryTiming``` context.  
+
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo12.jpg width="600">
+<br />
+
+Then I added code to block on a new Event Group bit.  The Event bit is set when ```suppressNdp120Event()``` is called.  The thread is unblocked when the bit is set and a delay is implemented.  Once the delay expires then we send the Idle message and set the boolean supressNdp120Events to false. 
+
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo9.jpg width="900">
+<br />
+
+I also added a new config.ini entry to allow me to change the timing between when an inference event is sent and sending the idle message without having to rebuild the application
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo8.jpg width="800">
+<br />
+
+To suppress the NDP120 events, I added a call to check the suppress status to the ```ndp_thread_entry()``` function right after the NDP120 signals that there is a new event.  If we're suppressing events, we just service the semaphores.  If we're not suppressing events, just run the existing code logic.
+
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo10.jpg width="800">
+<br />
+
+### Create an IoTConnect Dashboard
+
+At this point I have my custom application sending inference events to IoTConnect.  Since I followed the [IoTConnect on AWS cloud connectivity](./docs/IoTConnect.md) documentation, my device exists and was created using the [RASyV1_6_template device template](./docs/assets/IoTConnect/RASyV1_6_template.JSON).  I also imported the RASynPuck_dashboard.json dashboard template.  
+
+## Test the Dashboard
+
+1. Make sure your device is on-line and connected to IoTConnect
+2. Open the dashboard
+3. Move your RASynBoard to trigger one of the motion events
+
+<p align="center">
+    <br />
+    <img src=./docs/assets/images/puckDemo19.jpg width="1200">
+<br />
+
+## Deploy the demo on just a core board
+
+There is another write-up on how to get your AWS or IoTConnect certificates and your configuration flashed onto your core board's SPI flash.  See the document [here](./docs/RASynPuckDemo.md).
+
+## Conclusion
+The goal of this project was to show that you can start with the Avnet RASynBoard Out of Box application and customize it to fit your project requirements.  If you have any questions or issue, please open an issue in the GitHub repo [here](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/issues) 

@@ -29,10 +29,11 @@
                         "key": "url"
                     },
                     "device": {
-                        "deviceGuid": "",
+                        "deviceGuid": "59029436-805A-404F-A2CA-1A13A93D4EEE",
                         "deviceName": "",
                         "imageurl": "",
-                        "key": "device"
+                        "key": "device",
+                        "deviceUniqueId": "RASPuck1"
                     },
                     "telemetry": {
                         "deviceGuid": "",
@@ -66,8 +67,8 @@
                 "contents": {
                     "devicelatestvalue": {
                         "device": {
-                            "deviceGuid": "552EA32D-B1B2-4423-8042-8E5EDEF480CC",
-                            "deviceUniqueId": "RASnBWv15"
+                            "deviceGuid": "59029436-805A-404F-A2CA-1A13A93D4EEE",
+                            "deviceUniqueId": "RASPuck1"
                         },
                         "boxtypes": "1",
                         "attributes": {
@@ -112,35 +113,35 @@
                 "contents": {
                     "devicelatestvalue": {
                         "device": {
-                            "deviceGuid": "552EA32D-B1B2-4423-8042-8E5EDEF480CC",
-                            "deviceUniqueId": "RASnBWv15"
+                            "deviceGuid": "59029436-805A-404F-A2CA-1A13A93D4EEE",
+                            "deviceUniqueId": "RASPuck1"
                         },
                         "boxtypes": "3",
                         "attributes": {
                             "attribute": [
                                 {
-                                    "attributeGuid": "label_0.infStr",
-                                    "attributeName": "label_0.infStr"
+                                    "attributeGuid": "label_0_0.infStr",
+                                    "attributeName": "label_0_0.infStr"
                                 },
                                 {
-                                    "attributeGuid": "label_0.infCnt",
-                                    "attributeName": "label_0.infCnt"
+                                    "attributeGuid": "label_0_0.infCnt",
+                                    "attributeName": "label_0_0.infCnt"
                                 },
                                 {
-                                    "attributeGuid": "label_1.infStr",
-                                    "attributeName": "label_1.infStr"
+                                    "attributeGuid": "label_0_1.infStr",
+                                    "attributeName": "label_0_1.infStr"
                                 },
                                 {
-                                    "attributeGuid": "label_1.infCnt",
-                                    "attributeName": "label_1.infCnt"
+                                    "attributeGuid": "label_0_1.infCnt",
+                                    "attributeName": "label_0_1.infCnt"
                                 },
                                 {
-                                    "attributeGuid": "label_2.infStr",
-                                    "attributeName": "label_2.infStr"
+                                    "attributeGuid": "label_0_2.infStr",
+                                    "attributeName": "label_0_2.infStr"
                                 },
                                 {
-                                    "attributeGuid": "label_2.infCnt",
-                                    "attributeName": "label_2.infCnt"
+                                    "attributeGuid": "label_0_2.infCnt",
+                                    "attributeName": "label_0_2.infCnt"
                                 }
                             ]
                         },
@@ -174,35 +175,35 @@
                 "contents": {
                     "devicelatestvalue": {
                         "device": {
-                            "deviceGuid": "552EA32D-B1B2-4423-8042-8E5EDEF480CC",
-                            "deviceUniqueId": "RASnBWv15"
+                            "deviceGuid": "59029436-805A-404F-A2CA-1A13A93D4EEE",
+                            "deviceUniqueId": "RASPuck1"
                         },
                         "boxtypes": "3",
                         "attributes": {
                             "attribute": [
                                 {
-                                    "attributeGuid": "label_3.infStr",
-                                    "attributeName": "label_3.infStr"
+                                    "attributeGuid": "label_0_3.infStr",
+                                    "attributeName": "label_0_3.infStr"
                                 },
                                 {
-                                    "attributeGuid": "label_3.infCnt",
-                                    "attributeName": "label_3.infCnt"
+                                    "attributeGuid": "label_0_3.infCnt",
+                                    "attributeName": "label_0_3.infCnt"
                                 },
                                 {
-                                    "attributeGuid": "label_4.infStr",
-                                    "attributeName": "label_4.infStr"
+                                    "attributeGuid": "label_0_4.infStr",
+                                    "attributeName": "label_0_4.infStr"
                                 },
                                 {
-                                    "attributeGuid": "label_4.infCnt",
-                                    "attributeName": "label_4.infCnt"
+                                    "attributeGuid": "label_0_4.infCnt",
+                                    "attributeName": "label_0_4.infCnt"
                                 },
                                 {
-                                    "attributeGuid": "label_5.infStr",
-                                    "attributeName": "label_5.infStr"
+                                    "attributeGuid": "label_0_5.infStr",
+                                    "attributeName": "label_0_5.infStr"
                                 },
                                 {
-                                    "attributeGuid": "label_5.infCnt",
-                                    "attributeName": "label_5.infCnt"
+                                    "attributeGuid": "label_0_5.infCnt",
+                                    "attributeName": "label_0_5.infCnt"
                                 }
                             ]
                         },
@@ -236,8 +237,8 @@
                 "contents": {
                     "devicelatestvalue": {
                         "device": {
-                            "deviceGuid": "552EA32D-B1B2-4423-8042-8E5EDEF480CC",
-                            "deviceUniqueId": "RASnBWv15"
+                            "deviceGuid": "59029436-805A-404F-A2CA-1A13A93D4EEE",
+                            "deviceUniqueId": "RASPuck1"
                         },
                         "boxtypes": "2",
                         "attributes": {
@@ -290,8 +291,8 @@
                 "contents": {
                     "liveChart": {
                         "device": {
-                            "deviceGuid": "552EA32D-B1B2-4423-8042-8E5EDEF480CC",
-                            "deviceUniqueId": "RASnBWv15"
+                            "deviceGuid": "59029436-805A-404F-A2CA-1A13A93D4EEE",
+                            "deviceUniqueId": "RASPuck1"
                         },
                         "attributes": {
                             "attribute": [
