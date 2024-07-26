@@ -1,20 +1,27 @@
 # Avnet RASynBoard RASynPuck Demo
 
-This page contains details for creating a copy of the RASynPuck demo.
+This page contains details for creating a copy of the RASynPuck demo.  Please see the RASynPuckDemo branch readme.md file for details on changes to the Avnet Out of Box application to support the RASynBoard demo.
 
 <p align="center">
     <br />
-    <img src=./assets/images/puckDemo2.jpg width="250">
+    <img src=https://images2.imgbox.com/ef/2c/Fpd0jH7K_o.gif width="250">
+    <img src=https://images2.imgbox.com/aa/dd/j2jucSRz_o.gif width="250">
+    <img src=https://images2.imgbox.com/94/b8/FHQHw4rG_o.gif width="250">
+    <img src=https://images2.imgbox.com/38/05/XQ1QYv4s_o.gif width="250">
+    <img src=https://images2.imgbox.com/57/c5/yNSmAnoP_o.jpg width="250">
 <br />
 
 <p align="center">
     <br />
-    <img src=./assets/images/puckDemo3.jpg width="1250">
+    <img src=./assets/images/RASynPuckDashboard.jpg width="1250">
 <br />
 
 # Demo Overview
 
-The RASynPuck demo is a pocket friendly, wireless, battery operated demo fixture with a supporting cloud dashboard hosted on Avnet's IoTConnect Cloud Platform.  The demo can be used to demonstrate ML models running on the Syntiant NDP120 Neural Decision Processor.  Additionally all ML model data and ML inference events can be viewed in a cloud hosted dashboard.
+> **Note:**
+> These instructions detail how to load the RASynPuck image
+
+The RASynPuck demo is a pocket friendly, wireless, battery operated demo fixture with a supporting cloud dashboard hosted on Avnet's IoTConnect Cloud Platform.  The demo can be used to demonstrate ML models running on the Syntiant NDP120 Neural Decision Processor.  Additionally all ML model data and ML inference events can be viewed in a cloud hosted dashboard.  The [IoTConnect instructions](./IoTConnect.md) include details to stand up the RASynBoard dashboard. 
 
 > **Note:** If you don't care to run the demo on just the core board, you can work through the [IoTConnect instructions](./IoTConnect.md) and end up with the same demo using the RASynBoard EVK (core board + I/O board).
 
@@ -30,10 +37,11 @@ The demo uses the core board only and requires managing the following items with
 1. [Required Hardware](#required-hardware)
 1. [Required Software](#required-software)
 1. [Setup the Demo System](#setup-the-demo-system)
-    1. [Flash the latest OOB release to the RASynBoard](#flash-the-oob-v151-image-to-the-renesas-ra6m4-mcu)
+    1. [Flash the latest RASynPuck image release to the RASynBoard](#flash-the-oob-v162_rasynpuck-image-to-the-renesas-ra6m4-mcu)
     1. [Copy the release microSD Card files to the microSD card](#copy-the-release-microsd-card-file-to-the-microsd-card)
-    1. [Select the ML model to run](#select-the-ml-model-to-run)
+    1. [Select the RASynPuck ML model to run](#select-the-ml-model-to-run)
     1. [Connect the RASynbBoard to IoTConnect](#connect-the-rasynboard-to-iotconnect)
+    1. [Import the RASynPuck Dashboard into your IoTConnect account]()
     1. [Update the WiFi configuration](#update-the-wifi-configuration)
     1. [Update the X.509 certificate location](#change-the-certificates-configuration-to-dont-load-any-certificates-the-certificates-are-already-loaded-onto-the-da16600)
     1. [Flash the ML model and configuration to SPI Flash](#flash-the-ml-models-and-configuration-to-spi-flash-memory-on-the-core-board)
@@ -59,20 +67,21 @@ The demo uses the core board only and requires managing the following items with
 
 Follow the steps here to get your RASynBoard demo up and running.  The tasks we need to complete are . . . 
 
-1. Flash the Avnet RASynBoard Out-of-Box application (V1.5.1 or greater) onto the RASynBoard's Renesas RA6M4 MCU
+1. Flash the Avnet RASynBoard RASynPuckDemo-v1.6.2.RASynPuck_build.srec or greater image onto the RASynBoard's Renesas RA6M4 MCU
     1. Flash the image
     1. Update the microSD card with the release microSD card files 
-1. Select the ML model that you want to run on the demo
+1. Select the RASynPuck demo ML model
 1. Connect the board to IoTConnect and create the dashboard from a template
 1. Update the WiFi configuration
 1. Change the certificates configuration to ```Don't load any certificates, the certificates are already loaded onto the DA16600```
 1. Flash the ML models and configuration to SPI Flash memory on the Core board
 1. Separate the core board from the I/O board and test
 
-## Flash the OOB V1.5.1+ image to the Renesas RA6M4 MCU
+## Flash the OOB V1.6.2_RASynPuck+ image to the Renesas RA6M4 MCU
 
-1. Follow the [How to use RASynBoard Releases](./UsingRASynbBoardReleases.md) instructions to load the latest release
-    1. Be sure to use the latest release >= 1.5.1
+1. Follow the [How to use RASynBoard Releases](./UsingRASynbBoardReleases.md) instructions to load the latest RASynPuck image 
+    1. Be sure to use the [latest release >= 1.6.2](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/releases)
+        - Look for the AVT-RASynPuckDemo-v<verson string>.RASynPuck_Build.srec image 
     1. A video walkthrough of the process is available [here](http://avnet.me/RASynUsingReleasesVideo)
 
 ### Copy the release microSD card file to the microSD card
@@ -81,22 +90,29 @@ Each release contains a zip file **microSD-Files-\<version string\>.zip** that c
 
 ## Select the ML model to run
 
-The default model configuration is the 5-keyword model "up," "down," "back," "next," "ok-syntiant."  If you want to run a different model . . .
+We want to run the RASynPuck ML model.  In releases after 1.6.2, this is Mode=10
 1. Use the instructions [here](./ApplicationUserGuide.md#ndp120-configuration) to change the model running on the board.
 1. A video walkthrough of the process is available [here](http://avnet.me/RASynChangingMlModelsVideo)
 
-> **Note:** the IoTConnect dashboard is generic and will work with any ML model
+<p align="center">
+    <br />
+    <img src=./assets/images/mode10.jpg width="550">
+<br />
+
+> **Note:** If you're not loading the RASynPuck demo, feel free to select the model you want to run.  When we create the dashboard I'll provide instructions for loading the generic dashboard that will work with any model
 
 ## Connect the RASynBoard to IoTConnect
 
 In order to use the IoTconnect dashboard, you must first setup the IoTConnect account/device/dashboard.  All the details to accomplish these tasks is documented in the [IoTConnect Documentation](./IoTConnect.md).
+
+> **Note: Before moving on, you must have your device connected to IoTConnect**
 
 1. A video walkthrough of the process is available [here](http://avnet.me/IoTConnectOnAWS)
 
 ## Update the WiFi configuration
 There are two ways to configure the WiFi network, both are documented [here](./ApplicationUserGuide.md/#wifi-access-point-credentials).  Which configuration you use depends on the WiFi network where you plan to show the demo.
 - If you have a WiFi Hotspot or dedicated Access Point then it’s recommended to use the static configuration where you add the SSID and Password to the config.ini file
-- If you must use the WiFi at the location, use the Renesas WiFi Configuration mobile application.  Use caution here as some public WiFi networks require the user acknowledge an agreement and since the RASynBoard is headless, there will be no way to complete the WiFi registration.
+- If you must use the WiFi at the location, you can use the Renesas WiFi Configuration mobile application to change the WiFi network over BLE.  Use caution here as some public WiFi networks require the user acknowledge an agreement and since the RASynBoard is headless, there will be no way to complete the WiFi registration.
     - Don't forget to enable BLE in the config.ini file
 
 - [Video Link (9 minutes)](http://avnet.me/RASynWiFi)
@@ -121,7 +137,7 @@ When you setup the device to connect to IoTConnect, you copied the X.509 certifi
 
 ## Flash the ML models and configuration to SPI Flash memory on the Core board
 We're just about finished.  At this point we have . . . 
-1. Flashed the latest OOB release onto the RASynBoard EVK
+1. Flashed the latest RASynPuck release onto the RASynBoard EVK
 1. Updated the microSD card with the files matching the release
 1. Selected the ML model we want to demo
 1. Connected the board to IoTConnect and created the dashboard from a template
@@ -132,6 +148,7 @@ We're just about finished.  At this point we have . . .
 
 Next we need to flash the ML model files and the current configuration to the SPI memory on the core board
 1. With the application still running, press the user button (button closest to the corner) for 3+ seconds 
+    - The RGB Led will light Red once the long button press was detected
     - The application flashes all the NDP120 model files to SPI flash
     - The application writes the current configuration to SPI flash
 
@@ -145,7 +162,7 @@ Now we can separate the boards!
 1. Power down the device
 1. Carefully remove the core board from the I/O board
 1. Power the core board using a USB-C cable to your development PC
-1. Note that a COM port will enumerate on your PC that can be used to see debug from your core board
+1. Note that a new COM port will enumerate on your PC that can be used to see debug from your core board
     1. COM settings are 115200, 8, N, 1
 1. Exercise your ML model, you should see debug
 
@@ -160,6 +177,7 @@ Now we can separate the boards!
 
 ## Mount the RASynBoard core board into the RASynPuck fixture
 1. Mount the core board onto the board mount piece
+    - The design requires a M4 screw and nut to hold the core board to the demo fixture
 1. Place the battery in the bottom void
 1. Pass the power connector up through the hole in the board mount piece
 1. Screw the bottom onto the board mount capturing the battery
