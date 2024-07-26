@@ -68,7 +68,10 @@ void system_cmd_thread_entry(void *pvParameters)
 
 		    enter_low_power_mode ();
 		}
-        vTaskDelay (sleep_time);
+
+		// Set the delay equal to the delay between sending the inference telemetry
+		// and sending the idle telemetry message
+        vTaskDelay (get_puck_idle_delay());
     }
 }
 
