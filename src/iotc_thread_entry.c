@@ -881,6 +881,33 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
         return;
     }
 
+#define NEW_AWS_CERT_CMDS
+#ifdef  NEW_AWS_CERT_CMDS
+
+    // Set the input buffer to 8k.  This is required to pass the large certificate AWS certification test
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLSBUFIN=8192", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set the output buffer to 8k.  This is required to pass the large certificate AWS certification test
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLSBUFOUT=8192", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set the MQTT TLS authorization to REQUIRED
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLSAUTH=2", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+
+#endif
+
     // Set the TLS authorization to MBEDTLS_SSL_VERIFY_REQUIRED
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWOTATLSAUTH=2", 1000,buf, ATBUF_SIZE)){
