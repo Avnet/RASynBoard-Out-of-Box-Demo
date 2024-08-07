@@ -67,7 +67,7 @@ static int extract_file_opened = 0;
 static uint32_t fatfs_total_sectors;
 static int boot_mode =  BOOT_MODE_NONE;
 static int sdcard_slot_status =  SDCARD_IN_SLOT;
-static int print_console_type = CONSOLE_UART;
+static int print_console_type = CONSOLE_USB_CDC;
 
 char mode_description[64] = {0};
 int mode;
@@ -581,7 +581,7 @@ static uint32_t read_config_file( void )
             }
         }
 	}
-	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_UART, inifile);
+	print_console_type = ini_getl("Debug Print", "Port", CONSOLE_USB_CDC, inifile);
 	config_items.recording_period = ini_getl("Recording Period", "Recording_Period", 10, inifile);
 	config_items.low_power_mode = ini_getl("Low Power Mode", "Power_Mode",DOWN_DOWN_LP_MODE, inifile);
     config_items.low_power_down_down_enabled = ini_getl("Low Power Mode", "down_down_enters_low_power",DOWN_DOWN_ENABLED, inifile);

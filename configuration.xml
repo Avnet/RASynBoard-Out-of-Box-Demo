@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<raConfiguration version="7">
+<raConfiguration version="9">
   <generalSettings>
     <option key="#Board#" value="board.custom"/>
     <option key="CPU" value="RA6M4"/>
@@ -242,32 +242,6 @@
       <property id="module.driver.ioport.pincfg" value="g_bsp_pin_cfg"/>
     </module>
     <module id="module.middleware.rm_freertos_port.0"/>
-    <module id="module.driver.uart_on_sci_uart.174075565">
-      <property id="module.driver.uart.name" value="g_uart4"/>
-      <property id="module.driver.uart.channel" value="4"/>
-      <property id="module.driver.uart.data_bits" value="module.driver.uart.data_bits.data_bits_8"/>
-      <property id="module.driver.uart.parity" value="module.driver.uart.parity.parity_off"/>
-      <property id="module.driver.uart.stop_bits" value="module.driver.uart.stop_bits.stop_bits_1"/>
-      <property id="module.driver.uart.baud" value="115200"/>
-      <property id="module.driver.uart.baudrate_modulation" value="module.driver.uart.baudrate_modulation.disabled"/>
-      <property id="module.driver.uart.baudrate_max_err" value="5"/>
-      <property id="module.driver.uart.flow_control" value="module.driver.uart.flow_control.rts"/>
-      <property id="module.driver.uart.pin_control_port" value="module.driver.uart.pin_control_port.PORT_DISABLE"/>
-      <property id="module.driver.uart.pin_control_pin" value="module.driver.uart.pin_control_pin.PIN_DISABLE"/>
-      <property id="module.driver.uart.clk_src" value="module.driver.uart.clk_src.int_clk"/>
-      <property id="module.driver.uart.rx_edge_start" value="module.driver.uart.rx_edge_start.falling_edge"/>
-      <property id="module.driver.uart.noisecancel_en" value="module.driver.uart.noisecancel_en.disabled"/>
-      <property id="module.driver.uart.rx_fifo_trigger" value="module.driver.uart.rx_fifo_trigger.max"/>
-      <property id="module.driver.uart.rs485.de_enable" value="module.driver.uart.rs485.de_enable.disabled"/>
-      <property id="module.driver.uart.rs485.de_polarity" value="module.driver.uart.rs485.de_polarity.high"/>
-      <property id="module.driver.uart.rs485.de_port_number" value="module.driver.uart.rs485.de_port_number.PORT_DISABLE"/>
-      <property id="module.driver.uart.rs485.de_pin_number" value="module.driver.uart.rs485.de_pin_number.PIN_DISABLE"/>
-      <property id="module.driver.uart.callback" value="console_callback"/>
-      <property id="module.driver.uart.rxi_ipl" value="board.icu.common.irq.priority3"/>
-      <property id="module.driver.uart.txi_ipl" value="board.icu.common.irq.priority3"/>
-      <property id="module.driver.uart.tei_ipl" value="board.icu.common.irq.priority3"/>
-      <property id="module.driver.uart.eri_ipl" value="board.icu.common.irq.priority3"/>
-    </module>
     <module id="module.driver.i2c_on_iic_master.352656797">
       <property id="module.driver.i2c_master.name" value="g_i2c0_master"/>
       <property id="module.driver.i2c_master.channel" value="0"/>
@@ -498,7 +472,6 @@
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.middleware.rm_freertos_port.0"/>
-      <stack module="module.driver.uart_on_sci_uart.174075565"/>
       <stack module="module.driver.spi_on_spi.135396154"/>
       <stack module="module.driver.external_irq_on_icu.1898729065"/>
       <stack module="module.driver.uart_on_sci_uart.440878227"/>
@@ -781,10 +754,6 @@
       <configSetting altId="p111.gpio_mode.gpio_mode_out.low" configurationId="p111.gpio_mode"/>
       <configSetting altId="p112.output.low" configurationId="p112"/>
       <configSetting altId="p112.gpio_mode.gpio_mode_out.low" configurationId="p112.gpio_mode"/>
-      <configSetting altId="p205.sci4.txd" configurationId="p205"/>
-      <configSetting altId="p205.gpio_mode.gpio_mode_peripheral" configurationId="p205.gpio_mode"/>
-      <configSetting altId="p206.sci4.rxd" configurationId="p206"/>
-      <configSetting altId="p206.gpio_mode.gpio_mode_peripheral" configurationId="p206.gpio_mode"/>
       <configSetting altId="p207.output.low" configurationId="p207"/>
       <configSetting altId="p207.gpio_mode.gpio_mode_out.low" configurationId="p207.gpio_mode"/>
       <configSetting altId="p300.debug0.swclk" configurationId="p300"/>
@@ -809,9 +778,6 @@
       <configSetting altId="sci3.mode.custom.free" configurationId="sci3.mode"/>
       <configSetting altId="sci3.rxd.p408" configurationId="sci3.rxd"/>
       <configSetting altId="sci3.txd.p409" configurationId="sci3.txd"/>
-      <configSetting altId="sci4.mode.asynchronous.free" configurationId="sci4.mode"/>
-      <configSetting altId="sci4.rxd.p206" configurationId="sci4.rxd"/>
-      <configSetting altId="sci4.txd.p205" configurationId="sci4.txd"/>
       <configSetting altId="sci9.mode.asynchronous.free" configurationId="sci9.mode"/>
       <configSetting altId="sci9.rxd.p110" configurationId="sci9.rxd"/>
       <configSetting altId="sci9.txd.p109" configurationId="sci9.txd"/>
