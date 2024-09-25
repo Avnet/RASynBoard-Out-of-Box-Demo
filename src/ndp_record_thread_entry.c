@@ -680,6 +680,8 @@ void ndp_record_thread_entry(void *pvParameters)
         printf("press time=%d\n",delta_time);
         if ((delta_time < SHORT_PRESS_TIME ) && ( evbits == EVENT_BIT_FALLING ))
         {
+            // Delay to allow the button press audio to pass before starting the recording
+            vTaskDelay(pdMS_TO_TICKS(750UL));
             rec_process = true; // click event to record
         }
         else if ((delta_time > (LONG_PRESS_TIME - 1) ) && ( evbits == 0 ))
