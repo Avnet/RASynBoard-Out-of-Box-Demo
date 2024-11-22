@@ -881,6 +881,38 @@ __attribute__ ((optimize(0))) void setup_mqtt(void)
         return;
     }
 
+#undef NEW_AWS_CERT_CMDS
+
+// These commands are not implemented in a DA16600 release as of 9/26/2024.  If required please
+// contact Brian Willess @ brian.willess@avnet.com for a custom DA16600 image that supports the commands
+#ifdef  NEW_AWS_CERT_CMDS
+
+
+
+    // Set the input buffer to 8k.  This is required to pass the large certificate AWS certification test
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLSBUFIN=8192", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set the output buffer to 8k.  This is required to pass the large certificate AWS certification test
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLSBUFOUT=8192", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+    // Set the MQTT TLS authorization to REQUIRED
+    memset(buf, '\0', ATBUF_SIZE);
+    if(FSP_SUCCESS != rm_atcmd_send("AT+NWMQTLSAUTH=2", 1000,buf, ATBUF_SIZE)){
+        failCnt++;
+        return;
+    }
+
+
+#endif
+
     // Set the TLS authorization to MBEDTLS_SSL_VERIFY_REQUIRED
     memset(buf, '\0', ATBUF_SIZE);
     if(FSP_SUCCESS != rm_atcmd_send("AT+NWOTATLSAUTH=2", 1000,buf, ATBUF_SIZE)){
@@ -1082,7 +1114,7 @@ __attribute__ ((optimize(0))) void wait_for_telemetry(void)
         // Verify we have a valid MQTT connection before sending telemetry
         memset(buf, '\0', ATBUF_SIZE);
         rm_atcmd_check_value("AT+NWMQCL",5000,buf,ATBUF_SIZE);
-        if(buf[0] != '1'){
+        if(buf[0] == '0'){
             if(!reestablish_mqtt_conn()){
                 return;
             }

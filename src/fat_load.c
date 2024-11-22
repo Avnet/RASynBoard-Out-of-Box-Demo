@@ -590,7 +590,7 @@ static uint32_t read_config_file( void )
 	config_items.imu_print_to_terminal = ini_getl("IMU data stream", "Print_to_terminal", \
 										IMU_FUNC_DISABLE, inifile);
 
-    config_items.imu_conversion_enabled = ini_getl("IMU Recording Format", "Convert_Data", 1, inifile);
+    config_items.imu_conversion_enabled = ini_getl("IMU Recording Format", "Convert_Data", 0, inifile);
 
 	// BLE Configuration
 	config_items.ble_mode = ini_getl("BLE Mode", "BLE_Enabled", BLE_DISABLE, inifile);
