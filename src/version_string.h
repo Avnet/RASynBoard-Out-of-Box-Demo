@@ -16,13 +16,13 @@
 #define MAJOR_VERSION "1"
 
 // Increment Minor Version when new features are added
-#define MINOR_VERSION "6"
+#define MINOR_VERSION "7"
 
 #if RELEASE_BUILD
 
 // Increment Build Version when Major and Minor versions do not change
 // If Major or Minor versions change, reset BUILD_VERSION to 0
-#define BUILD_VERSION "2"
+#define BUILD_VERSION "0"
 
 #else
 #define BUILD_VERSION "Engineering Build"
