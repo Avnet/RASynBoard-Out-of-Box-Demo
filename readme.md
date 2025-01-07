@@ -61,9 +61,9 @@ As Avnet adds features and bug fixes to the OOB application we push out releases
 # Self Paced Training
 Avnet creates training materials to help engineering teams come up to speed quickly with the Avnet RASynBoard.  Follow the links below to access the latest hands-on RASynBoard lab documents.
 
-- [Lab0](http://avnet.me/ML-Workshop-Lab0): Walks the user through setting the tools and free on-line accounts to complete the labs
-- [Lab1](http://avnet.me/ML-Workshop-Lab1): Details on sideloading the OOB binary image onto the board and exercising some of the ML features implemented in the OOB application
-- [Lab2](http://avnet.me/ML-Workshop-Lab2): Details on creating an Edge Impulse ML model.  **Note:** this lab can't be completed until late October when Edge Impulse releases public support for the Avnet RASynBoard.  However, you can still stream 6-Axis IMU data to Edge Impulse, build a ML model, and test it in Edge Impulse from data streaming from your RASynBoard.
+- [Lab0](http://avnet.me/ML-WorkshopV2-Lab0): Walks the user through setting the tools and free on-line accounts to complete the labs
+- [Lab1](http://avnet.me/ML-WorkshopV2-Lab1): Details on sideloading the OOB binary image onto the board and exercising some of the ML features implemented in the OOB application
+- [Lab2](http://avnet.me/ML-WorkshopV2-Lab2): Details on creating an Edge Impulse ML model.  **Note:** this lab can't be completed until late October when Edge Impulse releases public support for the Avnet RASynBoard.  However, you can still stream 6-Axis IMU data to Edge Impulse, build a ML model, and test it in Edge Impulse from data streaming from your RASynBoard.
 
 # Bugs or improvement ideas
 If you encounter a bug, have questions on the OOB application, or have an idea for ways to improve the application, please open an issue on the [GitHub Issue Page](https://github.com/Avnet/RASynBoard-Out-of-Box-Demo/issues).  An Avnet engineer will respond to the request.
